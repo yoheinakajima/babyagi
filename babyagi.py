@@ -1,11 +1,13 @@
 import openai
 import pinecone
 import time
+import sqlite3
 from collections import deque
 from typing import Dict, List
 
 #Set API Keys
 OPENAI_API_KEY = ""
+OPENAI_API_MODEL = "gpt-3.5-turbo" # Alternatively "gpt-4"
 PINECONE_API_KEY = ""
 PINECONE_ENVIRONMENT = "us-east1-gcp" #Pinecone Environment (eg. "us-east1-gcp")
 
@@ -17,6 +19,36 @@ YOUR_FIRST_TASK = "Develop a task list."
 #Print OBJECTIVE
 print("\033[96m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
 print(OBJECTIVE)
+
+# Initialize SQLite database
+db_conn = sqlite3.connect("miniagi.db")
+db_cursor = db_conn.cursor()
+
+db_cursor.execute("""
+CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER PRIMARY KEY,
+    task_name TEXT NOT NULL
+)
+""")
+
+db_cursor.execute("""
+CREATE TABLE IF NOT EXISTS task_results (
+    id INTEGER PRIMARY KEY,
+    task_id INTEGER NOT NULL,
+    result TEXT NOT NULL,
+    FOREIGN KEY (task_id) REFERENCES tasks (id)
+)
+""")
+
+db_cursor.execute("""
+CREATE TABLE IF NOT EXISTS completed_tasks (
+    id INTEGER PRIMARY KEY,
+    task_id INTEGER NOT NULL,
+    FOREIGN KEY (task_id) REFERENCES tasks (id)
+)
+""")
+
+db_conn.commit()
 
 # Configure OpenAI and Pinecone
 openai.api_key = OPENAI_API_KEY
@@ -38,6 +70,13 @@ task_list = deque([])
 
 def add_task(task: Dict):
     task_list.append(task)
+    # Add task to the tasks table
+    db_cursor.execute(
+        "INSERT INTO tasks (id, task_name) VALUES (?, ?)",
+        (task["task_id"], task["task_name"]),
+    )
+
+    db_conn.commit()
 
 def get_ada_embedding(text):
     text = text.replace("\n", " ")
@@ -45,8 +84,8 @@ def get_ada_embedding(text):
 
 def task_creation_agent(objective: str, result: Dict, task_description: str, task_list: List[str]):
     prompt = f"You are an task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective}, The last completed task has the result: {result}. This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}. Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks. Return the tasks as an array."
-    response = openai.Completion.create(engine="text-davinci-003",prompt=prompt,temperature=0.5,max_tokens=100,top_p=1,frequency_penalty=0,presence_penalty=0)
-    new_tasks = response.choices[0].text.strip().split('\n')
+    response = openai.ChatCompletion.create(model=OPENAI_API_MODEL,messages=[{'role':'user', 'content':prompt}],temperature=0.5,max_tokens=100,top_p=1,frequency_penalty=0,presence_penalty=0)
+    new_tasks = response.choices[0]['message']['content'].strip().split('\n')
     return [{"task_name": task_name} for task_name in new_tasks]
 
 def prioritization_agent(this_task_id:int):
@@ -57,8 +96,9 @@ def prioritization_agent(this_task_id:int):
     #. First task
     #. Second task
     Start the task list with number {next_task_id}."""
-    response = openai.Completion.create(engine="text-davinci-003",prompt=prompt,temperature=0.5,max_tokens=1000,top_p=1,frequency_penalty=0,presence_penalty=0)
-    new_tasks = response.choices[0].text.strip().split('\n')
+    response = openai.ChatCompletion.create(model=OPENAI_API_MODEL,messages=[{'role':'user', 'content':prompt}]
+                                            ,temperature=0.5,max_tokens=1000,top_p=1,frequency_penalty=0,presence_penalty=0)
+    new_tasks = response.choices[0]['message']['content'].strip().split('\n')
     task_list = deque()
     for task_string in new_tasks:
         task_parts = task_string.strip().split(".", 1)
@@ -72,16 +112,17 @@ def execution_agent(objective:str,task: str) -> str:
     context=context_agent(index=YOUR_TABLE_NAME, query=objective, n=5)
     #print("\n*******RELEVANT CONTEXT******\n")
     #print(context)
-    response = openai.Completion.create(
-        engine="text-davinci-003",
-        prompt=f"You are an AI who performs one task based on the following objective: {objective}. Your task: {task}\nResponse:",
+    response = openai.ChatCompletion.create(
+        model=OPENAI_API_MODEL,
+        messages=[{'role':'user', 'content':f"You are an AI who performs one task based on the following objective: {objective}. Your task: {task}\nResponse:",}
+        ],
         temperature=0.7,
         max_tokens=2000,
         top_p=1,
         frequency_penalty=0,
         presence_penalty=0
     )
-    return response.choices[0].text.strip()
+    return response.choices[0]['message']['content'].strip()
 
 def context_agent(query: str, index: str, n: int):
     query_embedding = get_ada_embedding(query)
@@ -90,18 +131,42 @@ def context_agent(query: str, index: str, n: int):
     include_metadata=True)
     #print("***** RESULTS *****")
     #print(results)
-    sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)    
+    sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)
     return [(str(item.metadata['task'])) for item in sorted_results]
 
-# Add the first task
-first_task = {
-    "task_id": 1,
-    "task_name": YOUR_FIRST_TASK
-}
+def strip_numbered_list_prefix(task_string: str) -> str:
+    task_parts = task_string.strip().split(".", 1)
+    if len(task_parts) == 2:
+        return task_parts[1].strip()
+    return task_string.strip()
 
-add_task(first_task)
+task_list = deque(
+    [
+        {"task_id": task_id, "task_name": task_name}
+        for task_id, task_name in db_cursor.execute(
+            """
+            SELECT tasks.id, tasks.task_name
+            FROM tasks
+            LEFT JOIN completed_tasks ON tasks.id = completed_tasks.task_id
+            WHERE completed_tasks.task_id IS NULL
+            """
+        ).fetchall()
+    ]
+)
+
+# Check if empty task list
+if not task_list:
+    # Add the first task
+    first_task = {
+        "task_id": 1,
+        "task_name": YOUR_FIRST_TASK
+    }
+    add_task(first_task)
+    task_id_counter = 1
+else:
+    task_id_counter = max(task["task_id"] for task in task_list)
+
 # Main loop
-task_id_counter = 1
 while True:
     if task_list:
         # Print the task list
@@ -120,6 +185,14 @@ while True:
         print("\033[93m\033[1m"+"\n*****TASK RESULT*****\n"+"\033[0m\033[0m")
         print(result)
 
+        # Store the result in the task_results and completed_tasks table
+        db_cursor.execute(
+            "INSERT INTO task_results (task_id, result) VALUES (?, ?)",
+            (this_task_id, result),
+        )
+        db_cursor.execute("INSERT INTO completed_tasks (task_id) VALUES (?)", (this_task_id,))
+        db_conn.commit()
+
         # Step 2: Enrich result and store in Pinecone
         enriched_result = {'data': result}  # This is where you should enrich the result if needed
         result_id = f"result_{task['task_id']}"
@@ -131,8 +204,10 @@ while True:
 
     for new_task in new_tasks:
         task_id_counter += 1
-        new_task.update({"task_id": task_id_counter})
-        add_task(new_task)
+        task_name = strip_numbered_list_prefix(new_task["task_name"])
+        # new_task.update({"task_id": task_id_counter, "task_name": task_name})
+        new_task_with_id = {"task_id": task_id_counter, "task_name": task_name}
+        add_task(new_task_with_id)
     prioritization_agent(this_task_id)
 
-time.sleep(1)  # Sleep before checking the task list again
+    time.sleep(1)  # Sleep before checking the task list again
