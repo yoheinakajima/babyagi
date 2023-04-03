@@ -28,9 +28,7 @@ Finally, the script uses Pinecone to store and retrieve task results for context
 # How to Use
 To use the script, you will need to follow these steps:
 
-1. Install the required packages:
--openai
--pinecone
+1. Install the required packages: `pip install -r requirements.txt`
 2. Set your OpenAI and Pinecone API keys in the OPENAI_API_KEY and PINECONE_API_KEY variables.
 3. Set the Pinecone environment in the PINECONE_ENVIRONMENT variable.
 4. Set the name of the table where the task results will be stored in the YOUR_TABLE_NAME variable.
