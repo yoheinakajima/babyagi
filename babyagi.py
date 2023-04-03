@@ -2,6 +2,7 @@ import os
 import openai
 import pinecone
 import time
+import sys
 from collections import deque
 from typing import Dict, List
 
@@ -13,7 +14,7 @@ PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "us-east1-gcp")
 
 #Set Variables
 YOUR_TABLE_NAME = "test-table"
-OBJECTIVE = "Solve world hunger."
+OBJECTIVE = sys.argv[1] if len(sys.argv) > 1 else "Solve world hunger."
 YOUR_FIRST_TASK = "Develop a task list."
 
 #Print OBJECTIVE
