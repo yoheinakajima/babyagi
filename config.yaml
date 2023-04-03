@@ -1,0 +1,18 @@
+pinecone_env: "us-east1-gcp"
+your_table_name: "agi-testing"
+pinecone_dimension: 1536
+pinecone_metric: "cosine"
+pinecone_pod_type: "p1"
+openai_api_key_var: "OPENAI_API_KEY" #environmental variable to openai api key
+pinecone_api_key_var: "PINECONE_API_KEY" #environmental variable to pinecone api
+ada_embedding_engine: text-embedding-ada-002
+openai_completion_engine: text-davinci-003
+openai_creation_temperature: 0.5
+openai_creation_max_tokens: 100
+openai_prioritization_temperature: 0.5
+openai_prioritization_max_tokens: 1000
+openai_execution_temperature: 0.7
+openai_execution_max_tokens: 2000
+openai_top_p: 1
+openai_frequency_penalty: 0
+openai_presence_penalty: 0 
