@@ -72,16 +72,17 @@ def execution_agent(objective:str,task: str) -> str:
     context=context_agent(index=YOUR_TABLE_NAME, query=objective, n=5)
     #print("\n*******RELEVANT CONTEXT******\n")
     #print(context)
-    response = openai.Completion.create(
-        engine="text-davinci-003",
-        prompt=f"You are an AI who performs one task based on the following objective: {objective}. Your task: {task}\nResponse:",
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo", # Alternatively "gpt-4"
+        messages=[{'role':'user', 'content':f"You are an AI who performs one task based on the following objective: {objective}. Your task: {task}\nResponse:",}
+        ],
         temperature=0.7,
         max_tokens=2000,
         top_p=1,
         frequency_penalty=0,
         presence_penalty=0
     )
-    return response.choices[0].text.strip()
+    return response.choices[0]['message']['content'].strip()
 
 def context_agent(query: str, index: str, n: int):
     query_embedding = get_ada_embedding(query)
