@@ -74,7 +74,7 @@ def execution_agent(objective:str,task: str) -> str:
     #print(context)
     response = openai.Completion.create(
         engine="text-davinci-003",
-        prompt=f"You are an AI who performs one task based on the following objective: {objective}. Your task: {task}\nResponse:",
+        prompt=f"You are an AI who performs one task based on the following objective: {objective}.\nTake into account these previously completed tasks: {context}\nYour task: {task}\nResponse:",
         temperature=0.7,
         max_tokens=2000,
         top_p=1,
