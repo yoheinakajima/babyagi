@@ -13,6 +13,7 @@ PINECONE_ENVIRONMENT = "us-east1-gcp" #Pinecone Environment (eg. "us-east1-gcp")
 YOUR_TABLE_NAME = "test_table"
 OBJECTIVE = "Solve world hunger."
 YOUR_FIRST_TASK = "Develop a task list."
+LANGUAGE = "English"
 
 #Print OBJECTIVE
 print("\033[96m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
@@ -44,7 +45,7 @@ def get_ada_embedding(text):
     return openai.Embedding.create(input=[text], model="text-embedding-ada-002")["data"][0]["embedding"]
 
 def task_creation_agent(objective: str, result: Dict, task_description: str, task_list: List[str]):
-    prompt = f"You are an task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective}, The last completed task has the result: {result}. This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}. Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks. Return the tasks as an array."
+    prompt = f"You are only allowed to reply in {LANGUAGE} and are a task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective}, The last completed task has the result: {result}. This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}. Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks. Return the tasks as an array."
     response = openai.Completion.create(engine="text-davinci-003",prompt=prompt,temperature=0.5,max_tokens=100,top_p=1,frequency_penalty=0,presence_penalty=0)
     new_tasks = response.choices[0].text.strip().split('\n')
     return [{"task_name": task_name} for task_name in new_tasks]
@@ -53,7 +54,7 @@ def prioritization_agent(this_task_id:int):
     global task_list
     task_names = [t["task_name"] for t in task_list]
     next_task_id = int(this_task_id)+1
-    prompt = f"""You are an task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}. Consider the ultimate objective of your team:{OBJECTIVE}. Do not remove any tasks. Return the result as a numbered list, like:
+    prompt = f"""You are only allowed to reply in {LANGUAGE} and are a task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}. Consider the ultimate objective of your team:{OBJECTIVE}. Do not remove any tasks. Return the result as a numbered list, like:
     #. First task
     #. Second task
     Start the task list with number {next_task_id}."""
@@ -74,7 +75,7 @@ def execution_agent(objective:str,task: str) -> str:
     #print(context)
     response = openai.Completion.create(
         engine="text-davinci-003",
-        prompt=f"You are an AI who performs one task based on the following objective: {objective}. Your task: {task}\nResponse:",
+        prompt=f"You are only allowed to reply in {LANGUAGE}. You are an AI who performs one task based on the following objective: {objective}. Your task: {task}\nResponse:",
         temperature=0.7,
         max_tokens=2000,
         top_p=1,
