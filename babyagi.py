@@ -3,16 +3,22 @@ import pinecone
 import time
 from collections import deque
 from typing import Dict, List
+from dotenv import load_dotenv
+import os
 
-#Set API Keys
-OPENAI_API_KEY = ""
-PINECONE_API_KEY = ""
-PINECONE_ENVIRONMENT = "us-east1-gcp" #Pinecone Environment (eg. "us-east1-gcp")
+load_dotenv()
 
-#Set Variables
-YOUR_TABLE_NAME = "test-table"
-OBJECTIVE = "Solve world hunger."
-YOUR_FIRST_TASK = "Develop a task list."
+# Set API Keys
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT")
+
+# Table config
+YOUR_TABLE_NAME = os.getenv("TABLE_NAME")
+
+# Project config
+OBJECTIVE = os.getenv("OBJECTIVE")
+YOUR_FIRST_TASK = os.getenv("FIRST_TASK")
 
 #Print OBJECTIVE
 print("\033[96m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
