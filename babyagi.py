@@ -12,7 +12,7 @@ PINECONE_API_KEY = ""
 PINECONE_ENVIRONMENT = "us-east1-gcp" #Pinecone Environment (eg. "us-east1-gcp")
 
 #Set Variables
-YOUR_TABLE_NAME = "test_table"
+YOUR_TABLE_NAME = "test-table"
 OBJECTIVE = "Solve world hunger."
 YOUR_FIRST_TASK = "Develop a task list."
 
@@ -114,7 +114,7 @@ def execution_agent(objective:str,task: str) -> str:
     #print(context)
     response = openai.ChatCompletion.create(
         model=OPENAI_API_MODEL,
-        messages=[{'role':'user', 'content':f"You are an AI who performs one task based on the following objective: {objective}. Your task: {task}\nResponse:",}
+        messages=[{'role':'user', 'content':f"You are an AI who performs one task based on the following objective: {objective}.\nTake into account these previously completed tasks: {context}\nYour task: {task}\nResponse:",}
         ],
         temperature=0.7,
         max_tokens=2000,
