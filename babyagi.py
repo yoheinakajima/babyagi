@@ -7,11 +7,11 @@ from typing import Dict, List
 from trello import TrelloClient
 
 #Set API Keys
-OPENAI_API_KEY = "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"
-PINECONE_API_KEY = "26f5e5b3-1706-4c9d-8db4-6fd8e8a3886c"
+OPENAI_API_KEY = "YOUR_API_HERE"
+PINECONE_API_KEY = "YOUR_API_HERE"
 PINECONE_ENVIRONMENT = "eu-west1-gcp" #Pinecone Environment (eg. "us-east1-gcp")
-TRELLO_API_KEY = "3e54a834e284540111b618a2b4bc97b4"
-TRELLO_API_TOKEN = "ATTA126ab749deaa1f0a316d0e53fef06c9c146c506696e4bb3a37b86721f057634eDC49CF0D"
+TRELLO_API_KEY = "YOUR_API_HERE"
+TRELLO_API_TOKEN = "YOUR_API_TOKEN_HERE"
 
 # Set Variables
 OBJECTIVE = "Create an automatic task completer, with GUI and Trello kanban board for tasks"
