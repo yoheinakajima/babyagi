@@ -10,7 +10,7 @@ PINECONE_API_KEY = ""
 PINECONE_ENVIRONMENT = "us-east1-gcp" #Pinecone Environment (eg. "us-east1-gcp")
 
 #Set Variables
-YOUR_TABLE_NAME = "test_table"
+YOUR_TABLE_NAME = "test-table"
 OBJECTIVE = "Solve world hunger."
 YOUR_FIRST_TASK = "Develop a task list."
 
