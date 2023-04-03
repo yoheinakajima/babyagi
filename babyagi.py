@@ -160,7 +160,7 @@ def execution_agent(objective:str,task: str) -> str:
     context=context_agent(index=PINECONE_TABLE, query=objective, n=5)
     #print("\n*******RELEVANT CONTEXT******\n")
     #print(context)
-    prompt=f"You are an AI who performs one task based on the following objective: {OBJECTIVE}. Your task: {task}\nResponse:"
+    prompt=f"You are an AI who performs one task based on the following objective: {objective}.\nTake into account these previously completed tasks: {context}\nYour task: {task}\nResponse:"
     # Model Selection
     if MODEL == 'GPT-3':
         response = openai.Completion.create(
