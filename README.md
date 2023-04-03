@@ -23,18 +23,33 @@ The task_creation_agent() function is where OpenAI's API is used to create new t
 
 The prioritization_agent() function is where OpenAI's API is used to reprioritize the task list. The function takes one parameter, the ID of the current task. It sends a prompt to OpenAI's API, which returns the reprioritized task list as a numbered list.
 
-Finally, the script uses Pinecone to store and retrieve task results for context. The script creates a Pinecone index based on the table name specified in YOUR_TABLE_NAME variable. Pinecone is then used to store the results of the task in the index, along with the task name and any additional metadata.
+Finally, the script uses Pinecone to store and retrieve task results for context. The script creates a Pinecone index based on the table name specified in PINECONE_TABLE variable. Pinecone is then used to store the results of the task in the index, along with the task name and any additional metadata.
 
 # How to Use
 To use the script, you will need to follow these steps:
 
-1. Install the required packages: `pip install -r requirements.txt`
-2. Set your OpenAI and Pinecone API keys in the OPENAI_API_KEY and PINECONE_API_KEY variables.
-3. Set the Pinecone environment in the PINECONE_ENVIRONMENT variable.
-4. Set the name of the table where the task results will be stored in the YOUR_TABLE_NAME variable.
-5. Set the objective of the task management system in the OBJECTIVE variable.
-6. Set the first task of the system in the YOUR_FIRST_TASK variable.
-7. Run the script.
+1. Create a virtual environment and activate it. To do this on Mac or Linux, run the following commands:
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+To do this on Windows, run the following commands:
+```bash
+python3 -m venv venv
+venv\Scripts\activate
+```
+2. Install the required packages: `pip install -r requirements.txt`
+3. Copy the .env.example file to .env and fill in the variables.
+4. Run the script using the following command:
+```bash
+python babyagi.py
+```
+5. Select the OpenAI model you want to use. GPT-3 (text-davinci-003) returns the fastest results. Additionally, you will need GPT-4 API access to use the GPT-4 model.
+6. Enter the Objective you want babyagi to work towards. The objective should be a short description of what you want babyagi to do. For example, if you want babyagi to solve world peace, the objective could be "Solve World Peace."
+7. Enter the task description. The task description should be a short description of the task you want babyagi to complete to work towards the objective. For example, if you want babyagi to solve world peace, the task description could be "Create 3 tasks to solve world peace"
+8. Watch babyagi work towards the objective!
+
+Note: This script will run continuously until you stop it. To stop the script, enter 'kill' inside the console.
 
 # Warning
 This script is designed to be run continuously as part of a task management system. Running this script continuously can result in high API usage, so please use it responsibly. Additionally, the script requires the OpenAI and Pinecone APIs to be set up correctly, so make sure you have set up the APIs before running the script.
