@@ -6,6 +6,7 @@ from typing import Dict, List
 
 #Set API Keys
 OPENAI_API_KEY = ""
+OPENAI_API_MODEL = "gpt-3.5-turbo" # Alternatively "gpt-4"
 PINECONE_API_KEY = ""
 PINECONE_ENVIRONMENT = "us-east1-gcp" #Pinecone Environment (eg. "us-east1-gcp")
 
@@ -13,6 +14,7 @@ PINECONE_ENVIRONMENT = "us-east1-gcp" #Pinecone Environment (eg. "us-east1-gcp")
 YOUR_TABLE_NAME = "test_table"
 OBJECTIVE = "Solve world hunger."
 YOUR_FIRST_TASK = "Develop a task list."
+
 
 #Print OBJECTIVE
 print("\033[96m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
@@ -45,8 +47,8 @@ def get_ada_embedding(text):
 
 def task_creation_agent(objective: str, result: Dict, task_description: str, task_list: List[str]):
     prompt = f"You are an task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective}, The last completed task has the result: {result}. This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}. Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks. Return the tasks as an array."
-    response = openai.Completion.create(engine="text-davinci-003",prompt=prompt,temperature=0.5,max_tokens=100,top_p=1,frequency_penalty=0,presence_penalty=0)
-    new_tasks = response.choices[0].text.strip().split('\n')
+    response = openai.ChatCompletion.create(model=OPENAI_API_MODEL,messages=[{'role':'user', 'content':prompt}],temperature=0.5,max_tokens=100,top_p=1,frequency_penalty=0,presence_penalty=0)
+    new_tasks = response.choices[0]['message']['content'].strip().split('\n')
     return [{"task_name": task_name} for task_name in new_tasks]
 
 def prioritization_agent(this_task_id:int):
@@ -57,8 +59,9 @@ def prioritization_agent(this_task_id:int):
     #. First task
     #. Second task
     Start the task list with number {next_task_id}."""
-    response = openai.Completion.create(engine="text-davinci-003",prompt=prompt,temperature=0.5,max_tokens=1000,top_p=1,frequency_penalty=0,presence_penalty=0)
-    new_tasks = response.choices[0].text.strip().split('\n')
+    response = openai.ChatCompletion.create(model=OPENAI_API_MODEL,messages=[{'role':'user', 'content':prompt}]
+                                            ,temperature=0.5,max_tokens=1000,top_p=1,frequency_penalty=0,presence_penalty=0)
+    new_tasks = response.choices[0]['message']['content'].strip().split('\n')
     task_list = deque()
     for task_string in new_tasks:
         task_parts = task_string.strip().split(".", 1)
@@ -73,7 +76,7 @@ def execution_agent(objective:str,task: str) -> str:
     #print("\n*******RELEVANT CONTEXT******\n")
     #print(context)
     response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo", # Alternatively "gpt-4"
+        model=OPENAI_API_MODEL,
         messages=[{'role':'user', 'content':f"You are an AI who performs one task based on the following objective: {objective}. Your task: {task}\nResponse:",}
         ],
         temperature=0.7,
