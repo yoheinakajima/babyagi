@@ -31,8 +31,8 @@ To use the script, you will need to follow these steps:
 1. Install the required packages:
 -openai
 -pinecone
-2. Set your OpenAI and Pinecone API keys in the OPENAI_API_KEY and PINECONE_API_KEY variables.
-3. Set the Pinecone environment in the PINECONE_ENVIRONMENT variable.
+2. Set OpenAI environment variable OPENAI_API_KEY.
+3. Set Pinecone environment variable PINECONE_API_KEY and PINECONE_ENVIRONMENT.
 4. Set the name of the table where the task results will be stored in the YOUR_TABLE_NAME variable.
 5. Set the objective of the task management system in the OBJECTIVE variable.
 6. Set the first task of the system in the YOUR_FIRST_TASK variable.

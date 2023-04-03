@@ -1,13 +1,9 @@
 import openai
 import pinecone
 import time
+import os
 from collections import deque
 from typing import Dict, List
-
-#Set API Keys
-OPENAI_API_KEY = ""
-PINECONE_API_KEY = ""
-PINECONE_ENVIRONMENT = "us-east1-gcp" #Pinecone Environment (eg. "us-east1-gcp")
 
 #Set Variables
 YOUR_TABLE_NAME = "test_table"
@@ -18,9 +14,11 @@ YOUR_FIRST_TASK = "Develop a task list."
 print("\033[96m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
 print(OBJECTIVE)
 
-# Configure OpenAI and Pinecone
-openai.api_key = OPENAI_API_KEY
-pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_ENVIRONMENT)
+# Configure Pinecone
+pinecone.init(
+    api_key=os.getenv("PINECONE_API_KEY"),
+    environment=os.getenv("PINECONE_ENVIRONMENT", "us-east1-gcp")
+)
 
 # Create Pinecone index
 table_name = YOUR_TABLE_NAME
