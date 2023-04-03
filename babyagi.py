@@ -94,7 +94,7 @@ def execution_agent(objective:str,task: str) -> str:
     #print(context)
     response = openai.Completion.create(
         engine=agi_config["openai_completion_engine"],
-        prompt=f"You are an AI who performs one task based on the following objective: {objective}. Your task: {task}\nResponse:",
+        prompt=f"You are an AI who performs one task based on the following objective: {objective}.\nTake into account these previously completed tasks: {context}\nYour task: {task}\nResponse:",
         temperature=agi_config["openai_execution_temperature"],
         max_tokens=agi_config["openai_execution_max_tokens"],
         top_p=agi_config["openai_top_p"],
