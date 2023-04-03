@@ -38,7 +38,10 @@ To do this on Windows, run the following commands:
 python3 -m venv venv
 venv\Scripts\activate
 ```
-2. Install the required packages: `pip install -r requirements.txt`
+2. Install the required packages: 
+```bash
+pip install -r requirements.txt
+```
 3. Copy the .env.example file to .env and fill in the variables.
 4. Run the script using the following command:
 ```bash
