@@ -3,16 +3,31 @@ import pinecone
 import time
 from collections import deque
 from typing import Dict, List
+from dotenv import load_dotenv
+import os
 
-#Set API Keys
-OPENAI_API_KEY = ""
-PINECONE_API_KEY = ""
-PINECONE_ENVIRONMENT = "us-east1-gcp" #Pinecone Environment (eg. "us-east1-gcp")
+load_dotenv()
 
-#Set Variables
-YOUR_TABLE_NAME = "test-table"
-OBJECTIVE = "Solve world hunger."
-YOUR_FIRST_TASK = "Develop a task list."
+# Set API Keys
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env from .env"
+
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
+assert PINECONE_API_KEY, "PINECONE_API_KEY environment variable is missing from .env"
+
+PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "us-east1-gcp")
+assert PINECONE_ENVIRONMENT, "PINECONE_ENVIRONMENT environment variable is missing from .env"
+
+# Table config
+YOUR_TABLE_NAME = os.getenv("TABLE_NAME", "")
+assert YOUR_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
+
+# Project config
+OBJECTIVE = os.getenv("OBJECTIVE", "")
+assert OBJECTIVE, "OBJECTIVE environment variable is missing from .env"
+
+YOUR_FIRST_TASK = os.getenv("FIRST_TASK", "")
+assert YOUR_FIRST_TASK, "FIRST_TASK environment variable is missing from .env"
 
 #Print OBJECTIVE
 print("\033[96m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
