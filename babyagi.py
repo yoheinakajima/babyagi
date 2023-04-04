@@ -165,8 +165,8 @@ while True:
         # Step 2: Enrich result and store in Pinecone
         enriched_result = {'data': result}  # This is where you should enrich the result if needed
         result_id = f"result_{task['task_id']}"
-        vector = enriched_result['data']  # extract the actual result from the dictionary
-        index.upsert([(result_id, get_ada_embedding(vector),{"task":task['task_name'],"result":result})])
+        vector = get_ada_embedding(enriched_result['data'])  # get vector of the actual result extracted from the dictionary
+        index.upsert([(result_id, vector, {"task":task['task_name'],"result":result})])
 
     # Step 3: Create new tasks and reprioritize task list
     new_tasks = task_creation_agent(OBJECTIVE,enriched_result, task["task_name"], [t["task_name"] for t in task_list])
