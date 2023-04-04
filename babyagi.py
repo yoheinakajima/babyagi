@@ -13,16 +13,21 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Log print output to txt file
-og_print = print
-def print(*msg):
+original_print = print
+def print(*tasks):
     output = []
-    for m in msg:
-        output.append(str(m))
+    for task in tasks:
+        output.append(str(task))
     output = " ".join(output)
-    re_output = re.sub(r'\033\[\d+m', "", output)
-    with open(f"{OBJECTIVE}.txt", "a+") as file:
-        file.write(f"\n{re_output}")
-    og_print(output)
+    output_wo_ansi = re.sub(r'\033\[\d+m', "", output)
+    original_print(output)
+    write_to_file(output_wo_ansi)
+
+def write_to_file(output_wo_ansi):
+    file_name = f"./tasks/{OBJECTIVE}.txt"
+    os.makedirs(os.path.dirname(file_name), exist_ok=True)
+    with open(file_name, "a+") as file:
+        file.write(f"\n{output_wo_ansi}")    
 
 # Set API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")

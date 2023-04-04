@@ -1,3 +1,2 @@
 .env
-/*.txt
-!requirements.txt
+tasks/
