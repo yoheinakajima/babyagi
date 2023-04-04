@@ -4,6 +4,7 @@ import openai
 import pinecone
 import time
 import sys
+import argparse
 from collections import deque
 from typing import Dict, List
 from dotenv import load_dotenv
@@ -32,11 +33,28 @@ YOUR_TABLE_NAME = os.getenv("TABLE_NAME", "")
 assert YOUR_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
 
 # Project config
-OBJECTIVE = sys.argv[1] if len(sys.argv) > 1 else os.getenv("OBJECTIVE", "")
-assert OBJECTIVE, "OBJECTIVE environment variable is missing from .env"
-
+OBJECTIVE = os.getenv("OBJECTIVE", "")
 YOUR_FIRST_TASK = os.getenv("FIRST_TASK", "")
 assert YOUR_FIRST_TASK, "FIRST_TASK environment variable is missing from .env"
+
+# Command line arguments
+parser = argparse.ArgumentParser()
+parser.add_argument('--join', nargs='?', const='', type=str, help='Join an existing objective by providing its ID')
+parser.add_argument('--name', type=str, help='Name of the project')
+parser.add_argument('--objective', type=str, help='Objective of the project')
+parser.add_argument('--task', type=str, help='First task of the project')
+args = parser.parse_args()
+
+if args.join:
+    OBJECTIVE_ID = args.join
+if args.name:
+    PROJECT_NAME = args.name
+if args.objective:
+    OBJECTIVE = args.objective
+if args.task:
+    YOUR_FIRST_TASK = args.task
+
+assert OBJECTIVE, "OBJECTIVE environment variable is missing from .env"
 
 #Print OBJECTIVE
 print("\033[96m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
