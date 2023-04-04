@@ -43,7 +43,27 @@ To use the script, you will need to follow these steps:
 # Warning
 This script is designed to be run continuously as part of a task management system. Running this script continuously can result in high API usage, so please use it responsibly. Additionally, the script requires the OpenAI and Pinecone APIs to be set up correctly, so make sure you have set up the APIs before running the script.
 
-#Backstory
+# Contributing
+
+We appreciate any contributions to improve and expand babyagi. Here are some suggestions for areas that need fixing or improvement:
+
+- **Error handling**: Add proper error handling to ensure the script does not crash or stall due to unexpected issues.
+- **Code refactoring**: Improve the code structure and organization to enhance readability and maintainability.
+- **Task result enrichment**: Currently, the script only enriches the task result with the task name and result. Expand the enrichment process to include more useful metadata and context.
+- **Alternative storage options**: Pinecone is used as the vector database in this implementation. Investigate and implement alternative storage options to provide more flexibility for users.
+- **Model selection**: The script can switch between GPT-3 and GPT-4, but the process is manual. Implement a more dynamic model selection mechanism to optimize performance and cost.
+- **Testing**: Add unit tests and integration tests to ensure the script's reliability and stability.
+- **Documentation**: Improve and expand the documentation to provide more clarity and guidance for users.
+
+When contributing, please adhere to the following guidelines:
+
+1. Fork the repository and create a new branch for your feature or fix.
+2. Write a clear and concise commit message describing the changes.
+3. Create a pull request and provide a detailed description of your changes.
+
+Thank you for your contributions!
+
+# Backstory
 BabyAGI is a paired-down version of the original [Task-Driven Autonomous Agent](https://twitter.com/yoheinakajima/status/1640934493489070080?s=20) (Mar 28, 2023) shared on Twitter. This version is down to 140 lines: 13 comments, 22 blank, 105 code. The name of the repo came up in the reaction to the original autonomous agent - the author does not mean to imply that this is AGI.
 
 Made with love by [@yoheinakajima](https://twitter.com/yoheinakajima), who happens to be a VC - so if you use this build a startup, ping him!
