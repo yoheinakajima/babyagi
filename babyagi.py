@@ -6,21 +6,37 @@ import time
 import sys
 from collections import deque
 from typing import Dict, List
+from dotenv import load_dotenv
+import os
 
-#Set API Keys
+#Set Variables
+load_dotenv()
+
+# Set API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
-#Pinecone Environment (eg. "us-east1-gcp")
-PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "us-east1-gcp")
-#Use GPT-3 model
+assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env from .env"
+
+# Use GPT-3 model
 USE_GPT4 = False
 if USE_GPT4:
     print("\033[91m\033[1m"+"\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"+"\033[0m\033[0m")
 
-#Set Variables
-YOUR_TABLE_NAME = "test-table"
-OBJECTIVE = sys.argv[1] if len(sys.argv) > 1 else "Solve world hunger."
-YOUR_FIRST_TASK = "Create the list of tasks to execute on the main objective."
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
+assert PINECONE_API_KEY, "PINECONE_API_KEY environment variable is missing from .env"
+
+PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "us-east1-gcp")
+assert PINECONE_ENVIRONMENT, "PINECONE_ENVIRONMENT environment variable is missing from .env"
+
+# Table config
+YOUR_TABLE_NAME = os.getenv("TABLE_NAME", "")
+assert YOUR_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
+
+# Project config
+OBJECTIVE = sys.argv[1] if len(sys.argv) > 1 else os.getenv("OBJECTIVE", "")
+assert OBJECTIVE, "OBJECTIVE environment variable is missing from .env"
+
+YOUR_FIRST_TASK = os.getenv("FIRST_TASK", "")
+assert YOUR_FIRST_TASK, "FIRST_TASK environment variable is missing from .env"
 
 #Print OBJECTIVE
 print("\033[96m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
