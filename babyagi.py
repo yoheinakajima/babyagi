@@ -51,8 +51,8 @@ def get_ada_embedding(text):
     text = text.replace("\n", " ")
     return openai.Embedding.create(input=[text], model="text-embedding-ada-002")["data"][0]["embedding"]
 
-def openai_call(prompt: str, USE_GPT4: bool = False, temperature: float = 0.5, max_tokens: int = 100):
-    if not USE_GPT4:
+def openai_call(prompt: str, use_gpt4: bool = False, temperature: float = 0.5, max_tokens: int = 100):
+    if not use_gpt4:
         #Call GPT-3 DaVinci model
         response = openai.Completion.create(
             engine='text-davinci-003',
