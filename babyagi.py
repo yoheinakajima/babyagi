@@ -7,6 +7,7 @@ from collections import deque
 from typing import Dict, List
 from dotenv import load_dotenv
 
+
 # Load environment variables
 load_dotenv()
 
@@ -44,6 +45,7 @@ OBJECTIVE = input("What is the objective of your AI system?: ")
 YOUR_FIRST_TASK = input("What is the first task for your AI system?: ")
 
 print("\033[93m\033[1m"+"\nNOTE: You can terminate the AI system at any time by typing 'kill' into the console.\n"+"\033[0m\033[0m")
+
 
 #Print OBJECTIVE
 print("\033[96m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
@@ -160,6 +162,7 @@ def execution_agent(objective:str,task: str) -> str:
     context=context_agent(index=PINECONE_TABLE, query=objective, n=5)
     #print("\n*******RELEVANT CONTEXT******\n")
     #print(context)
+
     prompt=f"You are an AI who performs one task based on the following objective: {objective}.\nTake into account these previously completed tasks: {context}\nYour task: {task}\nResponse:"
     # Model Selection
     if MODEL == 'GPT-3':

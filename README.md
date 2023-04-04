@@ -54,6 +54,7 @@ python babyagi.py
 
 Note: This script will run continuously until you stop it. To stop the script, enter 'kill' inside the console.
 
+
 # Warning
 This script is designed to be run continuously as part of a task management system. Running this script continuously can result in high API usage, so please use it responsibly. Additionally, the script requires the OpenAI and Pinecone APIs to be set up correctly, so make sure you have set up the APIs before running the script.
 
