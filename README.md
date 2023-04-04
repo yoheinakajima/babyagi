@@ -23,7 +23,7 @@ The task_creation_agent() function is where OpenAI's API is used to create new t
 
 The prioritization_agent() function is where OpenAI's API is used to reprioritize the task list. The function takes one parameter, the ID of the current task. It sends a prompt to OpenAI's API, which returns the reprioritized task list as a numbered list.
 
-Finally, the script uses Pinecone to store and retrieve task results for context. The script creates a Pinecone index based on the table name specified in YOUR_TABLE_NAME variable. Pinecone is then used to store the results of the task in the index, along with the task name and any additional metadata.
+Finally, the script uses Pinecone to store and retrieve task results for context. The script creates a Pinecone index based on the table name specified in the YOUR_TABLE_NAME variable. Pinecone is then used to store the results of the task in the index, along with the task name and any additional metadata.
 
 # How to Use
 To use the script, you will need to follow these steps:
@@ -40,6 +40,6 @@ To use the script, you will need to follow these steps:
 This script is designed to be run continuously as part of a task management system. Running this script continuously can result in high API usage, so please use it responsibly. Additionally, the script requires the OpenAI and Pinecone APIs to be set up correctly, so make sure you have set up the APIs before running the script.
 
 #Backstory
-BabyAGI is a paired-down version of the original [Task-Driven Autonomous Agent](https://twitter.com/yoheinakajima/status/1640934493489070080?s=20) (Mar 28, 2023) shared on Twitter. This version is down to 140 lines: 13 comments, 22 blank, 105 code. The name of the repo came up in the reaction to the original autonomous agent - the author does not mean to imply that this is AGI.
+BabyAGI is a paired-down version of the original [Task-Driven Autonomous Agent](https://twitter.com/yoheinakajima/status/1640934493489070080?s=20) (Mar 28, 2023) shared on Twitter. This version is down to 140 lines: 13 comments, 22 blanks, and 105 code. The name of the repo came up in the reaction to the original autonomous agent - the author does not mean to imply that this is AGI.
 
-Made with love by [@yoheinakajima](https://twitter.com/yoheinakajima), who happens to be a VC - so if you use this build a startup, ping him!
+Made with love by [@yoheinakajima](https://twitter.com/yoheinakajima), who happens to be a VC - so if you use this to build a startup, ping him!
