@@ -31,7 +31,7 @@ assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env
 # Use GPT-3 model
 USE_GPT4 = False
 if USE_GPT4:
-    print("\033[91m\033[1m"+"\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"+"\033[0m\033[0m")
+    print("\033[91m"+"\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"+"\033[0m")
 
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
 assert PINECONE_API_KEY, "PINECONE_API_KEY environment variable is missing from .env"
@@ -51,7 +51,7 @@ YOUR_FIRST_TASK = os.getenv("FIRST_TASK", "")
 assert YOUR_FIRST_TASK, "FIRST_TASK environment variable is missing from .env"
 
 #Print OBJECTIVE
-print("\033[96m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
+print("\033[96m"+"\n*****OBJECTIVE*****\n"+"\033[0m")
 print(OBJECTIVE)
 
 # Configure OpenAI and Pinecone
@@ -159,19 +159,19 @@ task_id_counter = 1
 while True:
     if task_list:
         # Print the task list
-        print("\033[95m\033[1m"+"\n*****TASK LIST*****\n"+"\033[0m\033[0m")
+        print("\033[95m"+"\n*****TASK LIST*****\n"+"\033[0m")
         for t in task_list:
             print(str(t['task_id'])+": "+t['task_name'])
 
         # Step 1: Pull the first task
         task = task_list.popleft()
-        print("\033[92m\033[1m"+"\n*****NEXT TASK*****\n"+"\033[0m\033[0m")
+        print("\033[92m"+"\n*****NEXT TASK*****\n"+"\033[0m")
         print(str(task['task_id'])+": "+task['task_name'])
 
         # Send to execution function to complete the task based on the context
         result = execution_agent(OBJECTIVE,task["task_name"])
         this_task_id = int(task["task_id"])
-        print("\033[93m\033[1m"+"\n*****TASK RESULT*****\n"+"\033[0m\033[0m")
+        print("\033[93m"+"\n*****TASK RESULT*****\n"+"\033[0m")
         print(result)
 
         # Step 2: Enrich result and store in Pinecone
