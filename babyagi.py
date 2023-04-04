@@ -4,13 +4,25 @@ import openai
 import pinecone
 import time
 import sys
+import re
 from collections import deque
 from typing import Dict, List
 from dotenv import load_dotenv
-import os
 
 #Set Variables
 load_dotenv()
+
+# Log print output to txt file
+og_print = print
+def print(*msg):
+    output = []
+    for m in msg:
+        output.append(str(m))
+    output = " ".join(output)
+    re_output = re.sub(r'\033\[\d+m', "", output)
+    with open(f"{OBJECTIVE}.txt", "a+") as file:
+        file.write(f"\n{re_output}")
+    og_print(output)
 
 # Set API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
