@@ -118,18 +118,15 @@ def prioritization_agent(this_task_id:int, gpt_version: str = 'gpt-3'):
             task_list.append({"task_id": task_id, "task_name": task_name})
 
 def execution_agent(objective:str,task: str, gpt_version: str = 'gpt-3') -> str:
-    #context = context_agent(index="quickstart", query="my_search_query", n=5)
-    context=context_agent(index=YOUR_TABLE_NAME, query=objective, n=5)
+    context=context_agent(query=objective, n=5)
     #print("\n*******RELEVANT CONTEXT******\n")
     #print(context)
     prompt =f"You are an AI who performs one task based on the following objective: {objective}.\nTake into account these previously completed tasks: {context}\nYour task: {task}\nResponse:"
     return openai_call(prompt, USE_GPT4, 0.7, 2000)
 
-def context_agent(query: str, index: str, n: int):
+def context_agent(query: str, n: int):
     query_embedding = get_ada_embedding(query)
-    index = pinecone.Index(index_name=index)
-    results = index.query(query_embedding, top_k=n,
-    include_metadata=True)
+    results = index.query(query_embedding, top_k=n, include_metadata=True)
     #print("***** RESULTS *****")
     #print(results)
     sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)    
