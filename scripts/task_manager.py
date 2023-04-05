@@ -1,5 +1,6 @@
 from collections import deque
-from typing import Dict, List, Union
+from typing import Dict, Union
+
 
 class TaskManager:
     def __init__(self) -> None:
@@ -39,5 +40,6 @@ class TaskManager:
 
         :return: A formatted string representing the tasks in the task list.
         """
-        tasks = [f"{index + 1}. {task['task_name']}" for index, task in enumerate(self.task_list)]
+        tasks = [f"{index + 1}. {task['task_name']}" for index,
+                 task in enumerate(self.task_list)]
         return '\n'.join(tasks)

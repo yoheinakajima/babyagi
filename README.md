@@ -1,45 +1,60 @@
-# babyagi
+# AI Project Manager
 
+AI Project Manager is an AI-driven system that manages tasks, executes them, generates new tasks, and reprioritizes the task list. It uses OpenAI for natural language understanding, Pinecone for task-result storage, and embeddings for context retrieval.
 
-# Objective
-This Python script is an example of an AI-powered task management system. The system uses OpenAI and Pinecone APIs to create, prioritize, and execute tasks. The main idea behind this system is that it creates tasks based on the result of previous tasks and a predefined objective. The script then uses OpenAI's natural language processing (NLP) capabilities to create new tasks based on the objective, and Pinecone to store and retrieve task results for context. This is a paired-down version of the original [Task-Driven Autonomous Agent](https://twitter.com/yoheinakajima/status/1640934493489070080?s=20) (Mar 28, 2023).
+All credit goes to @yoheinakajima
 
-This README will cover the following:
+## Description
 
-* How the script works 
+AI Project Manager helps you automate the task management process of your projects. It's designed to understand and execute tasks, generate new tasks based on completed tasks, and prioritize tasks according to their importance. The project consists of the following components:
 
-* How to use the script 
-* Warning about running the script continuously
-# How It Works
-The script works by running an infinite loop that does the following steps:
+1. AI Assistant
+2. Task Manager
+3. Main Script
 
-1. Pulls the first task from the task list.
-2. Sends the task to the execution agent, which uses OpenAI's API to complete the task based on the context.
-3. Enriches the result and stores it in Pinecone.
-4. Creates new tasks and reprioritizes the task list based on the objective and the result of the previous task.
-The execution_agent() function is where the OpenAI API is used. It takes two parameters: the objective and the task. It then sends a prompt to OpenAI's API, which returns the result of the task. The prompt consists of a description of the AI system's task, the objective, and the task itself. The result is then returned as a string.
+### Features
 
-The task_creation_agent() function is where OpenAI's API is used to create new tasks based on the objective and the result of the previous task. The function takes four parameters: the objective, the result of the previous task, the task description, and the current task list. It then sends a prompt to OpenAI's API, which returns a list of new tasks as strings. The function then returns the new tasks as a list of dictionaries, where each dictionary contains the name of the task.
+- Task management with priority
+- Automatic task generation based on completed tasks
+- Task execution with the help of AI models
+- Context retrieval using Pinecone
+- Embeddings for tasks and results
 
-The prioritization_agent() function is where OpenAI's API is used to reprioritize the task list. The function takes one parameter, the ID of the current task. It sends a prompt to OpenAI's API, which returns the reprioritized task list as a numbered list.
+## Visuals
 
-Finally, the script uses Pinecone to store and retrieve task results for context. The script creates a Pinecone index based on the table name specified in YOUR_TABLE_NAME variable. Pinecone is then used to store the results of the task in the index, along with the task name and any additional metadata.
+_TODO: Add visuals such as screenshots, GIFs, or video demos if applicable._
 
-# How to Use
-To use the script, you will need to follow these steps:
+## Installation
 
-1. Install the required packages: `pip install -r requirements.txt`
-2. Set your OpenAI and Pinecone API keys in the OPENAI_API_KEY and PINECONE_API_KEY variables.
-3. Set the Pinecone environment in the PINECONE_ENVIRONMENT variable.
-4. Set the name of the table where the task results will be stored in the YOUR_TABLE_NAME variable.
-5. Set the objective of the task management system in the OBJECTIVE variable.
-6. Set the first task of the system in the YOUR_FIRST_TASK variable.
-7. Run the script.
+1. Clone the repository.
+2. Install the required dependencies: OpenAI, Pinecone, and PyYAML.
+3. Set up the YAML configuration file with the API keys for OpenAI and Pinecone.
+4. Run the main script to start the AI Project Manager.
 
-# Warning
-This script is designed to be run continuously as part of a task management system. Running this script continuously can result in high API usage, so please use it responsibly. Additionally, the script requires the OpenAI and Pinecone APIs to be set up correctly, so make sure you have set up the APIs before running the script.
+## Usage
 
-#Backstory
-BabyAGI is a paired-down version of the original [Task-Driven Autonomous Agent](https://twitter.com/yoheinakajima/status/1640934493489070080?s=20) (Mar 28, 2023) shared on Twitter. This version is down to 140 lines: 13 comments, 22 blank, 105 code. The name of the repo came up in the reaction to the original autonomous agent - the author does not mean to imply that this is AGI.
+_TODO: Provide examples of how to use the project. Include the smallest example of usage and links to more sophisticated examples if they are too long to reasonably include in the README._
 
-Made with love by [@yoheinakajima](https://twitter.com/yoheinakajima), who happens to be a VC - so if you use this build a startup, ping him!
+## Support
+
+For support, please raise an issue on the project's GitHub repository or contact the maintainers via email.
+
+## Roadmap
+
+_TODO: List planned features, improvements, or fixes for future releases._
+
+## Contributing
+
+Contributions are welcome! Please read the contributing guidelines before submitting a pull request or opening an issue.
+
+## Authors and Acknowledgment
+
+All credit goes to @yoheinakajima. This work is built on BABYAGI project
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+## Project Status
+
+This project is under active development. If you'd like to become a maintainer or contribute to the project, please get in touch with the current maintainers.

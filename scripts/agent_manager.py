@@ -1,8 +1,7 @@
 import openai
-from typing import Dict, List, Callable
+from typing import Dict, List
 from task_manager import TaskManager
 import pinecone
-import numpy as np
 from collections import deque
 
 class Agent:
@@ -121,23 +120,7 @@ class AIAssistant:
         """
         context = self.context_agent(index='test-table', query=objective, n=5)
         response_text = self.agents["execution"](objective=objective, task=task, context=context)
-        return response_text
-
-    def store_result_in_pinecone(index, task, result, get_ada_embedding):
-        """
-        Enrich the result, generate the ADA embedding, and store it in Pinecone.
-
-        :param index: The Pinecone index object.
-        :param task: A dictionary containing the task information.
-        :param result: The result of the task execution.
-        :param get_ada_embedding: A function to generate the ADA embedding.
-        :return: None
-        """
-        enriched_result = {'data': result}  # This is where you should enrich the result if needed
-        result_id = f"result_{task['task_id']}"
-        vector = enriched_result['data']  # extract the actual result from the dictionary
-        task_embedding = get_ada_embedding(vector)
-        index.upsert(ids=[result_id], vectors=[task_embedding], metadata=[{"task": task['task_name'], "result": result}])        
+        return response_text      
 
     def __str__(self) -> str:
         """
