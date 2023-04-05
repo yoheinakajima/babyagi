@@ -25,7 +25,7 @@ index = pinecone.Index(table_name)
 ai_assistant = AIAssistant(config)
 
 
-def get_ada_embedding(text: str) -> List[float]:
+def get_ada_embedding(text: str):
     """
     Generate an ADA text embedding.
 
