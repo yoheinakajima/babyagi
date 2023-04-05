@@ -3,7 +3,6 @@ import os
 import openai
 import pinecone
 import time
-import sys
 import argparse
 from collections import deque
 from typing import Dict, List
@@ -13,14 +12,11 @@ import os
 #Set Variables
 load_dotenv()
 
-# Set API Keys
+# Engine configuration
+
+# API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env"
-
-# Use GPT-3 model
-USE_GPT4 = False
-if USE_GPT4:
-    print("\033[91m\033[1m"+"\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"+"\033[0m\033[0m")
 
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
 assert PINECONE_API_KEY, "PINECONE_API_KEY environment variable is missing from .env"
@@ -32,33 +28,65 @@ assert PINECONE_ENVIRONMENT, "PINECONE_ENVIRONMENT environment variable is missi
 YOUR_TABLE_NAME = os.getenv("TABLE_NAME", "")
 assert YOUR_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
 
-# Project config
-OBJECTIVE = os.getenv("OBJECTIVE", "")
-YOUR_FIRST_TASK = os.getenv("FIRST_TASK", "")
-assert YOUR_FIRST_TASK, "FIRST_TASK environment variable is missing from .env"
+# Run configuration
 
-# Command line arguments
-parser = argparse.ArgumentParser()
-parser.add_argument('--join', nargs='?', const='', type=str, help='Join an existing objective by providing its ID')
-parser.add_argument('--name', type=str, help='Name of the project')
-parser.add_argument('--objective', type=str, help='Objective of the project')
-parser.add_argument('--task', type=str, help='First task of the project')
+parser = argparse.ArgumentParser(add_help=False)
+parser.add_argument('objective', nargs='*', metavar='<objective>', help='''
+Main objective description. Doesn\'t need to be quoted.
+If not specified, get OBJECTIVE in environment.
+''', default=[os.getenv("OBJECTIVE", "")])
+parser.add_argument('-n', '--name', required=False, help='''
+BabyAGI instance name.
+If not specified, get BABY_NAME in environment.
+''', default=os.getenv("BABY_NAME", "BabyAGI"))
+group = parser.add_mutually_exclusive_group()
+group.add_argument('-t', '--task', metavar='<initial task>', help='''
+Initial task description. Must be quoted.
+If not specified, get INITIAL_TASK in environment.
+''', default=os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", "")))
+group.add_argument('-j', '--join', action='store_true', help='''
+Join an existing objective.
+''')
+parser.add_argument('-4', '--gpt-4', dest='use_gpt4', action='store_true', help='Use GPT-4 instead of GPT-3')
+parser.add_argument('-h', '-?', '--help', action='help', help='''
+Show this help message and exit
+''')
+
 args = parser.parse_args()
 
-if args.join:
-    OBJECTIVE_ID = args.join
-if args.name:
-    PROJECT_NAME = args.name
-if args.objective:
-    OBJECTIVE = args.objective
-if args.task:
-    YOUR_FIRST_TASK = args.task
+BABY_NAME = args.name
+if not BABY_NAME:
+    print("\033[91m\033[1m"+"BabyAGI instance name missing\n"+"\033[0m\033[0m")
+    parser.print_help()
+    parser.exit()
 
-assert OBJECTIVE, "OBJECTIVE environment variable is missing from .env"
+JOIN_EXISTING_OBJECTIVE = args.join
+USE_GPT4 = args.use_gpt4
 
-#Print OBJECTIVE
-print("\033[96m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
-print(OBJECTIVE)
+OBJECTIVE = ' '.join(args.objective).strip()
+if not OBJECTIVE:
+    print("\033[91m\033[1m"+"No objective specified or found in environment.\n"+"\033[0m\033[0m")
+    parser.print_help()
+    parser.exit()
+
+INITIAL_TASK = args.task
+if not INITIAL_TASK and not JOIN_EXISTING_OBJECTIVE:
+    print("\033[91m\033[1m"+"No initial task specified or found in environment.\n"+"\033[0m\033[0m")
+    parser.print_help()
+    parser.exit()
+
+print("\033[95m\033[1m"+"\n*****CONFIGURATION*****\n"+"\033[0m\033[0m")
+print(f"Name: {BABY_NAME}")
+print(f"LLM: {'GPT-4' if USE_GPT4 else 'GPT-3'}")
+
+if USE_GPT4:
+    print("\033[91m\033[1m"+"\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"+"\033[0m\033[0m")
+
+print("\033[94m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
+print(f"{OBJECTIVE}")
+
+if not JOIN_EXISTING_OBJECTIVE: print("\033[93m\033[1m"+"\nInitial task:"+"\033[0m\033[0m"+f" {INITIAL_TASK}")
+else: print("\033[93m\033[1m"+f"\nJoining to help the objective"+"\033[0m\033[0m")
 
 # Configure OpenAI and Pinecone
 openai.api_key = OPENAI_API_KEY
@@ -156,7 +184,7 @@ def context_agent(query: str, index: str, n: int):
 # Add the first task
 first_task = {
     "task_id": 1,
-    "task_name": YOUR_FIRST_TASK
+    "task_name": INITIAL_TASK
 }
 
 add_task(first_task)
@@ -165,7 +193,7 @@ task_id_counter = 1
 while True:
     if task_list:
         # Print the task list
-        print("\033[95m\033[1m"+"\n*****TASK LIST*****\n"+"\033[0m\033[0m")
+        print("\033[96m\033[1m"+"\n*****TASK LIST*****\n"+"\033[0m\033[0m")
         for t in task_list:
             print(str(t['task_id'])+": "+t['task_name'])
 
@@ -186,13 +214,13 @@ while True:
         vector = enriched_result['data']  # extract the actual result from the dictionary
         index.upsert([(result_id, get_ada_embedding(vector),{"task":task['task_name'],"result":result})])
 
-    # Step 3: Create new tasks and reprioritize task list
-    new_tasks = task_creation_agent(OBJECTIVE,enriched_result, task["task_name"], [t["task_name"] for t in task_list])
+        # Step 3: Create new tasks and reprioritize task list
+        new_tasks = task_creation_agent(OBJECTIVE,enriched_result, task["task_name"], [t["task_name"] for t in task_list])
 
-    for new_task in new_tasks:
-        task_id_counter += 1
-        new_task.update({"task_id": task_id_counter})
-        add_task(new_task)
-    prioritization_agent(this_task_id)
+        for new_task in new_tasks:
+            task_id_counter += 1
+            new_task.update({"task_id": task_id_counter})
+            add_task(new_task)
+        prioritization_agent(this_task_id)
 
-time.sleep(1)  # Sleep before checking the task list again
+    time.sleep(1)  # Sleep before checking the task list again
