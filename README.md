@@ -8,10 +8,14 @@ All credit goes to @yoheinakajima
 
 ACDM helps you automate the task management process of your projects. It's designed to understand and execute tasks, generate new tasks based on completed tasks, and prioritize tasks according to their importance. The project consists of the following components:
 
-1. AI Assistant
-2. Task Manager
-3. Main Script
-
+|   |- task manager
+|   |- base_agent
+|   |- context_agent
+|   |- execution_agent
+|   |- prioritization_agent
+|   |- task_creation_agent
+    
+    
 ### Features
 
 - Task management with priority
