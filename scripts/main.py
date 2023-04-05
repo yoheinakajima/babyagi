@@ -3,36 +3,30 @@ import pinecone
 import time
 from collections import deque
 from typing import Dict, List
-import os 
 from dotenv import load_dotenv
+import os
 
+# Load YAML configuration file
+with open("/workspaces/babyagi/scripts/config.yaml", "r") as file:
+    config = yaml.safe_load(file)
 
-load_dotenv()
+OPENAI_API_KEY = config['openai']['api_key']
+PINECONE_API_KEY =  config['pinecone']['api_key']
+PINECONE_ENVIRONMENT = config['pinecone']['environment']
+YOUR_TABLE_NAME = config['pinecone']['table_name']
+OBJECTIVE = config['project']['objective']
+YOUR_FIRST_TASK = config['project']['first_task']
 
-
-pinecone_api_key = os.environ.get("PINECONE_API_KEY")
-pinecone_env_key = os.environ.get("PINECONE_ENV_KEY")
-
-
-
-#Set Variables
-YOUR_TABLE_NAME = "test-table"
-OBJECTIVE = "Solve world hunger."
-YOUR_FIRST_TASK = "Develop a task list."
-
-#Print OBJECTIVE
-print("\033[96m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
-print(OBJECTIVE)
 
 # Configure OpenAI and Pinecone
-openai.api_key = os.environ.get("OPENAI_API_KEY")
-pinecone.init(api_key=openai.api_key, environment=pinecone_env_key)
+openai.api_key = OPENAI_API_KEY
+pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_ENVIRONMENT)
 
 # Create Pinecone index
 table_name = YOUR_TABLE_NAME
 dimension = 1536
 metric = "cosine"
-pod_type = "s1.x1"
+pod_type = "s1"
 if table_name not in pinecone.list_indexes():
     pinecone.create_index(table_name, dimension=dimension, metric=metric, pod_type=pod_type)
 
