@@ -14,8 +14,8 @@ load_dotenv()
 
 # get environment variables
 def get_env_var(var_name, error_message):
-    var_value = os.getenv(var_name, "")
-    assert var_value, f"{var_name} environment variable is missing from .env: {error_message}"
+    var_value = os.getenv(var_name)
+    assert var_value is not None, f"{var_name} environment variable is missing from .env: {error_message}"
     return var_value
 
 OPENAI_API_KEY = get_env_var("OPENAI_API_KEY", "OPENAI_API_KEY is required.")
