@@ -6,17 +6,23 @@ from typing import Dict, List
 from dotenv import load_dotenv
 import os
 
-# Load YAML configuration file
-with open("/workspaces/babyagi/scripts/config.yaml", "r") as file:
-    config = yaml.safe_load(file)
+load_dotenv()
 
-OPENAI_API_KEY = config['openai']['api_key']
-PINECONE_API_KEY =  config['pinecone']['api_key']
-PINECONE_ENVIRONMENT = config['pinecone']['environment']
-YOUR_TABLE_NAME = config['pinecone']['table_name']
-OBJECTIVE = config['project']['objective']
-YOUR_FIRST_TASK = config['project']['first_task']
+# Set API Keys
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT")
 
+# Table config
+YOUR_TABLE_NAME = os.getenv("TABLE_NAME")
+
+# Project config
+OBJECTIVE = os.getenv("OBJECTIVE")
+YOUR_FIRST_TASK = os.getenv("FIRST_TASK")
+
+#Print OBJECTIVE
+print("\033[96m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
+print(OBJECTIVE)
 
 # Configure OpenAI and Pinecone
 openai.api_key = OPENAI_API_KEY
@@ -26,7 +32,7 @@ pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_ENVIRONMENT)
 table_name = YOUR_TABLE_NAME
 dimension = 1536
 metric = "cosine"
-pod_type = "s1"
+pod_type = "p1"
 if table_name not in pinecone.list_indexes():
     pinecone.create_index(table_name, dimension=dimension, metric=metric, pod_type=pod_type)
 
@@ -74,7 +80,7 @@ def execution_agent(objective:str,task: str) -> str:
     #print(context)
     response = openai.Completion.create(
         engine="text-davinci-003",
-        prompt=f"You are an AI who performs one task based on the following objective: {objective}.\nTake into account these previously completed tasks: {context}\nYour task: {task}\nResponse:",
+        prompt=f"You are an AI who performs one task based on the following objective: {objective}. Your task: {task}\nResponse:",
         temperature=0.7,
         max_tokens=2000,
         top_p=1,
@@ -124,6 +130,7 @@ while True:
         enriched_result = {'data': result}  # This is where you should enrich the result if needed
         result_id = f"result_{task['task_id']}"
         vector = enriched_result['data']  # extract the actual result from the dictionary
+        import pdb;pdb.set_trace()
         index.upsert([(result_id, get_ada_embedding(vector),{"task":task['task_name'],"result":result})])
 
     # Step 3: Create new tasks and reprioritize task list

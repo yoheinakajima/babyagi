@@ -1,0 +1,46 @@
+pinecone:
+  api_key: 99d5d259-d4f3-44cc-adca-af91350a63a8
+  environment: eu-west1-gcp
+  pinecone_index:
+    table_name: test-table
+    dimension: 1536
+    metric: cosine
+    pod_type: s1
+    
+openai:
+  api_key: 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
+
+project:
+  objective: Solve world hunger
+  first_task: Develop a task list
+
+agents:
+  task_creation:
+    type: openai
+    engine: text-davinci-003
+    prompt: "You are a task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective}, The last completed task has the result: {result}. This result was based on this task description: {task_description}. These are incomplete tasks: {task_list}. Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks. Return the tasks as an array."
+    temperature: 0.5
+    max_tokens: 100
+    top_p: 1
+    frequency_penalty: 0
+    presence_penalty: 0
+
+  prioritization:
+    type: openai
+    engine: text-davinci-003
+    prompt: "You are a task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}. Consider the ultimate objective of your team:{objective}. Do not remove any tasks. Return the result as a numbered list, like:\n#. First task\n#. Second task\nStart the task list with number {next_task_id}."
+    temperature: 0.5
+    max_tokens: 1000
+    top_p: 1
+    frequency_penalty: 0
+    presence_penalty: 0
+
+  execution:
+    type: openai
+    engine: text-davinci-003
+    prompt: "You are an AI who performs one task based on the following objective: {objective}.\nTake into account these previously completed tasks: {context}\nYour task: {task}\nResponse:"
+    temperature: 0.7
+    max_tokens: 2000
+    top_p: 1
+    frequency_penalty: 0
+    presence_penalty: 0
