@@ -129,19 +129,46 @@ if table_name not in pinecone.list_indexes():
 # Connect to the index
 index = pinecone.Index(table_name)
 
-# Task list
-task_list = deque([])
+# Task storage supporting only a single instance of BabyAGI
+class SingleTaskListStorage:
+    def __init__(self):
+        self.tasks = deque([])
+        self.task_id_counter = 0
 
-def add_task(task: Dict):
-    task_list.append(task)
+    def __iter__(self):
+        return iter(self.tasks)
 
+    def clear(self):
+        self.tasks = deque([])
+
+    def append(self, task: Dict):
+        self.tasks.append(task)
+
+    def popleft(self):
+        return self.tasks.popleft()
+
+    def is_empty(self):
+        return False if self.tasks else True
+
+    def __len__(self):
+        return len(self.tasks)
+    
+    def next_task_id(self):
+        self.task_id_counter += 1
+        return self.task_id_counter
+
+# Initialize tasks storage
+tasks_storage = SingleTaskListStorage()
+
+# Get embedding for the text
 def get_ada_embedding(text):
     text = text.replace("\n", " ")
     return openai.Embedding.create(input=[text], model="text-embedding-ada-002")["data"][0]["embedding"]
 
+# Call the correct GPT model
 def openai_call(prompt: str, use_gpt4: bool = False, temperature: float = 0.5, max_tokens: int = 100):
     if not use_gpt4:
-        #Call GPT-3 DaVinci model
+        # GPT-3 DaVinci
         response = openai.Completion.create(
             engine='text-davinci-003',
             prompt=prompt,
@@ -153,7 +180,7 @@ def openai_call(prompt: str, use_gpt4: bool = False, temperature: float = 0.5, m
         )
         return response.choices[0].text.strip()
     else:
-        #Call GPT-4 chat model
+        # GPT-4 chat
         messages=[{"role": "user", "content": prompt}]
         response = openai.ChatCompletion.create(
             model="gpt-4",
@@ -165,31 +192,33 @@ def openai_call(prompt: str, use_gpt4: bool = False, temperature: float = 0.5, m
         )
         return response.choices[0].message.content.strip()
 
-def task_creation_agent(objective: str, result: Dict, task_description: str, task_list: List[str], gpt_version: str = 'gpt-3'):
-    prompt = f"You are an task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective}, The last completed task has the result: {result}. This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}. Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks. Return the tasks as an array."
+# Create the follow up tasks based on the objective, the result of the last task, and the list of incomplete tasks
+def task_creation_agent(objective: str, result: Dict, task_description: str, tasks: List[str]):
+    prompt = f"You are an task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective}, The last completed task has the result: {result}. This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(tasks)}. Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks. Return the tasks as an array."
     response = openai_call(prompt, USE_GPT4)
     new_tasks = response.split('\n')
     return [{"task_name": task_name} for task_name in new_tasks]
 
-def prioritization_agent(this_task_id:int, gpt_version: str = 'gpt-3'):
-    global task_list
-    task_names = [t["task_name"] for t in task_list]
-    next_task_id = int(this_task_id)+1
+# Reprioritize the incomplete tasks
+def prioritization_agent():
+    global tasks_storage
+    task_names = [t["task_name"] for t in tasks_storage]
     prompt = f"""You are an task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}. Consider the ultimate objective of your team:{OBJECTIVE}. Do not remove any tasks. Return the result as a numbered list, like:
     #. First task
     #. Second task
-    Start the task list with number {next_task_id}."""
+    Start the task list with number {tasks_storage.next_task_id()}."""
     response = openai_call(prompt, USE_GPT4)
     new_tasks = response.split('\n')
-    task_list = deque()
+    tasks_storage.clear()
     for task_string in new_tasks:
         task_parts = task_string.strip().split(".", 1)
         if len(task_parts) == 2:
             task_id = task_parts[0].strip()
             task_name = task_parts[1].strip()
-            task_list.append({"task_id": task_id, "task_name": task_name})
+            tasks_storage.append({"task_id": task_id, "task_name": task_name})
 
-def execution_agent(objective:str,task: str, gpt_version: str = 'gpt-3') -> str:
+# Execute a task based on the objective and five previous tasks 
+def execution_agent(objective:str, task: str) -> str:
     #context = context_agent(index="quickstart", query="my_search_query", n=5)
     context=context_agent(index=YOUR_TABLE_NAME, query=objective, n=5)
     #print("\n*******RELEVANT CONTEXT******\n")
@@ -197,40 +226,40 @@ def execution_agent(objective:str,task: str, gpt_version: str = 'gpt-3') -> str:
     prompt =f"You are an AI who performs one task based on the following objective: {objective}.\nTake into account these previously completed tasks: {context}\nYour task: {task}\nResponse:"
     return openai_call(prompt, USE_GPT4, 0.7, 2000)
 
+# Get the top n completed tasks for the objective
 def context_agent(query: str, index: str, n: int):
     query_embedding = get_ada_embedding(query)
     index = pinecone.Index(index_name=index)
-    results = index.query(query_embedding, top_k=n,
-    include_metadata=True)
+    results = index.query(query_embedding, top_k=n, include_metadata=True)
     #print("***** RESULTS *****")
     #print(results)
     sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)    
     return [(str(item.metadata['task'])) for item in sorted_results]
 
-# Add the first task
-first_task = {
-    "task_id": 1,
-    "task_name": INITIAL_TASK
-}
+# Add the initial task if starting new objective
+if not JOIN_EXISTING_OBJECTIVE:
+    initial_task = {
+        "task_id": tasks_storage.next_task_id(),
+        "task_name": INITIAL_TASK
+    }
+    tasks_storage.append(initial_task)
 
-add_task(first_task)
 # Main loop
-task_id_counter = 1
 while True:
-    if task_list:
+    # As long as there are tasks in the storage...
+    if not tasks_storage.is_empty():
         # Print the task list
         print("\033[96m\033[1m"+"\n*****TASK LIST*****\n"+"\033[0m\033[0m")
-        for t in task_list:
-            print(str(t['task_id'])+": "+t['task_name'])
+        for t in tasks_storage:
+            print(" • "+t['task_name'])
 
-        # Step 1: Pull the first task
-        task = task_list.popleft()
+        # Step 1: Pull the first incomplete task
+        task = tasks_storage.popleft()
         print("\033[92m\033[1m"+"\n*****NEXT TASK*****\n"+"\033[0m\033[0m")
-        print(str(task['task_id'])+": "+task['task_name'])
+        print(task['task_name'])
 
         # Send to execution function to complete the task based on the context
-        result = execution_agent(OBJECTIVE,task["task_name"])
-        this_task_id = int(task["task_id"])
+        result = execution_agent(OBJECTIVE, task["task_name"])
         print("\033[93m\033[1m"+"\n*****TASK RESULT*****\n"+"\033[0m\033[0m")
         print(result)
 
@@ -238,9 +267,10 @@ while True:
         enriched_result = {'data': result}  # This is where you should enrich the result if needed
         result_id = f"result_{task['task_id']}"
         vector = enriched_result['data']  # extract the actual result from the dictionary
-        index.upsert([(result_id, get_ada_embedding(vector),{"task":task['task_name'],"result":result})])
+        index.upsert([(result_id, get_ada_embedding(vector), {"task":task['task_name'], "result":result})])
 
         # Step 3: Create new tasks and reprioritize task list
+<<<<<<< HEAD
         new_tasks = task_creation_agent(OBJECTIVE,enriched_result, task["task_name"], [t["task_name"] for t in task_list])
 
         for new_task in new_tasks:
@@ -248,5 +278,13 @@ while True:
             new_task.update({"task_id": task_id_counter})
             add_task(new_task)
         prioritization_agent(this_task_id)
+=======
+        new_tasks = task_creation_agent(OBJECTIVE, enriched_result, task["task_name"], [t["task_name"] for t in tasks_storage])
+        for new_task in new_tasks:
+            new_task.update({"task_id": tasks_storage.next_task_id()})
+            tasks_storage.append(new_task)
+
+        prioritization_agent()
+>>>>>>> 97bd047 (Refactor the task list storage)
 
     time.sleep(1)  # Sleep before checking the task list again
