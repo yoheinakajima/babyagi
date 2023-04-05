@@ -6,22 +6,11 @@ import time
 import sys
 from collections import deque
 from typing import Dict, List
-<<<<<<< HEAD
+from dotenv import load_dotenv
+import os
 import docx
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 
-#Set API Keys
-OPENAI_API_KEY = "OPENAI_API"
-PINECONE_API_KEY = "PINECONE_API"
-PINECONE_ENVIRONMENT = "us-east4-gcp" #Pinecone Environment (eg. "us-east1-gcp")
-
-#Set Variables
-YOUR_TABLE_NAME = "drp2"
-OBJECTIVE = "create a disaster recovery plan for for IT environment"
-YOUR_FIRST_TASK = "Develop a task list."
-=======
-from dotenv import load_dotenv
-import os
 
 #Set Variables
 load_dotenv()
@@ -51,7 +40,6 @@ assert OBJECTIVE, "OBJECTIVE environment variable is missing from .env"
 
 YOUR_FIRST_TASK = os.getenv("FIRST_TASK", "")
 assert YOUR_FIRST_TASK, "FIRST_TASK environment variable is missing from .env"
->>>>>>> a5e1807c415fe9cee80aa8348facd061af9a8993
 
 #Print OBJECTIVE
 print("\033[96m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
