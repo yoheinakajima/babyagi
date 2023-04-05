@@ -34,11 +34,18 @@ parser = argparse.ArgumentParser(
     add_help=False,
     formatter_class=argparse.RawDescriptionHelpFormatter,
     epilog="""
+cooperative mode enables multiple instances of babyagi to work towards the same objective.
+ * none        - (default) no cooperation, each instance works on its own list of tasks
+ * local       - local machine cooperation
+                 uses ray to share the list of tasks for an objective
+ * distributed - distributed cooperation (not implemented yet)
+                 uses pinecone to share the list of tasks for an objective
+
 examples:
  * start solving world hunger by creating initial list of tasks using GPT-4:
-     %(prog)s -t "Create initial list of tasks" -4 Solve world hunger
+     %(prog)s -m local -t "Create initial list of tasks" -4 Solve world hunger
  * join the work on solving world hunger using GPT-3:
-     %(prog)s -j Solve world hunger
+     %(prog)s -m local -j Solve world hunger
 """
 )
 parser.add_argument('objective', nargs='*', metavar='<objective>', help='''
@@ -49,6 +56,9 @@ parser.add_argument('-n', '--name', required=False, help='''
 babyagi instance name.
 if not specified, get BABY_NAME from environment.
 ''', default=os.getenv("BABY_NAME", "BabyAGI"))
+parser.add_argument('-m', '--mode', choices=['n', 'none', 'l', 'local', 'd', 'distributed'], help='''
+cooperative mode type
+''', default='none')
 group = parser.add_mutually_exclusive_group()
 group.add_argument('-t', '--task', metavar='<initial task>', help='''
 initial task description. must be quoted.
@@ -81,9 +91,19 @@ def can_import(module_name):
         return False
 
 module_name = "ray"
+COOPERATIVE_MODE = args.mode
+if COOPERATIVE_MODE in ['l', 'local'] and not can_import(module_name):
+    print("\033[91m\033[1m"+f"Local cooperative mode requires package {module_name}\nInstall:  pip install -r requirements-cooperative.txt\n"+"\033[0m\033[0m")
+    parser.print_help()
+    parser.exit()
+elif COOPERATIVE_MODE in ['d', 'distributed']:
+    print("\033[91m\033[1m"+"Distributed cooperative mode is not implemented yet\n"+"\033[0m\033[0m")
+    parser.print_help()
+    parser.exit()
+
 JOIN_EXISTING_OBJECTIVE = args.join
-if JOIN_EXISTING_OBJECTIVE and not can_import(module_name):
-    print("\033[91m\033[1m"+f"Package {module_name} not installed\nInstall:  pip install -r requirements-cooperative.txt\n"+"\033[0m\033[0m")
+if JOIN_EXISTING_OBJECTIVE and COOPERATIVE_MODE in ['n', 'none']:
+    print("\033[91m\033[1m"+f"Joining existing objective requires local or distributed cooperative mode\n"+"\033[0m\033[0m")
     parser.print_help()
     parser.exit()
 
@@ -103,7 +123,8 @@ if not INITIAL_TASK and not JOIN_EXISTING_OBJECTIVE:
 
 print("\033[95m\033[1m"+"\n*****CONFIGURATION*****\n"+"\033[0m\033[0m")
 print(f"Name: {BABY_NAME}")
-print(f"LLM: {'GPT-4' if USE_GPT4 else 'GPT-3'}")
+print(f"LLM : {'GPT-4' if USE_GPT4 else 'GPT-3'}")
+print(f"Mode: {'none' if COOPERATIVE_MODE in ['n', 'none'] else 'local' if COOPERATIVE_MODE in ['l', 'local'] else 'distributed' if COOPERATIVE_MODE in ['d', 'distributed'] else 'undefined'}")
 
 if USE_GPT4:
     print("\033[91m\033[1m"+"\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"+"\033[0m\033[0m")
@@ -135,14 +156,11 @@ class SingleTaskListStorage:
         self.tasks = deque([])
         self.task_id_counter = 0
 
-    def __iter__(self):
-        return iter(self.tasks)
-
-    def clear(self):
-        self.tasks = deque([])
-
     def append(self, task: Dict):
         self.tasks.append(task)
+
+    def replace(self, tasks: List[Dict]):
+        self.tasks = deque(tasks)
 
     def popleft(self):
         return self.tasks.popleft()
@@ -150,15 +168,21 @@ class SingleTaskListStorage:
     def is_empty(self):
         return False if self.tasks else True
 
-    def __len__(self):
-        return len(self.tasks)
-    
     def next_task_id(self):
         self.task_id_counter += 1
         return self.task_id_counter
 
+    def get_task_names(self):
+        return [t["task_name"] for t in self.tasks]
+
 # Initialize tasks storage
 tasks_storage = SingleTaskListStorage()
+if COOPERATIVE_MODE in ['l', 'local']:
+    print("")
+    from ray_storage import CooperativeTaskListStorage
+    tasks_storage = CooperativeTaskListStorage(OBJECTIVE)
+elif COOPERATIVE_MODE in ['d', 'distributed']:
+    pass
 
 # Get embedding for the text
 def get_ada_embedding(text):
@@ -202,20 +226,21 @@ def task_creation_agent(objective: str, result: Dict, task_description: str, tas
 # Reprioritize the incomplete tasks
 def prioritization_agent():
     global tasks_storage
-    task_names = [t["task_name"] for t in tasks_storage]
+    task_names = tasks_storage.get_task_names()    
     prompt = f"""You are an task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}. Consider the ultimate objective of your team:{OBJECTIVE}. Do not remove any tasks. Return the result as a numbered list, like:
     #. First task
     #. Second task
     Start the task list with number {tasks_storage.next_task_id()}."""
     response = openai_call(prompt, USE_GPT4)
     new_tasks = response.split('\n')
-    tasks_storage.clear()
+    new_tasks_list = []
     for task_string in new_tasks:
         task_parts = task_string.strip().split(".", 1)
         if len(task_parts) == 2:
             task_id = task_parts[0].strip()
             task_name = task_parts[1].strip()
-            tasks_storage.append({"task_id": task_id, "task_name": task_name})
+            new_tasks_list.append({"task_id": task_id, "task_name": task_name})
+    tasks_storage.replace(new_tasks_list)
 
 # Execute a task based on the objective and five previous tasks 
 def execution_agent(objective:str, task: str) -> str:
@@ -250,8 +275,8 @@ while True:
     if not tasks_storage.is_empty():
         # Print the task list
         print("\033[96m\033[1m"+"\n*****TASK LIST*****\n"+"\033[0m\033[0m")
-        for t in tasks_storage:
-            print(" • "+t['task_name'])
+        for t in tasks_storage.get_task_names():
+            print(" • "+t)
 
         # Step 1: Pull the first incomplete task
         task = tasks_storage.popleft()
@@ -270,21 +295,11 @@ while True:
         index.upsert([(result_id, get_ada_embedding(vector), {"task":task['task_name'], "result":result})])
 
         # Step 3: Create new tasks and reprioritize task list
-<<<<<<< HEAD
-        new_tasks = task_creation_agent(OBJECTIVE,enriched_result, task["task_name"], [t["task_name"] for t in task_list])
-
-        for new_task in new_tasks:
-            task_id_counter += 1
-            new_task.update({"task_id": task_id_counter})
-            add_task(new_task)
-        prioritization_agent(this_task_id)
-=======
-        new_tasks = task_creation_agent(OBJECTIVE, enriched_result, task["task_name"], [t["task_name"] for t in tasks_storage])
+        new_tasks = task_creation_agent(OBJECTIVE, enriched_result, task["task_name"], tasks_storage.get_task_names())
         for new_task in new_tasks:
             new_task.update({"task_id": tasks_storage.next_task_id()})
             tasks_storage.append(new_task)
 
         prioritization_agent()
->>>>>>> 97bd047 (Refactor the task list storage)
 
     time.sleep(1)  # Sleep before checking the task list again
