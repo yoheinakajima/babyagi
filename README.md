@@ -1,12 +1,12 @@
-# AI Project Manager
+# Autonomous Collective Decision Making (ACDM)
 
-AI Project Manager is an AI-driven system that manages tasks, executes them, generates new tasks, and reprioritizes the task list. It uses OpenAI for natural language understanding, Pinecone for task-result storage, and embeddings for context retrieval.
+ACDM is an AI-driven system that manages tasks, executes them, generates new tasks, and reprioritizes the task list. It uses OpenAI for natural language understanding, Pinecone for task-result storage, and embeddings for context retrieval.
 
 All credit goes to @yoheinakajima
 
 ## Description
 
-AI Project Manager helps you automate the task management process of your projects. It's designed to understand and execute tasks, generate new tasks based on completed tasks, and prioritize tasks according to their importance. The project consists of the following components:
+ACDM helps you automate the task management process of your projects. It's designed to understand and execute tasks, generate new tasks based on completed tasks, and prioritize tasks according to their importance. The project consists of the following components:
 
 1. AI Assistant
 2. Task Manager
