@@ -3,15 +3,17 @@ import pinecone
 import time
 from collections import deque
 from typing import Dict, List
+import docx
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 
 #Set API Keys
-OPENAI_API_KEY = ""
-PINECONE_API_KEY = ""
-PINECONE_ENVIRONMENT = "us-east1-gcp" #Pinecone Environment (eg. "us-east1-gcp")
+OPENAI_API_KEY = "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"
+PINECONE_API_KEY = "048d7f46-c668-4a8b-954b-ae91807fb281"
+PINECONE_ENVIRONMENT = "us-east4-gcp" #Pinecone Environment (eg. "us-east1-gcp")
 
 #Set Variables
-YOUR_TABLE_NAME = "test-table"
-OBJECTIVE = "Solve world hunger."
+YOUR_TABLE_NAME = "drp2"
+OBJECTIVE = "create a disaster recovery plan for for IT environment"
 YOUR_FIRST_TASK = "Develop a task list."
 
 #Print OBJECTIVE
@@ -99,40 +101,61 @@ first_task = {
     "task_name": YOUR_FIRST_TASK
 }
 
+# Create a new Word document
+doc = docx.Document()
+
 add_task(first_task)
+with open("disaster_recovery_plan.txt", "w") as f:
 # Main loop
-task_id_counter = 1
-while True:
-    if task_list:
-        # Print the task list
-        print("\033[95m\033[1m"+"\n*****TASK LIST*****\n"+"\033[0m\033[0m")
-        for t in task_list:
-            print(str(t['task_id'])+": "+t['task_name'])
 
-        # Step 1: Pull the first task
-        task = task_list.popleft()
-        print("\033[92m\033[1m"+"\n*****NEXT TASK*****\n"+"\033[0m\033[0m")
-        print(str(task['task_id'])+": "+task['task_name'])
+    max_iterations = 10  # Set a limit on the number of iterations
+    iteration = 0
+    task_id_counter = 1
+    while iteration < max_iterations and task_list:
+        if task_list:
+            # Print the task list
+            print("\033[95m\033[1m"+"\n*****TASK LIST*****\n"+"\033[0m\033[0m")
+            for t in task_list:
+                print(str(t['task_id'])+": "+t['task_name'])
 
-        # Send to execution function to complete the task based on the context
-        result = execution_agent(OBJECTIVE,task["task_name"])
-        this_task_id = int(task["task_id"])
-        print("\033[93m\033[1m"+"\n*****TASK RESULT*****\n"+"\033[0m\033[0m")
-        print(result)
+            # Step 1: Pull the first task
+            task = task_list.popleft()
+            print("\033[92m\033[1m"+"\n*****NEXT TASK*****\n"+"\033[0m\033[0m")
+            print(str(task['task_id'])+": "+task['task_name'])
 
-        # Step 2: Enrich result and store in Pinecone
-        enriched_result = {'data': result}  # This is where you should enrich the result if needed
-        result_id = f"result_{task['task_id']}"
-        vector = enriched_result['data']  # extract the actual result from the dictionary
-        index.upsert([(result_id, get_ada_embedding(vector),{"task":task['task_name'],"result":result})])
+            # Send to execution function to complete the task based on the context
+            result = execution_agent(OBJECTIVE,task["task_name"])
+            this_task_id = int(task["task_id"])
+            print("\033[93m\033[1m"+"\n*****TASK RESULT*****\n"+"\033[0m\033[0m")
+            print(result)
 
-    # Step 3: Create new tasks and reprioritize task list
-    new_tasks = task_creation_agent(OBJECTIVE,enriched_result, task["task_name"], [t["task_name"] for t in task_list])
+            # Step 2: Enrich result and store in Pinecone
+            enriched_result = {'data': result}  # This is where you should enrich the result if needed
+            result_id = f"result_{task['task_id']}"
+            vector = enriched_result['data']  # extract the actual result from the dictionary
+            index.upsert([(result_id, get_ada_embedding(vector),{"task":task['task_name'],"result":result})])
 
-    for new_task in new_tasks:
-        task_id_counter += 1
-        new_task.update({"task_id": task_id_counter})
-        add_task(new_task)
-    prioritization_agent(this_task_id)
+        # Step 3: Create new tasks and reprioritize task list
+        new_tasks = task_creation_agent(OBJECTIVE,enriched_result, task["task_name"], [t["task_name"] for t in task_list])
 
-time.sleep(1)  # Sleep before checking the task list again
+        # Save the current result to the Word document
+        heading = doc.add_heading(f"Next Task: {task['task_name']}", level=1)
+        heading.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        result_paragraph = doc.add_paragraph(result)
+        result_paragraph.add_run().add_break()
+        ##f.write(f"Next Task: {task['task_name']}\n")
+        ##f.write(f"{result}\n\n")
+
+        for new_task in new_tasks:
+            task_id_counter += 1
+            new_task.update({"task_id": task_id_counter})
+            add_task(new_task)
+        prioritization_agent(this_task_id)
+        iteration += 1
+        print(iteration)
+        time.sleep(1)
+
+# Save the Word document
+doc.save("disaster_recovery_plan.docx")
+# Deinitialize Pinecone
+pinecone.deinit()
