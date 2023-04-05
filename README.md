@@ -39,6 +39,26 @@ AI Project Manager helps you automate the task management process of your projec
 </pre>
 
 
+|- README.md
+|- .gitignore
+|- configs
+|   |- config.yaml
+|- requirements.txt
+|- scripts
+|   |- main.py
+|- src
+    |- __init__.py
+    |- agent_manager.py
+    |- task_manager.py
+    |- utils.py
+    |- agents
+    |   |- __init__.py
+    |   |- base_agent.py
+    |   |- context_agent.py
+    |   |- execution_agent.py
+    |   |- prioritization_agent.py
+    |   |- task_creation_agent.py
+
 ## Installation & Usage
 
 1. Install the required packages: pip install -r requirements.txt
