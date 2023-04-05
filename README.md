@@ -29,17 +29,24 @@ Finally, the script uses Pinecone to store and retrieve task results for context
 To use the script, you will need to follow these steps:
 
 1. Install the required packages: `pip install -r requirements.txt`
-2. Set your OpenAI and Pinecone API keys in the OPENAI_API_KEY and PINECONE_API_KEY variables.
-3. Set the Pinecone environment in the PINECONE_ENVIRONMENT variable.
-4. Set the name of the table where the task results will be stored in the YOUR_TABLE_NAME variable.
-5. Set the objective of the task management system in the OBJECTIVE variable.
-6. Set the first task of the system in the YOUR_FIRST_TASK variable.
-7. Run the script.
+2. Copy the .env.example file to .env: `cp .env.example .env`. This is where you will set the following variables.
+3. Set your OpenAI and Pinecone API keys in the OPENAI_API_KEY and PINECONE_API_KEY variables.
+4. Set the Pinecone environment in the PINECONE_ENVIRONMENT variable.
+5. Set the name of the table where the task results will be stored in the TABLE_NAME variable.
+6. Set the objective of the task management system in the OBJECTIVE variable. Alternatively you can pass it to the script as a quote argument.
+```
+./babyagi.py ["<objective>"]
+```
+7. Set the first task of the system in the FIRST_TASK variable.
+8. Run the script.
 
 # Warning
 This script is designed to be run continuously as part of a task management system. Running this script continuously can result in high API usage, so please use it responsibly. Additionally, the script requires the OpenAI and Pinecone APIs to be set up correctly, so make sure you have set up the APIs before running the script.
 
-#Backstory
+# Contribution
+Very appreciative of the PRs, which I've started pulling! I am new to Github and open source, so please be patient as I learn to manage this project properly. I run a VC firm by day, so I will generally be checking PRs and issues at night after I get my kids down - which may not be every night. Open to the idea of bringing in support, will be updating this section soon (expectations, visions, etc). Talking to lots of people and learning - hang tight for updates!
+
+# Backstory
 BabyAGI is a paired-down version of the original [Task-Driven Autonomous Agent](https://twitter.com/yoheinakajima/status/1640934493489070080?s=20) (Mar 28, 2023) shared on Twitter. This version is down to 140 lines: 13 comments, 22 blank, 105 code. The name of the repo came up in the reaction to the original autonomous agent - the author does not mean to imply that this is AGI.
 
-Made with love by [@yoheinakajima](https://twitter.com/yoheinakajima), who happens to be a VC - so if you use this build a startup, ping him!
+Made with love by [@yoheinakajima](https://twitter.com/yoheinakajima), who happens to be a VC (would love to see what you're building!)
