@@ -9,17 +9,19 @@ from typing import Dict, List
 from dotenv import load_dotenv
 import os
 
-#Set Variables
+# Set Variables
 load_dotenv()
 
 # Set API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env"
 
-# Use GPT-3 model
-USE_GPT4 = False
-if USE_GPT4:
-    print("\033[91m\033[1m"+"\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"+"\033[0m\033[0m")
+OPENAI_API_MODEL = os.getenv("OPENAI_API_MODEL", "text-davinci-003")
+assert OPENAI_API_MODEL, "OPENAI_API_MODEL environment variable is missing from .env from .env"
+
+USE_CHAT_COMPLETIONS = OPENAI_API_MODEL.lower().startswith("gpt-")
+if "gpt-4" in OPENAI_API_MODEL.lower():
+    print(f"\033[91m\033[1m"+"\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"+"\033[0m\033[0m")
 
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
 assert PINECONE_API_KEY, "PINECONE_API_KEY environment variable is missing from .env"
@@ -67,11 +69,11 @@ def get_ada_embedding(text):
     text = text.replace("\n", " ")
     return openai.Embedding.create(input=[text], model="text-embedding-ada-002")["data"][0]["embedding"]
 
-def openai_call(prompt: str, use_gpt4: bool = False, temperature: float = 0.5, max_tokens: int = 100):
-    if not use_gpt4:
-        #Call GPT-3 DaVinci model
+def openai_call(prompt: str, temperature: float = 0.5, max_tokens: int = 100):
+    if not USE_CHAT_COMPLETIONS:
+        # Use completion API
         response = openai.Completion.create(
-            engine='text-davinci-003',
+            engine=OPENAI_API_MODEL,
             prompt=prompt,
             temperature=temperature,
             max_tokens=max_tokens,
@@ -81,11 +83,11 @@ def openai_call(prompt: str, use_gpt4: bool = False, temperature: float = 0.5, m
         )
         return response.choices[0].text.strip()
     else:
-        #Call GPT-4 chat model
+        # Use chat completion API
         messages=[{"role": "user", "content": prompt}]
         response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages = messages,
+            model=OPENAI_API_MODEL,
+            messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,
             n=1,
@@ -93,13 +95,13 @@ def openai_call(prompt: str, use_gpt4: bool = False, temperature: float = 0.5, m
         )
         return response.choices[0].message.content.strip()
 
-def task_creation_agent(objective: str, result: Dict, task_description: str, task_list: List[str], gpt_version: str = 'gpt-3'):
+def task_creation_agent(objective: str, result: Dict, task_description: str, task_list: List[str]):
     prompt = f"You are an task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective}, The last completed task has the result: {result}. This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}. Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks. Return the tasks as an array."
-    response = openai_call(prompt, USE_GPT4)
+    response = openai_call(prompt)
     new_tasks = response.split('\n')
     return [{"task_name": task_name} for task_name in new_tasks]
 
-def prioritization_agent(this_task_id:int, gpt_version: str = 'gpt-3'):
+def prioritization_agent(this_task_id:int):
     global task_list
     task_names = [t["task_name"] for t in task_list]
     next_task_id = int(this_task_id)+1
@@ -107,7 +109,7 @@ def prioritization_agent(this_task_id:int, gpt_version: str = 'gpt-3'):
     #. First task
     #. Second task
     Start the task list with number {next_task_id}."""
-    response = openai_call(prompt, USE_GPT4)
+    response = openai_call(prompt)
     new_tasks = response.split('\n')
     task_list = deque()
     for task_string in new_tasks:
@@ -117,12 +119,12 @@ def prioritization_agent(this_task_id:int, gpt_version: str = 'gpt-3'):
             task_name = task_parts[1].strip()
             task_list.append({"task_id": task_id, "task_name": task_name})
 
-def execution_agent(objective:str,task: str, gpt_version: str = 'gpt-3') -> str:
+def execution_agent(objective:str,task: str) -> str:
     context=context_agent(query=objective, n=5)
     #print("\n*******RELEVANT CONTEXT******\n")
     #print(context)
     prompt =f"You are an AI who performs one task based on the following objective: {objective}.\nTake into account these previously completed tasks: {context}\nYour task: {task}\nResponse:"
-    return openai_call(prompt, USE_GPT4, 0.7, 2000)
+    return openai_call(prompt, 0.7, 2000)
 
 def context_agent(query: str, n: int):
     query_embedding = get_ada_embedding(query)
