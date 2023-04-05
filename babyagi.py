@@ -11,8 +11,8 @@ import docx
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 
 #Set API Keys
-OPENAI_API_KEY = "API"
-PINECONE_API_KEY = "048d7f46-c668-4a8b-954b-ae91807fb281"
+OPENAI_API_KEY = "OPENAI_API"
+PINECONE_API_KEY = "PINECONE_API"
 PINECONE_ENVIRONMENT = "us-east4-gcp" #Pinecone Environment (eg. "us-east1-gcp")
 
 #Set Variables
