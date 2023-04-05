@@ -24,10 +24,6 @@ index = pinecone.Index(table_name)
 # Initialize the AIAssistant with the configuration
 ai_assistant = AIAssistant(config)
 
-# Create a task manager and add the first task from the project configuration
-# task_manager = ai_assistant.task_manager
-# task_manager.add_task({"task_name": config["project"]["first_task"]})
-
 
 def get_ada_embedding(text: str) -> List[float]:
     """

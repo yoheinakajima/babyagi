@@ -22,18 +22,31 @@ AI Project Manager helps you automate the task management process of your projec
 
 ## Visuals
 
-_TODO: Add visuals such as screenshots, GIFs, or video demos if applicable._
+<pre>
++----------------+          +---------------+          +----------------+
+| Task Manager   |--------->| AI Assistant  |--------->| Pinecone Index |
++----------------+          +---------------+          +----------------+
+        ^                           |
+        |                           v
+ +--------------+          +-----------------------+
+ | Task List    |<---------| Task Creation Agent   |
+ +--------------+          +-----------------------+
+        ^                           |
+        |                           v
+ +--------------+          +-----------------------+
+ | Prioritization|<--------| Prioritization Agent  |
+ +--------------+          +-----------------------+
+</pre>
 
-## Installation
 
-1. Clone the repository.
-2. Install the required dependencies: OpenAI, Pinecone, and PyYAML.
-3. Set up the YAML configuration file with the API keys for OpenAI and Pinecone.
-4. Run the main script to start the AI Project Manager.
+## Installation & Usage
 
-## Usage
-
-_TODO: Provide examples of how to use the project. Include the smallest example of usage and links to more sophisticated examples if they are too long to reasonably include in the README._
+1. Install the required packages: pip install -r requirements.txt
+2. In `configs.yaml` file, set your OpenAI and Pinecone API keys in the `OPENAI_API_KEY` and `PINECONE_API_KEY` variables.
+3. Set the Pinecone environment in the `PINECONE_ENVIRONMENT` variable.
+4. Set the name of the table where the task results will be stored in the `TABLE_NAME` variable.
+5. Set the first task of the system in the `FIRST_TASK` variable.
+6. Run the script.
 
 ## Support
 
