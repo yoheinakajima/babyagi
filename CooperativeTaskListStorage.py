@@ -1,3 +1,6 @@
+import ray
+
+@ray.remote
 class CooperativeTaskListStorage:
     def __init__(self):
         self.task_list = []
