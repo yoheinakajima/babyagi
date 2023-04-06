@@ -1,3 +1,8 @@
+from src.task_manager import TaskManager
+from .base_agent import BaseAgent
+import openai
+from typing import Dict, List
+
 class TaskCreationAgent(BaseAgent):
     def create_tasks(self, objective: str, result: Dict, task_description: str, task_manager: TaskManager) -> List[Dict]:
         """

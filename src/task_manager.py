@@ -1,5 +1,5 @@
 from collections import deque
-from typing import Dict, Union
+from typing import Dict, Union, List
 from functools import wraps
 
 
@@ -12,7 +12,6 @@ def task_format_validation(add_task_func):
             raise KeyError("Task must have a 'task_name' key.")
         add_task_func(self, task)
     return wrapper
-
 
 class TaskManager:
     def __init__(self) -> None:
@@ -37,7 +36,10 @@ class TaskManager:
 
         :return: A dictionary containing task information or None if the task list is empty.
         """
-        return self.task_list.popleft() if self.task_list else None
+        try:
+            return self.task_list.popleft()
+        except IndexError:
+            return None
 
     def has_tasks(self) -> bool:
         """

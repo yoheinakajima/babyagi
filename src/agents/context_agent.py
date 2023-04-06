@@ -1,5 +1,10 @@
+from src.utils import get_ada_embedding
+from .base_agent import BaseAgent
+import pinecone
+from typing import Dict, List
+
 class ContextAgent(BaseAgent):
-    def __init__(self, config: Dict, table_name: str, n: int = 5):
+    def __init__(self, config: Dict, index: str, n: int = 5):
         """
         Initialize a ContextAgent instance with its configuration.
 
@@ -8,10 +13,10 @@ class ContextAgent(BaseAgent):
         :param n: Number of top tasks to retrieve.
         """
         super().__init__(config)
-        self.table_name = table_name
+        self.index = index
         self.n = n
 
-    def get_relevant_tasks(self, query: str) -> List[str]:
+    def get_relevant_tasks(self, query: str, n: int) -> List[str]:
         """
         Retrieve relevant tasks using Pinecone.
 

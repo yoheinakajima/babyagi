@@ -1,3 +1,7 @@
+from src.task_manager import TaskManager
+from .base_agent import BaseAgent
+from typing import Dict, List
+
 class PrioritizationAgent(BaseAgent):
     def prioritize_tasks(self, this_task_id: int, objective: str, task_manager: TaskManager) -> None:
         """
@@ -42,3 +46,14 @@ class PrioritizationAgent(BaseAgent):
                 task_name = task_parts[1].strip()
                 tasks.append({"task_id": task_id, "task_name": task_name})
         return tasks
+    
+    @staticmethod
+    def _update_task_manager(task_manager: TaskManager, new_tasks: List[Dict[str, str]]) -> None:
+        """
+        Update the task manager with the new prioritized tasks.
+
+        :param task_manager: An instance of the TaskManager class.
+        :param new_tasks: List of dictionaries containing task_id and task_name.
+        :return: None
+        """
+        task_manager.task_list = new_tasks

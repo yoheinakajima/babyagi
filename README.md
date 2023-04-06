@@ -1,17 +1,28 @@
-# AI Project Manager
+# Autonomous Collective Decision Making (ACDM)
 
-AI Project Manager is an AI-driven system that manages tasks, executes them, generates new tasks, and reprioritizes the task list. It uses OpenAI for natural language understanding, Pinecone for task-result storage, and embeddings for context retrieval.
+ACDM wraps around a large language model and a vector database, and serves the begining stages of a digital organization designed to be self-governing, autonomous, and scale-changing. The main intent is to allow agents to collectively manage resources, make decisions, and govern themselves. Design decisions include, but not are limited to autonoumous processes that ensures all agents have an equal say in the direction and management of the organization.
 
-All credit goes to @yoheinakajima
+In its current form, it is an AI-driven system that manages tasks, executes them, generates new tasks, and reprioritizes the task list. It uses OpenAI for natural language understanding, Pinecone for task-result storage, and embeddings for context retrieval.
+
+To be depricated at any moment. All credit goes to @OpenAI and @yoheinakajima
 
 ## Description
 
-AI Project Manager helps you automate the task management process of your projects. It's designed to understand and execute tasks, generate new tasks based on completed tasks, and prioritize tasks according to their importance. The project consists of the following components:
+ACDM helps you automate the task management process of your projects. It's designed to understand and execute tasks, generate new tasks based on completed tasks, and prioritize tasks according to their importance. The project consists of the following components:
 
-1. AI Assistant
-2. Task Manager
-3. Main Script
+|   |- task manager
 
+|   |- base_agent
+
+|   |- context_agent
+
+|   |- execution_agent
+
+|   |- prioritization_agent
+
+|   |- task_creation_agent
+    
+    
 ### Features
 
 - Task management with priority
@@ -38,26 +49,6 @@ AI Project Manager helps you automate the task management process of your projec
  +--------------+          +-----------------------+
 </pre>
 
-
-|- README.md
-|- .gitignore
-|- configs
-|   |- config.yaml
-|- requirements.txt
-|- scripts
-|   |- main.py
-|- src
-    |- __init__.py
-    |- agent_manager.py
-    |- task_manager.py
-    |- utils.py
-    |- agents
-    |   |- __init__.py
-    |   |- base_agent.py
-    |   |- context_agent.py
-    |   |- execution_agent.py
-    |   |- prioritization_agent.py
-    |   |- task_creation_agent.py
 
 ## Installation & Usage
 

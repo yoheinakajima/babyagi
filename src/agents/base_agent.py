@@ -1,5 +1,10 @@
+from abc import ABC, abstractmethod
+from typing import Dict
+
+import openai
+
 class BaseAgent:
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict):
         self.config = config
 
     def __call__(self, **kwargs) -> str:
