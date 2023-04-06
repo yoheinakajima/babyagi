@@ -11,7 +11,7 @@ from src.agents.task_creation_agent import TaskCreationAgent
 from src.agents.prioritization_agent import PrioritizationAgent
 from src.agents.execution_agent import ExecutionAgent
 from src.agents.context_agent import ContextAgent
-from src.utils import get_ada_embedding
+from utils.embedding import get_ada_embedding
 from src.task_manager import TaskManager
 from src.pinecone_helper import PineconeHelper  # Import PineconeHelper
 

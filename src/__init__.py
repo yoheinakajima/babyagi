@@ -1,2 +1,3 @@
 from .task_manager import TaskManager
-from .utils import get_ada_embedding
+
+__version__ = "0.1.0"

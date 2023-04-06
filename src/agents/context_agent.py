@@ -1,4 +1,4 @@
-from src.utils import get_ada_embedding
+from utils.embedding import get_ada_embedding
 from .base_agent import BaseAgent
 import pinecone
 from typing import Dict, List

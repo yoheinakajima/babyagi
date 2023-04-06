@@ -3,7 +3,7 @@ from typing import Dict
 from unittest.mock import MagicMock, patch
 
 from src.agents.context_agent import ContextAgent
-from src.utils import get_ada_embedding
+from utils.embedding import get_ada_embedding
 import pinecone
 
 class TestContextAgent(unittest.TestCase):
