@@ -17,7 +17,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env"
 
 OPENAI_API_MODEL = os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo")
-assert OPENAI_API_MODEL, "OPENAI_API_MODEL environment variable is missing from .env from .env"
+assert OPENAI_API_MODEL, "OPENAI_API_MODEL environment variable is missing from .env"
 
 if "gpt-4" in OPENAI_API_MODEL.lower():
     print(f"\033[91m\033[1m"+"\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"+"\033[0m\033[0m")
@@ -100,7 +100,7 @@ def task_creation_agent(objective: str, result: Dict, task_description: str, tas
     new_tasks = response.split('\n')
     return [{"task_name": task_name} for task_name in new_tasks]
 
-def prioritization_agent(this_task_id:int):
+def prioritization_agent(this_task_id: int):
     global task_list
     task_names = [t["task_name"] for t in task_list]
     next_task_id = int(this_task_id)+1
@@ -118,7 +118,7 @@ def prioritization_agent(this_task_id:int):
             task_name = task_parts[1].strip()
             task_list.append({"task_id": task_id, "task_name": task_name})
 
-def execution_agent(objective:str,task: str) -> str:
+def execution_agent(objective: str, task: str) -> str:
     context=context_agent(query=objective, n=5)
     #print("\n*******RELEVANT CONTEXT******\n")
     #print(context)
