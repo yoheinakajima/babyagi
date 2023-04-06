@@ -19,8 +19,8 @@ load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env"
 
-# Use GPT-3 model
-USE_GPT4 = False
+# Check if using GPT-4
+USE_GPT4 = os.getenv("USE_GPT4", "").lower() == "true"
 if USE_GPT4:
     print("\033[91m\033[1m"+"\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"+"\033[0m\033[0m")
 

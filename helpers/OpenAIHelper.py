@@ -5,7 +5,8 @@ class OpenAIHelper:
     def __init__(self):
         # Select the model on init
         # TODO: We shouldn't be pulling the model from the environment all the time, not efficient
-        if os.environ.get("USE_GPT4", ""):
+        USE_GPT4 = os.getenv("USE_GPT4", "").lower() == "true"
+        if USE_GPT4:
             self.engine = "gpt4"
         else:
             self.engine = "davinci"
