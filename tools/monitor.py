@@ -1,7 +1,7 @@
 import os
 import time
 import ray
-import shutil
+import curses
 
 ray.init()
 
@@ -15,13 +15,21 @@ class Actor:
 actor = Actor()
 actor_ref = ray.put(actor)
 
-def print_centered(message):
-    columns, _ = shutil.get_terminal_size()
-    padding = ' ' * ((columns - len(message)) // 2)
-    print(padding + message)
+def print_centered(stdscr, message):
+    stdscr.clear()
+    height, width = stdscr.getmaxyx()
+    y = height // 2
+    x = (width - len(message)) // 2
+    stdscr.addstr(y, x, message)
+    stdscr.refresh()
 
-while True:
-    os.system('clear')
-    actor_instance = ray.get(actor_ref)
-    print_centered(actor_instance.get_message())
-    time.sleep(30)
+
+def main(stdscr):
+    while True:
+        actor_instance = ray.get(actor_ref)
+        print_centered(stdscr, actor_instance.get_message())
+        time.sleep(30)
+
+
+if __name__ == '__main__':
+    curses.wrapper(main)
