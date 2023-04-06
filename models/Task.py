@@ -7,6 +7,7 @@ class Task:
         self.name = name
         self.result = None
         self.context_agent = context_agent
+        self.open_ai_helper = OpenAIHelper()
         self.objective = self.context_agent.get_objective()
         if not self.name:
             raise ValueError("Task name cannot be empty")
@@ -20,4 +21,5 @@ class Task:
     def execute(self):
         if self.result: raise Exception(f"Tried to execute task \"{self.name}\", which has already been executed")
         context=self.context_agent.get_context(query=self.objective, n=5)
-        self.result = OpenAIHelper.get_davinci_response(f"You are an AI who performs one task based on the following objective: {self.objective}.\nTake into account these previously completed tasks: {context}\nYour task: {self.name}\nResponse:")
+        prompt = f"You are an AI who performs one task based on the following objective: {self.objective}.\nTake into account these previously completed tasks: {context}\nYour task: {self.name}\nResponse:"
+        self.result = self.open_ai_helper.get_model_response(prompt = prompt)

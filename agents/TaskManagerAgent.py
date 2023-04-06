@@ -10,6 +10,7 @@ from helpers import OpenAIHelper
 class TaskManagerAgent:
     def __init__(self, first_task, objective):
         self.task_list = deque([])
+        self.open_ai_helper = OpenAIHelper()
         self.objective = objective
         self.remove_similar_tasks = True
         self.pinecone_table = os.getenv("TABLE_NAME", "")
@@ -42,7 +43,7 @@ class TaskManagerAgent:
         enriched_result = {'data': result}  # This is where you should enrich the result if needed
         result_id = f"result_{task.id}"
         vector = enriched_result['data']  # extract the actual result from the dictionary
-        self.pinecone_index.upsert([(result_id, OpenAIHelper.get_ada_embedding(vector),{"task":task.name,"result":result})])
+        self.pinecone_index.upsert([(result_id, self.open_ai_helper.get_ada_embedding(vector),{"task":task.name,"result":result})])
 
         # Step 3: Create new tasks and reprioritize task list
         self.create_tasks(enriched_result, task.name)
@@ -65,7 +66,7 @@ class TaskManagerAgent:
     def create_tasks(self, result: Dict, task_description: str):
         prompt = f"You are an task creation AI that uses the result of an execution agent to create new tasks with the following objective: {self.objective}, The last completed task has the result: {result}. This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join([t.to_string() for t in self.task_list])}. Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks. Return the tasks as an array."
         # response = openai.Completion.create(engine="text-davinci-003",prompt=prompt,temperature=0.5,max_tokens=100,top_p=1,frequency_penalty=0,presence_penalty=0)
-        new_tasks = OpenAIHelper.get_davinci_response(prompt).split('\n')
+        new_tasks = self.open_ai_helper.get_model_response(prompt = prompt).split('\n')
         for t in new_tasks: self.add_task(t)
 
     def prioritize(self, this_task_id:int):
@@ -77,7 +78,7 @@ class TaskManagerAgent:
         #. Second task
         Start the task list with number {next_task_id}."""
         # response = openai.Completion.create(engine="text-davinci-003",prompt=prompt,temperature=0.5,max_tokens=1000,top_p=1,frequency_penalty=0,presence_penalty=0)
-        new_tasks = OpenAIHelper.get_davinci_response(prompt).split('\n')
+        new_tasks = self.open_ai_helper.get_model_response(prompt = prompt).split('\n')
         self.task_list = deque()
         for task_string in new_tasks:
             if '.' in task_string:
