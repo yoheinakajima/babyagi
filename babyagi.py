@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 import os
 import time
-import argparse
-import importlib
 import openai
 import pinecone
 from collections import deque
@@ -30,96 +28,17 @@ assert YOUR_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
 
 # Run configuration
 
-parser = argparse.ArgumentParser(
-    add_help=False,
-    formatter_class=argparse.RawDescriptionHelpFormatter,
-    epilog="""
-cooperative mode enables multiple instances of babyagi to work towards the same objective.
- * none        - (default) no cooperation, each instance works on its own list of tasks
- * local       - local machine cooperation
-                 uses ray to share the list of tasks for an objective
- * distributed - distributed cooperation (not implemented yet)
-                 uses pinecone to share the list of tasks for an objective
+ENABLE_COMMAND_LINE_ARGS = os.getenv("ENABLE_COMMAND_LINE_ARGS", "false").lower() == "true"
 
-examples:
- * start solving world hunger by creating initial list of tasks using GPT-4:
-     %(prog)s -m local -t "Create initial list of tasks" -4 Solve world hunger
- * join the work on solving world hunger using GPT-3:
-     %(prog)s -m local -j Solve world hunger
-"""
-)
-parser.add_argument('objective', nargs='*', metavar='<objective>', help='''
-main objective description. Doesn\'t need to be quoted.
-if not specified, get OBJECTIVE from environment.
-''', default=[os.getenv("OBJECTIVE", "")])
-parser.add_argument('-n', '--name', required=False, help='''
-babyagi instance name.
-if not specified, get BABY_NAME from environment.
-''', default=os.getenv("BABY_NAME", "BabyAGI"))
-parser.add_argument('-m', '--mode', choices=['n', 'none', 'l', 'local', 'd', 'distributed'], help='''
-cooperative mode type
-''', default='none')
-group = parser.add_mutually_exclusive_group()
-group.add_argument('-t', '--task', metavar='<initial task>', help='''
-initial task description. must be quoted.
-if not specified, get INITIAL_TASK from environment.
-''', default=os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", "")))
-group.add_argument('-j', '--join', action='store_true', help='''
-join an existing objective.
-install cooperative requirements.
-''')
-parser.add_argument('-4', '--gpt-4', dest='use_gpt4', action='store_true', help='''
-use GPT-4 instead of GPT-3
-''')
-parser.add_argument('-h', '-?', '--help', action='help', help='''
-show this help message and exit
-''')
+USE_GPT4 = False
+OBJECTIVE = os.getenv("OBJECTIVE", "")
+INITIAL_TASK = os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", ""))
+COOPERATIVE_MODE = "none"
+JOIN_EXISTING_OBJECTIVE = False
 
-args = parser.parse_args()
-
-BABY_NAME = args.name
-if not BABY_NAME:
-    print("\033[91m\033[1m"+"BabyAGI instance name missing\n"+"\033[0m\033[0m")
-    parser.print_help()
-    parser.exit()
-
-def can_import(module_name):
-    try:
-        importlib.import_module(module_name)
-        return True
-    except ImportError:
-        return False
-
-module_name = "ray"
-COOPERATIVE_MODE = args.mode
-if COOPERATIVE_MODE in ['l', 'local'] and not can_import(module_name):
-    print("\033[91m\033[1m"+f"Local cooperative mode requires package {module_name}\nInstall:  pip install -r requirements-cooperative.txt\n"+"\033[0m\033[0m")
-    parser.print_help()
-    parser.exit()
-elif COOPERATIVE_MODE in ['d', 'distributed']:
-    print("\033[91m\033[1m"+"Distributed cooperative mode is not implemented yet\n"+"\033[0m\033[0m")
-    parser.print_help()
-    parser.exit()
-
-JOIN_EXISTING_OBJECTIVE = args.join
-if JOIN_EXISTING_OBJECTIVE and COOPERATIVE_MODE in ['n', 'none']:
-    print("\033[91m\033[1m"+f"Joining existing objective requires local or distributed cooperative mode\n"+"\033[0m\033[0m")
-    parser.print_help()
-    parser.exit()
-
-USE_GPT4 = args.use_gpt4
-
-OBJECTIVE = ' '.join(args.objective).strip()
-if not OBJECTIVE:
-    print("\033[91m\033[1m"+"No objective specified or found in environment.\n"+"\033[0m\033[0m")
-    parser.print_help()
-    parser.exit()
-
-INITIAL_TASK = args.task
-if not INITIAL_TASK and not JOIN_EXISTING_OBJECTIVE:
-    print("\033[91m\033[1m"+"No initial task specified or found in environment.\n"+"\033[0m\033[0m")
-    parser.print_help()
-    parser.exit()
+if ENABLE_COMMAND_LINE_ARGS:
+    from extensions.argsparser import parse_arguments
+    OBJECTIVE, INITIAL_TASK, USE_GPT4, BABY_NAME, COOPERATIVE_MODE, JOIN_EXISTING_OBJECTIVE = parse_arguments()
 
 print("\033[95m\033[1m"+"\n*****CONFIGURATION*****\n"+"\033[0m\033[0m")
 print(f"Name: {BABY_NAME}")
