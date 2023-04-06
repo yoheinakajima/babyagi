@@ -16,6 +16,7 @@ class TestTaskCreationAgent(unittest.TestCase):
             'engine': 'davinci-codex',
             'temperature': 0.5,
             'max_tokens': 50,
+            'prompt': "Objective: {objective}\nResult: {result}\nTask Description: {task_description}\nTask List: {task_list}\n\n",
         }
         self.task_creation_agent = TaskCreationAgent(self.config)
 

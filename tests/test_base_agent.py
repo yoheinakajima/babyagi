@@ -16,6 +16,7 @@ class TestBaseAgent(unittest.TestCase):
             'engine': 'davinci-codex',
             'temperature': 0.5,
             'max_tokens': 50,
+            'prompt': 'Objective: {objective}\nTask: {task}\nContext: {context}\nAnswer:',
         }
         self.base_agent = BaseAgent(self.config)
 
@@ -31,7 +32,13 @@ class TestBaseAgent(unittest.TestCase):
         """
         Test the __call__ method by mocking the openai.Completion.create function.
         """
-        mock_completion_create.return_value.choices = [{'text': 'Mocked response'}]
+
+        # Create a mock object with a 'text' attribute
+        class MockChoice:
+            def __init__(self, text):
+                self.text = text
+
+        mock_completion_create.return_value.choices = [MockChoice('Mocked response')]
 
         objective = "Write a Python function to calculate the sum of two numbers."
         task = "Function: sum(a: int, b: int) -> int"
@@ -40,6 +47,7 @@ class TestBaseAgent(unittest.TestCase):
 
         self.assertEqual(response, 'Mocked response')
         mock_completion_create.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()

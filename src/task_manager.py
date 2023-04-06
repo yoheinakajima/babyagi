@@ -29,8 +29,10 @@ class TaskManager:
         :param task: A dictionary containing task information.
         :return: None
         """
+        if "task_id" not in task:
+            raise ValueError("Task must have a 'task_id' key.")
         self.task_list.append(task)
-
+        
     def get_next_task(self) -> Union[Dict[str, Union[str, Dict]], None]:
         """
         Remove and return the first task in the task list.
@@ -40,7 +42,7 @@ class TaskManager:
         if self.task_list:
             return self.task_list.pop(0)
         else:
-            return None
+            raise IndexError("Task list is empty.")
     def has_tasks(self) -> bool:
         """
         Check if there are tasks in the task list.

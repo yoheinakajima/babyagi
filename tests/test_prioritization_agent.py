@@ -27,7 +27,7 @@ class TestPrioritizationAgent(unittest.TestCase):
         self.assertEqual(self.prioritization_agent.config, self.config)
 
     @patch.object(PrioritizationAgent, '_get_task_names')
-    @patch.object(PrioritizationAgent, '_call')
+    @patch('src.agents.base_agent.BaseAgent.__call__')
     @patch.object(PrioritizationAgent, '_parse_response')
     @patch.object(PrioritizationAgent, '_update_task_manager')
     def test_prioritize_tasks(self, mock_update_task_manager, mock_parse_response, mock_call, mock_get_task_names) -> None:

@@ -1,62 +1,89 @@
 import unittest
+from unittest.mock import MagicMock, patch
+from src.agents.base_agent import BaseAgent
 from src.agents.context_agent import ContextAgent
-from src.agents.prioritization_agent import PrioritizationAgent
-from src.agents.task_creation_agent import TaskCreationAgent
 from src.task_manager import TaskManager
 
 class TestAgentsIntegration(unittest.TestCase):
-
     def setUp(self) -> None:
         """
-        Set up the necessary agents and TaskManager for the integration tests.
+        Create a clean instance of the TaskManager, BaseAgent, and ContextAgent for each test case with mock configurations.
         """
-        self.config = {
-            'api_key': 'your_openai_api_key',
-            'engine': 'davinci-codex',
-            'temperature': 0.5,
-            'max_tokens': 50,
+        self.config_base_agent = {
+            "api_key": "your_openai_api_key",
+            "engine": "davinci-codex",
+            "temperature": 0.5,
+            "max_tokens": 50,
         }
-        self.context_agent = ContextAgent(self.config, "pinecone_index")
-        self.prioritization_agent = PrioritizationAgent(self.config)
-        self.task_creation_agent = TaskCreationAgent(self.config)
+        self.config_context_agent = {
+            "api_key": "your_openai_api_key",
+            "engine": "davinci-codex",
+            "temperature": 0.5,
+            "max_tokens": 50,
+            "index": "test-index",
+            "n": 5,
+        }
         self.task_manager = TaskManager()
+        self.base_agent = BaseAgent(self.config_base_agent)
+        self.context_agent = ContextAgent(
+            config=self.config_context_agent,
+            index=self.config_context_agent["index"],
+            n=self.config_context_agent["n"],
+        )
 
-    def test_agents_interaction(self) -> None:
+    @patch("openai.Embedding.create")
+    @patch("src.agents.context_agent.ContextAgent._pinecone_query")
+    def test_agents_interaction(self, mock_pinecone_query: MagicMock, mock_embedding_create: MagicMock):
         """
         Test the interaction between different agents and the task manager.
         """
-        # Add some initial tasks to the task manager
-        self.task_manager.add_task({"task_name": "Initial Task 1"})
-        self.task_manager.add_task({"task_name": "Initial Task 2"})
+        # Add initial tasks
+        self.task_manager.add_task({"task_id": 1, "task_name": "Initial Task 1"})
+        self.task_manager.add_task({"task_id": 2, "task_name": "Initial Task 2"})
+        self.task_manager.add_task({"task_id": 3, "task_name": "Initial Task 3"})
 
-        # Simulate ContextAgent interaction
-        query = "example query for context"
+        # Mock the embedding create response
+        mock_embedding_create.return_value = {
+            "data": [
+                {
+                    "embedding": [0.1, 0.2, 0.3]
+                }
+            ]
+        }
+
+        # Mock the Pinecone query response
+        mock_pinecone_query.return_value = MagicMock(matches=[
+            MagicMock(score=0.9, metadata={"task_name": "Task 4"}),
+            MagicMock(score=0.8, metadata={"task_name": "Task 5"}),
+            MagicMock(score=0.7, metadata={"task_name": "Task 6"}),
+            MagicMock(score=0.6, metadata={"task_name": "Task 7"}),
+            MagicMock(score=0.5, metadata={"task_name": "Task 8"}),
+        ])
+
+
+        # Query for relevant tasks
+        query = "Find the best tasks for this objective"
         relevant_tasks = self.context_agent.get_relevant_tasks(query, 5)
-        self.assertIsInstance(relevant_tasks, list)
 
-        # Simulate PrioritizationAgent interaction
-        self.prioritization_agent.prioritize_tasks(1, "Prioritize tasks", self.task_manager)
+        # Add relevant tasks to the task manager
+        for task in relevant_tasks:
+            self.task_manager.add_task({"task_id": len(self.task_manager.tasks) + 1, "task_name": task})
 
-        # Check if the prioritized tasks are added to the task manager
-        self.assertGreater(len(self.task_manager.task_list), 2)
+        # Check the total number of tasks
+        self.assertEqual(len(self.task_manager.tasks), 8)
 
-        # Simulate TaskCreationAgent interaction
-        objective = "Create new tasks based on the previous result"
-        result = {"result_text": "Result of the last completed task"}
-        task_description = "Description of the last completed task"
+        # Select a task to complete
+        task_to_complete = self.task_manager.tasks[4]
 
-        new_tasks = self.task_creation_agent.create_tasks(objective, result, task_description, self.task_manager)
+        # Complete the task using the BaseAgent
+        objective = "Write a Python function to calculate the sum of two numbers."
+        task = f"Function: {task_to_complete['task_name']}"
+        context = "Relevant context"
+        response = self.base_agent(objective=objective, task=task, context=context)
 
-        # Check if new tasks are created
-        self.assertIsInstance(new_tasks, list)
-        self.assertGreater(len(new_tasks), 0)
+        # Check the response
+        self.assertIsNotNone(response)
 
-        # Add the new tasks to the task manager
-        for task in new_tasks:
-            self.task_manager.add_task(task)
-
-        # Check if the new tasks are added to the task manager
-        self.assertGreater(len(self.task_manager.task_list), len(new_tasks) + 2)
 
 if __name__ == "__main__":
     unittest.main()

@@ -4,6 +4,7 @@ import openai
 from typing import Dict, List
 
 class TaskCreationAgent(BaseAgent):
+    
     def create_tasks(self, objective: str, result: Dict, task_description: str, task_manager: TaskManager) -> List[Dict]:
         """
         Create tasks using the task_creation agent.
@@ -39,3 +40,19 @@ class TaskCreationAgent(BaseAgent):
         """
         new_tasks = response_text.split('\n')
         return [{"task_name": task_name} for task_name in new_tasks]
+    
+
+    def _call(self, objective: str, result: Dict, task_description: str, task_list: str) -> str:
+        """
+        Call the AI model with the given parameters.
+
+        :param objective: The objective for the task_creation agent.
+        :param result: A dictionary containing the result of the last completed task.
+        :param task_description: The task description for the last completed task.
+        :param task_list: A string containing the list of task names.
+        :return: The response text from the AI model.
+        """
+        return super()._call(objective=objective, result=result, task_description=task_description, task_list=task_list)
+    
+
+    

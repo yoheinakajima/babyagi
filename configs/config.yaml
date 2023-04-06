@@ -1,5 +1,5 @@
 pinecone:
-  api_key: API_KEY
+  api_key: 99d5d259-d4f3-44cc-adca-af91350a63a8
   environment: eu-west1-gcp
   pinecone_index:
     table_name: test-table
@@ -8,7 +8,7 @@ pinecone:
     pod_type: s1
     
 openai:
-  api_key: API_KEY
+  api_key: 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
 
 project:
   objective: Solve world hunger
