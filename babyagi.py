@@ -16,10 +16,9 @@ load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env"
 
-OPENAI_API_MODEL = os.getenv("OPENAI_API_MODEL", "text-davinci-003")
+OPENAI_API_MODEL = os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo")
 assert OPENAI_API_MODEL, "OPENAI_API_MODEL environment variable is missing from .env from .env"
 
-USE_CHAT_COMPLETIONS = OPENAI_API_MODEL.lower().startswith("gpt-")
 if "gpt-4" in OPENAI_API_MODEL.lower():
     print(f"\033[91m\033[1m"+"\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"+"\033[0m\033[0m")
 
@@ -69,11 +68,11 @@ def get_ada_embedding(text):
     text = text.replace("\n", " ")
     return openai.Embedding.create(input=[text], model="text-embedding-ada-002")["data"][0]["embedding"]
 
-def openai_call(prompt: str, temperature: float = 0.5, max_tokens: int = 100):
-    if not USE_CHAT_COMPLETIONS:
+def openai_call(prompt: str, model: str = OPENAI_API_MODEL, temperature: float = 0.5, max_tokens: int = 100):
+    if not model.startswith('gpt-'):
         # Use completion API
         response = openai.Completion.create(
-            engine=OPENAI_API_MODEL,
+            engine=model,
             prompt=prompt,
             temperature=temperature,
             max_tokens=max_tokens,
@@ -86,7 +85,7 @@ def openai_call(prompt: str, temperature: float = 0.5, max_tokens: int = 100):
         # Use chat completion API
         messages=[{"role": "user", "content": prompt}]
         response = openai.ChatCompletion.create(
-            model=OPENAI_API_MODEL,
+            model=model,
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,
@@ -124,7 +123,7 @@ def execution_agent(objective:str,task: str) -> str:
     #print("\n*******RELEVANT CONTEXT******\n")
     #print(context)
     prompt =f"You are an AI who performs one task based on the following objective: {objective}.\nTake into account these previously completed tasks: {context}\nYour task: {task}\nResponse:"
-    return openai_call(prompt, 0.7, 2000)
+    return openai_call(prompt, temperature=0.7, max_tokens=2000)
 
 def context_agent(query: str, n: int):
     query_embedding = get_ada_embedding(query)
