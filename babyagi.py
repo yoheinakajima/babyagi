@@ -35,7 +35,7 @@ OBJECTIVE = os.getenv("OBJECTIVE", "")
 INITIAL_TASK = os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", ""))
 
 if ENABLE_COMMAND_LINE_ARGS:
-    from argsparser import parse_arguments
+    from extensions.argsparser import parse_arguments
     OBJECTIVE, INITIAL_TASK, USE_GPT4 = parse_arguments()
 
 if USE_GPT4:
