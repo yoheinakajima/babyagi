@@ -24,11 +24,11 @@ examples:
     parser.add_argument('objective', nargs='*', metavar='<objective>', help='''
     main objective description. Doesn\'t need to be quoted.
     if not specified, get objective from environment.
-    ''', default=[os.getenv("objective", "")])
+    ''', default=[os.getenv("OBJECTIVE", "")])
     parser.add_argument('-n', '--name', required=False, help='''
     babyagi instance name.
     if not specified, get baby_name from environment.
-    ''', default=os.getenv("baby_name", "BabyAGI"))
+    ''', default=os.getenv("BABY_NAME", "BabyAGI"))
     parser.add_argument('-m', '--mode', choices=['n', 'none', 'l', 'local', 'd', 'distributed'], help='''
     cooperative mode type
     ''', default='none')
@@ -57,6 +57,7 @@ examples:
         parser.exit()
 
     use_gpt4 = args.use_gpt4
+    use_llama = args.use_llama
 
     def can_import(module_name):
         try:
@@ -94,4 +95,4 @@ examples:
         parser.print_help()
         parser.exit()
 
-    return objective, initial_task, use_gpt4, baby_name, cooperative_mode, join_existing_objective
+    return objective, initial_task, use_gpt4, use_llama, baby_name, cooperative_mode, join_existing_objective
