@@ -33,12 +33,11 @@ To use the script, you will need to follow these steps:
 3. Set your OpenAI and Pinecone API keys in the OPENAI_API_KEY and PINECONE_API_KEY variables.
 4. Set the Pinecone environment in the PINECONE_ENVIRONMENT variable.
 5. Set the name of the table where the task results will be stored in the TABLE_NAME variable.
-6. Set the objective of the task management system in the OBJECTIVE variable. Alternatively you can pass it to the script as a quote argument.
-```
-./babyagi.py ["<objective>"]
-```
-7. Set the first task of the system in the FIRST_TASK variable.
+6. (Optional) Set the objective of the task management system in the OBJECTIVE variable.
+7. (Optional) Set the first task of the system in the INITIAL_TASK variable.
 8. Run the script.
+
+All optional values above can also be specified on the command line.
 
 # Warning
 This script is designed to be run continuously as part of a task management system. Running this script continuously can result in high API usage, so please use it responsibly. Additionally, the script requires the OpenAI and Pinecone APIs to be set up correctly, so make sure you have set up the APIs before running the script.

@@ -1,25 +1,20 @@
 #!/usr/bin/env python3
 import os
+import time
 import openai
 import pinecone
-import time
-import sys
 from collections import deque
 from typing import Dict, List
 from dotenv import load_dotenv
-import os
 
 #Set Variables
 load_dotenv()
 
-# Set API Keys
+# Engine configuration
+
+# API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env"
-
-# Use GPT-3 model
-USE_GPT4 = False
-if USE_GPT4:
-    print("\033[91m\033[1m"+"\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"+"\033[0m\033[0m")
 
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
 assert PINECONE_API_KEY, "PINECONE_API_KEY environment variable is missing from .env"
@@ -31,16 +26,25 @@ assert PINECONE_ENVIRONMENT, "PINECONE_ENVIRONMENT environment variable is missi
 YOUR_TABLE_NAME = os.getenv("TABLE_NAME", "")
 assert YOUR_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
 
-# Project config
-OBJECTIVE = sys.argv[1] if len(sys.argv) > 1 else os.getenv("OBJECTIVE", "")
-assert OBJECTIVE, "OBJECTIVE environment variable is missing from .env"
+# Run configuration
 
-YOUR_FIRST_TASK = os.getenv("FIRST_TASK", "")
-assert YOUR_FIRST_TASK, "FIRST_TASK environment variable is missing from .env"
+ENABLE_COMMAND_LINE_ARGS = os.getenv("ENABLE_COMMAND_LINE_ARGS", "false").lower() == "true"
 
-#Print OBJECTIVE
-print("\033[96m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
-print(OBJECTIVE)
+USE_GPT4 = False
+OBJECTIVE = os.getenv("OBJECTIVE", "")
+INITIAL_TASK = os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", ""))
+
+if ENABLE_COMMAND_LINE_ARGS:
+    from argsparser import parse_arguments
+    OBJECTIVE, INITIAL_TASK, USE_GPT4 = parse_arguments()
+
+if USE_GPT4:
+    print("\033[91m\033[1m"+"\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"+"\033[0m\033[0m")
+
+print("\033[94m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
+print(f"{OBJECTIVE}")
+
+print("\033[93m\033[1m"+"\nInitial task:"+"\033[0m\033[0m"+f" {INITIAL_TASK}")
 
 # Configure OpenAI and Pinecone
 openai.api_key = OPENAI_API_KEY
@@ -67,9 +71,10 @@ def get_ada_embedding(text):
     text = text.replace("\n", " ")
     return openai.Embedding.create(input=[text], model="text-embedding-ada-002")["data"][0]["embedding"]
 
+# Call the correct GPT model
 def openai_call(prompt: str, use_gpt4: bool = False, temperature: float = 0.5, max_tokens: int = 100):
     if not use_gpt4:
-        #Call GPT-3 DaVinci model
+        # GPT-3 DaVinci
         response = openai.Completion.create(
             engine='text-davinci-003',
             prompt=prompt,
@@ -81,7 +86,7 @@ def openai_call(prompt: str, use_gpt4: bool = False, temperature: float = 0.5, m
         )
         return response.choices[0].text.strip()
     else:
-        #Call GPT-4 chat model
+        # GPT-4 chat
         messages=[{"role": "user", "content": prompt}]
         response = openai.ChatCompletion.create(
             model="gpt-4",
@@ -138,7 +143,7 @@ def context_agent(query: str, index: str, n: int):
 # Add the first task
 first_task = {
     "task_id": 1,
-    "task_name": YOUR_FIRST_TASK
+    "task_name": INITIAL_TASK
 }
 
 add_task(first_task)
@@ -168,13 +173,13 @@ while True:
         vector = enriched_result['data']  # extract the actual result from the dictionary
         index.upsert([(result_id, get_ada_embedding(vector),{"task":task['task_name'],"result":result})])
 
-    # Step 3: Create new tasks and reprioritize task list
-    new_tasks = task_creation_agent(OBJECTIVE,enriched_result, task["task_name"], [t["task_name"] for t in task_list])
+        # Step 3: Create new tasks and reprioritize task list
+        new_tasks = task_creation_agent(OBJECTIVE,enriched_result, task["task_name"], [t["task_name"] for t in task_list])
 
-    for new_task in new_tasks:
-        task_id_counter += 1
-        new_task.update({"task_id": task_id_counter})
-        add_task(new_task)
-    prioritization_agent(this_task_id)
+        for new_task in new_tasks:
+            task_id_counter += 1
+            new_task.update({"task_id": task_id_counter})
+            add_task(new_task)
+        prioritization_agent(this_task_id)
 
-time.sleep(1)  # Sleep before checking the task list again
+    time.sleep(1)  # Sleep before checking the task list again
