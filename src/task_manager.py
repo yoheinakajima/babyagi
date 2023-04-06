@@ -18,7 +18,8 @@ class TaskManager:
         """
         Initialize an empty task list using deque from the collections module.
         """
-        self.task_list = deque([])
+        # self.task_list = deque()
+        self.task_list = []
 
     @task_format_validation
     def add_task(self, task: Dict[str, Union[str, Dict]]) -> None:
@@ -36,11 +37,10 @@ class TaskManager:
 
         :return: A dictionary containing task information or None if the task list is empty.
         """
-        try:
-            return self.task_list.popleft()
-        except IndexError:
+        if self.task_list:
+            return self.task_list.pop(0)
+        else:
             return None
-
     def has_tasks(self) -> bool:
         """
         Check if there are tasks in the task list.

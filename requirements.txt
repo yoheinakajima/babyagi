@@ -19,6 +19,7 @@ charset-normalizer==3.1.0
 colorama==0.4.6
 comm==0.1.2
 contourpy==1.0.7
+coverage==7.2.2
 cycler==0.11.0
 debugpy==1.6.6
 decorator==5.1.1
