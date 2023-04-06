@@ -31,6 +31,7 @@ assert YOUR_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
 ENABLE_COMMAND_LINE_ARGS = os.getenv("ENABLE_COMMAND_LINE_ARGS", "false").lower() == "true"
 
 USE_GPT4 = False
+BABY_NAME = os.getenv("BABY_NAME", "BabyAGI")
 OBJECTIVE = os.getenv("OBJECTIVE", "")
 INITIAL_TASK = os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", ""))
 COOPERATIVE_MODE = "none"
@@ -97,8 +98,10 @@ class SingleTaskListStorage:
 # Initialize tasks storage
 tasks_storage = SingleTaskListStorage()
 if COOPERATIVE_MODE in ['l', 'local']:
-    print("")
-    from ray_storage import CooperativeTaskListStorage
+    import sys
+    from pathlib import Path
+    sys.path.append(str(Path(__file__).resolve().parent))
+    from extensions.ray_tasks import CooperativeTaskListStorage
     tasks_storage = CooperativeTaskListStorage(OBJECTIVE)
 elif COOPERATIVE_MODE in ['d', 'distributed']:
     pass
@@ -219,6 +222,6 @@ while True:
             new_task.update({"task_id": tasks_storage.next_task_id()})
             tasks_storage.append(new_task)
 
-        prioritization_agent()
+        if not JOIN_EXISTING_OBJECTIVE: prioritization_agent()
 
-    time.sleep(1)  # Sleep before checking the task list again
+    time.sleep(5)  # Sleep before checking the task list again

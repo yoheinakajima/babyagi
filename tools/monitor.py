@@ -1,35 +1,40 @@
-import os
+#!/usr/bin/env python3
+import sys
 import time
-import ray
 import curses
 
-ray.init()
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+from extensions.ray_objectives import CooperativeObjectivesListStorage
+from extensions.ray_tasks import CooperativeTaskListStorage
 
-class Actor:
-    def __init__(self):
-        self.message = 'Hello, World!'
-
-    def get_message(self):
-        return self.message
-
-actor = Actor()
-actor_ref = ray.put(actor)
-
-def print_centered(stdscr, message):
+def print_buffer(stdscr, lines):
     stdscr.clear()
-    height, width = stdscr.getmaxyx()
-    y = height // 2
-    x = (width - len(message)) // 2
-    stdscr.addstr(y, x, message)
+    y = 0
+    x = 0
+    for line in lines:
+        stdscr.addstr(y, x, line)
+        y += 1
     stdscr.refresh()
 
-
 def main(stdscr):
+    objectives = CooperativeObjectivesListStorage()
     while True:
-        actor_instance = ray.get(actor_ref)
-        print_centered(stdscr, actor_instance.get_message())
+        objectives_list = objectives.get_objective_names()
+        buffer = []
+        if not objectives_list:
+            buffer.append("No objectives")
+        for objective in objectives_list:
+            buffer.append("-----------------")
+            buffer.append(f"Objective: {objective}")
+            buffer.append("-----------------")
+            tasks = CooperativeTaskListStorage(objective)
+            tasks_list = tasks.get_task_names()
+            buffer.append(f"Tasks:")
+            for t in tasks_list:
+                buffer.append(f" * {t}")
+            buffer.append("-----------------")
+        print_buffer(stdscr, buffer)
         time.sleep(30)
 
-
-if __name__ == '__main__':
-    curses.wrapper(main)
+curses.wrapper(main)

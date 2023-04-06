@@ -1,7 +1,12 @@
+import sys
 import logging
 import ray
 from collections import deque
 from typing import Dict, List
+
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+from extensions.ray_objectives import CooperativeObjectivesListStorage
 
 try:
     ray.init(address="auto", namespace="babyagi", logging_level=logging.FATAL, ignore_reinit_error=True)
@@ -36,11 +41,14 @@ class CooperativeTaskListStorageActor:
 class CooperativeTaskListStorage:
     def __init__(self, name: str):
         self.name = name
+
         try:
-            print("Connecting...")
             self.actor = ray.get_actor(name=self.name, namespace="babyagi")
         except ValueError:
             self.actor = CooperativeTaskListStorageActor.options(name=self.name, namespace="babyagi", lifetime="detached").remote()
+
+        objectives = CooperativeObjectivesListStorage()
+        objectives.append(self.name)
 
     def append(self, task: Dict):
         self.actor.append.remote(task)

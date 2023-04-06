@@ -50,25 +50,13 @@ examples:
 
     args = parser.parse_args()
 
-    use_gpt4 = args.use_gpt4
-
-    objective = ' '.join(args.objective).strip()
-    if not objective:
-        print("\033[91m\033[1m"+"No objective specified or found in environment.\n"+"\033[0m\033[0m")
-        parser.print_help()
-        parser.exit()
-
-    initial_task = args.task
-    if not initial_task:
-        print("\033[91m\033[1m"+"No initial task specified or found in environment.\n"+"\033[0m\033[0m")
-        parser.print_help()
-        parser.exit()
-
     baby_name = args.name
     if not baby_name:
         print("\033[91m\033[1m"+"BabyAGI instance name missing\n"+"\033[0m\033[0m")
         parser.print_help()
         parser.exit()
+
+    use_gpt4 = args.use_gpt4
 
     def can_import(module_name):
         try:
@@ -91,6 +79,18 @@ examples:
     join_existing_objective = args.join
     if join_existing_objective and cooperative_mode in ['n', 'none']:
         print("\033[91m\033[1m"+f"Joining existing objective requires local or distributed cooperative mode\n"+"\033[0m\033[0m")
+        parser.print_help()
+        parser.exit()
+
+    objective = ' '.join(args.objective).strip()
+    if not objective:
+        print("\033[91m\033[1m"+"No objective specified or found in environment.\n"+"\033[0m\033[0m")
+        parser.print_help()
+        parser.exit()
+
+    initial_task = args.task
+    if not initial_task and not join_existing_objective:
+        print("\033[91m\033[1m"+"No initial task specified or found in environment.\n"+"\033[0m\033[0m")
         parser.print_help()
         parser.exit()
 
