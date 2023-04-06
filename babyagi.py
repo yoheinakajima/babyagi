@@ -1,6 +1,9 @@
+#!/usr/bin/env python3
+import os
 import openai
 import pinecone
 import time
+import sys
 from collections import deque
 from typing import Dict, List
 from dotenv import load_dotenv
@@ -9,11 +12,17 @@ import os
 from agents import TaskManagerAgent, ContextAgent
 from models import Task
 
+#Set Variables
 load_dotenv()
 
 # Set API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env from .env"
+assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env"
+
+# Use GPT-3 model
+USE_GPT4 = False
+if USE_GPT4:
+    print("\033[91m\033[1m"+"\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"+"\033[0m\033[0m")
 
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
 assert PINECONE_API_KEY, "PINECONE_API_KEY environment variable is missing from .env"
@@ -26,7 +35,7 @@ YOUR_TABLE_NAME = os.getenv("TABLE_NAME", "")
 assert YOUR_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
 
 # Project config
-OBJECTIVE = os.getenv("OBJECTIVE", "")
+OBJECTIVE = sys.argv[1] if len(sys.argv) > 1 else os.getenv("OBJECTIVE", "")
 assert OBJECTIVE, "OBJECTIVE environment variable is missing from .env"
 
 YOUR_FIRST_TASK = os.getenv("FIRST_TASK", "")
