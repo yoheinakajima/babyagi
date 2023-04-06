@@ -3,10 +3,7 @@
 ACDM wraps around a large language model and a vector database, and serves the begining stages of a digital organization designed to be self-governing, autonomous, and scale-changing. The main intent is to allow agents to collectively manage resources, make decisions, and govern themselves. Design decisions include, but not are limited to autonoumous processes that ensures all agents have an equal say in the direction and management of the organization.
 
 In its current form, it is an AI-driven system that manages tasks, executes them, generates new tasks, and reprioritizes the task list. It uses OpenAI for natural language understanding, Pinecone for task-result storage, and embeddings for context retrieval.
-
-To be depricated at any moment. All credit goes to @OpenAI and @yoheinakajima
-
-## Description
+To be depricated at any moment. To be depricated at any moment. All credit goes to @OpenAI and @yoheinakajima
 
 ACDM helps you automate the task management process of your projects. It's designed to understand and execute tasks, generate new tasks based on completed tasks, and prioritize tasks according to their importance. The project consists of the following components:
 
@@ -19,9 +16,6 @@ ACDM helps you automate the task management process of your projects. It's desig
 |   |- execution_agent
 
 |   |- prioritization_agent
-
-|   |- task_creation_agent
-    
     
 ### Features
 
