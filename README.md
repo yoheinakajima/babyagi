@@ -4,6 +4,7 @@ Otto wraps a large language model and a vector database, serving as the initial 
 
 In its current form, Otto is an AI-driven system that manages tasks, executes them, generates new tasks, and reprioritizes the task list. It utilizes OpenAI for natural language understanding, Pinecone for task-result storage, and embeddings for context retrieval. The project may be deprecated at any moment. All credit goes to @OpenAI and @yoheinakajima.
 
+## Features
 
 The project comprises the following components:
 
@@ -18,7 +19,7 @@ The project comprises the following components:
 * .github: Stores the GitHub-related configurations and workflows
 * LICENSE: Contains the project's license information.
 
-
+## Agent Interaction Diagram
 
 ![Interactions Diagram](utils/interactions.png)
 
