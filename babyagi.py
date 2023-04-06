@@ -1,59 +1,51 @@
 #!/usr/bin/env python3
-import argparse
 import os
+import time
 import openai
 import pinecone
-import time
-import sys
 from collections import deque
 from typing import Dict, List
 from dotenv import load_dotenv
-import os
-
-# Parse arguments for optional extensions
-parser = argparse.ArgumentParser()
-parser.add_argument('-e', '--env', nargs='+', help='filenames for env')
-args = parser.parse_args()
 
 # Load default environment variables (.env)
 load_dotenv()
-
-# Set environment variables for optional extensions
-if args.env:
-    for env_path in args.env:
-        load_dotenv(env_path)
-        print('Using env from file:', env_path)
 
 # Set API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env"
 
 OPENAI_API_MODEL = os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo")
-assert OPENAI_API_MODEL, "OPENAI_API_MODEL environment variable is missing from .env"
-
-if "gpt-4" in OPENAI_API_MODEL.lower():
-    print(f"\033[91m\033[1m"+"\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"+"\033[0m\033[0m")
 
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
 assert PINECONE_API_KEY, "PINECONE_API_KEY environment variable is missing from .env"
 
 PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "us-east1-gcp")
-assert PINECONE_ENVIRONMENT, "PINECONE_ENVIRONMENT environment variable is missing from .env"
 
 # Table config
 YOUR_TABLE_NAME = os.getenv("TABLE_NAME", "")
 assert YOUR_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
 
-# Project config
+# Run configuration
+DOTENV_EXTENSIONS = os.getenv("DOTENV_EXTENSIONS", "").split(' ')
+
+# Goal configuation
 OBJECTIVE = os.getenv("OBJECTIVE", "")
-assert OBJECTIVE, "OBJECTIVE environment variable is missing from .env"
+INITIAL_TASK = os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", ""))
 
-YOUR_FIRST_TASK = os.getenv("FIRST_TASK", "")
-assert YOUR_FIRST_TASK, "FIRST_TASK environment variable is missing from .env"
+ENABLE_COMMAND_LINE_ARGS = os.getenv("ENABLE_COMMAND_LINE_ARGS", "false").lower() == "true"
+if ENABLE_COMMAND_LINE_ARGS:
+    from argsparser import parse_arguments, load_dotenv_extensions
+    OBJECTIVE, INITIAL_TASK, OPENAI_API_MODEL, DOTENV_EXTENSIONS = parse_arguments()
+    # Load environment variables for optional extensions
+    load_dotenv_extensions(DOTENV_EXTENSIONS)
 
-#Print OBJECTIVE
-print("\033[96m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
-print(OBJECTIVE)
+if "gpt-4" in OPENAI_API_MODEL.lower():
+    print("\033[91m\033[1m"+"\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"+"\033[0m\033[0m")
+
+print("\033[94m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
+print(f"{OBJECTIVE}")
+
+print("\033[93m\033[1m"+"\nInitial task:"+"\033[0m\033[0m"+f" {INITIAL_TASK}")
 
 # Configure OpenAI and Pinecone
 openai.api_key = OPENAI_API_KEY
@@ -148,7 +140,7 @@ def context_agent(query: str, n: int):
 # Add the first task
 first_task = {
     "task_id": 1,
-    "task_name": YOUR_FIRST_TASK
+    "task_name": INITIAL_TASK
 }
 
 add_task(first_task)
@@ -178,13 +170,13 @@ while True:
         vector = enriched_result['data']  # extract the actual result from the dictionary
         index.upsert([(result_id, get_ada_embedding(vector),{"task":task['task_name'],"result":result})])
 
-    # Step 3: Create new tasks and reprioritize task list
-    new_tasks = task_creation_agent(OBJECTIVE,enriched_result, task["task_name"], [t["task_name"] for t in task_list])
+        # Step 3: Create new tasks and reprioritize task list
+        new_tasks = task_creation_agent(OBJECTIVE,enriched_result, task["task_name"], [t["task_name"] for t in task_list])
 
-    for new_task in new_tasks:
-        task_id_counter += 1
-        new_task.update({"task_id": task_id_counter})
-        add_task(new_task)
-    prioritization_agent(this_task_id)
+        for new_task in new_tasks:
+            task_id_counter += 1
+            new_task.update({"task_id": task_id_counter})
+            add_task(new_task)
+        prioritization_agent(this_task_id)
 
     time.sleep(1)  # Sleep before checking the task list again
