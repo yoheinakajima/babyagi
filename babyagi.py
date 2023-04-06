@@ -177,4 +177,4 @@ while True:
         add_task(new_task)
     prioritization_agent(this_task_id)
 
-time.sleep(1)  # Sleep before checking the task list again
+    time.sleep(1)  # Sleep before checking the task list again
