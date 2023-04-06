@@ -1,62 +1,26 @@
-# Autonomous Collective Decision Making (ACDM)
+# Otto: Autonomous Collective Decision Making (ACDM)
 
-ACDM wraps around a large language model and a vector database, and serves the begining stages of a digital organization designed to be self-governing, autonomous, and scale-changing. The main intent is to allow agents to collectively manage resources, make decisions, and govern themselves. Design decisions include, but not are limited to autonoumous processes that ensures all agents have an equal say in the direction and management of the organization.
+Otto wraps a large language model and a vector database, serving as the initial stage of a digital organization designed to be self-governing, autonomous, and capable of changing scale. The primary goal is to enable agents to collaboratively manage resources, make decisions, and govern themselves. Design decisions encompass autonomous processes that ensure all agents have an equal say in the direction and management of the organization.
 
-In its current form, it is an AI-driven system that manages tasks, executes them, generates new tasks, and reprioritizes the task list. It uses OpenAI for natural language understanding, Pinecone for task-result storage, and embeddings for context retrieval.
-To be depricated at any moment. To be depricated at any moment. All credit goes to @OpenAI and @yoheinakajima
+In its current form, Otto is an AI-driven system that manages tasks, executes them, generates new tasks, and reprioritizes the task list. It utilizes OpenAI for natural language understanding, Pinecone for task-result storage, and embeddings for context retrieval. The project may be deprecated at any moment. All credit goes to @OpenAI and @yoheinakajima.
 
-ACDM helps you automate the task management process of your projects. It's designed to understand and execute tasks, generate new tasks based on completed tasks, and prioritize tasks according to their importance. The project consists of the following components:
 
-Task Manager:
+The project comprises the following components:
 
-* Maintains and organizes a list of tasks
-* Provides functionalities to add, remove, and query tasks
-* Stores tasks as dictionaries with relevant information
+* agents: Contains various agent classes responsible for different aspects of task management, such as context, execution, prioritization, and task creation.
+* pinecone_helper: Provides helper functions to interact with the Pinecone vector database.
+* task_manager: Manages tasks and their interactions with agents.
+* utils: Contains utility functions, such as embedding and visualization.
+* interactions: Stores interaction data between tasks and agents.
+* configs: Contains configuration files, such as config.yaml.
+* requirements.txt: Lists the project's Python dependencies.
+* scripts: Contains the main.py script to run the project.
+* .github: Stores the GitHub-related configurations and workflows
+* LICENSE: Contains the project's license information.
 
-|   |- context_agent
 
-|   |- execution_agent
 
-|   |- prioritization_agent
-
-|   |- task_creation_agent
-    
-    
-### Features
-
-- Task management with priority
-- Automatic task generation based on completed tasks
-- Task execution with the help of AI models
-- Context retrieval using Pinecone
-- Embeddings for tasks and results
-
-## Visuals
-
-<pre>
-+----------------+          +---------------+          +----------------+
-| Task Manager   |--------->| AI Assistant  |--------->| Pinecone Index |
-+----------------+          +---------------+          +----------------+
-        ^                           |
-        |                           v
- +--------------+          +-----------------------+
- | Task List    |<---------| Task Creation Agent   |
- +--------------+          +-----------------------+
-        ^                           |
-        |                           v
- +--------------+          +-----------------------+
- | Prioritization|<--------| Prioritization Agent  |
- +--------------+          +-----------------------+
-        ^                           |
-        |                           v
- +--------------+          +-----------------------+
- | Execution    |<---------| Execution Agent       |
- +--------------+          +-----------------------+
-        ^                           |
-        |                           v
- +--------------+          +-----------------------+
- | Context      |<---------| Context Agent         |
- +--------------+          +-----------------------+
-</pre>
+![Interactions Diagram](utils/interactions.png)
 
 
 ## Installation & Usage
@@ -82,7 +46,7 @@ Contributions are welcome! Please read the contributing guidelines before submit
 
 ## Authors and Acknowledgment
 
-All credit goes to @yoheinakajima. This work is built on BABYAGI project
+All credit goes to @yoheinakajima as the work is built on first commit of BABYAGI project
 
 ## License
 
