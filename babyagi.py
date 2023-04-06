@@ -7,7 +7,7 @@ import sys
 from collections import deque
 from typing import Dict, List
 from dotenv import load_dotenv
-import os
+import json
 
 #Set Variables
 load_dotenv()
@@ -38,6 +38,8 @@ assert OBJECTIVE, "OBJECTIVE environment variable is missing from .env"
 YOUR_FIRST_TASK = os.getenv("FIRST_TASK", "")
 assert YOUR_FIRST_TASK, "FIRST_TASK environment variable is missing from .env"
 
+ENABLE_PERSISTENCE = os.getenv("ENABLE_PERSISTENCE", "False").lower() == "true"
+
 #Print OBJECTIVE
 print("\033[96m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
 print(OBJECTIVE)
@@ -57,8 +59,32 @@ if table_name not in pinecone.list_indexes():
 # Connect to the index
 index = pinecone.Index(table_name)
 
+def load_state():
+    # Load state from JSON files if persistence is enabled and the files exist
+    if ENABLE_PERSISTENCE and os.path.exists("task_list.json") and os.path.exists("task_id_counter.json") and os.path.exists("task_status_results.json"):
+        with open("task_list.json", "r") as f:
+            task_list = json.load(f)
+        with open("task_id_counter.json", "r") as f:
+            task_id_counter = json.load(f)
+        with open("task_status_results.json", "r") as f:
+            task_status_results = json.load(f)
+        return deque(task_list), task_id_counter, task_status_results
+    else:
+        return deque([]), 1, {}
+
+def save_state(task_list, task_id_counter, task_status_results):
+    # Save state to JSON files if persistence is enabled
+    if ENABLE_PERSISTENCE:
+        with open("task_list.json", "w") as f:
+            json.dump(list(task_list), f)
+        with open("task_id_counter.json", "w") as f:
+            json.dump(task_id_counter, f)
+        with open("task_status_results.json", "w") as f:
+            json.dump(task_status_results, f)
+
 # Task list
-task_list = deque([])
+task_list, task_id_counter, task_status_results = load_state()
+
 
 def add_task(task: Dict):
     task_list.append(task)
@@ -135,46 +161,56 @@ def context_agent(query: str, index: str, n: int):
     sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)    
     return [(str(item.metadata['task'])) for item in sorted_results]
 
-# Add the first task
-first_task = {
-    "task_id": 1,
-    "task_name": YOUR_FIRST_TASK
-}
-
-add_task(first_task)
+if not task_list:
+    first_task = {
+        "task_id": 1,
+        "task_name": YOUR_FIRST_TASK
+    }
+    add_task(first_task)
 # Main loop
 task_id_counter = 1
-while True:
-    if task_list:
-        # Print the task list
-        print("\033[95m\033[1m"+"\n*****TASK LIST*****\n"+"\033[0m\033[0m")
-        for t in task_list:
-            print(str(t['task_id'])+": "+t['task_name'])
+try:
+    while True:
+        if task_list:
+            # Print the task list
+            print("\033[95m\033[1m"+"\n*****TASK LIST*****\n"+"\033[0m\033[0m")
+            for t in task_list:
+                print(str(t['task_id'])+": "+t['task_name'])
 
-        # Step 1: Pull the first task
-        task = task_list.popleft()
-        print("\033[92m\033[1m"+"\n*****NEXT TASK*****\n"+"\033[0m\033[0m")
-        print(str(task['task_id'])+": "+task['task_name'])
+            # Get the first task 
+            task = task_list[0]
+            print("\033[92m\033[1m"+"\n*****NEXT TASK*****\n"+"\033[0m\033[0m")
+            print(str(task['task_id'])+": "+task['task_name'])
 
-        # Send to execution function to complete the task based on the context
-        result = execution_agent(OBJECTIVE,task["task_name"])
-        this_task_id = int(task["task_id"])
-        print("\033[93m\033[1m"+"\n*****TASK RESULT*****\n"+"\033[0m\033[0m")
-        print(result)
+            # Send to execution function to complete the task based on the context
+            result = execution_agent(OBJECTIVE,task["task_name"])
+            this_task_id = int(task["task_id"])
+            print("\033[93m\033[1m"+"\n*****TASK RESULT*****\n"+"\033[0m\033[0m")
+            print(result)
 
-        # Step 2: Enrich result and store in Pinecone
-        enriched_result = {'data': result}  # This is where you should enrich the result if needed
-        result_id = f"result_{task['task_id']}"
-        vector = enriched_result['data']  # extract the actual result from the dictionary
-        index.upsert([(result_id, get_ada_embedding(vector),{"task":task['task_name'],"result":result})])
+            # Step 2: Enrich result and store in Pinecone
+            enriched_result = {'data': result}  # This is where you should enrich the result if needed
+            result_id = f"result_{task['task_id']}"
+            vector = enriched_result['data']  # extract the actual result from the dictionary
+            index.upsert([(result_id, get_ada_embedding(vector),{"task":task['task_name'],"result":result})])
+            # Remove the completed task from the task list
+            task_list.popleft()
+            # Update task status and results
+            task_status_results[this_task_id] = {"task_name": task["task_name"], "result": result}
+            save_state(task_list, task_id_counter, task_status_results)
 
-    # Step 3: Create new tasks and reprioritize task list
-    new_tasks = task_creation_agent(OBJECTIVE,enriched_result, task["task_name"], [t["task_name"] for t in task_list])
 
-    for new_task in new_tasks:
-        task_id_counter += 1
-        new_task.update({"task_id": task_id_counter})
-        add_task(new_task)
-    prioritization_agent(this_task_id)
+        # Step 3: Create new tasks and reprioritize task list
+        new_tasks = task_creation_agent(OBJECTIVE,enriched_result, task["task_name"], [t["task_name"] for t in task_list])
 
-    time.sleep(1)  # Sleep before checking the task list again
+        for new_task in new_tasks:
+            task_id_counter += 1
+            new_task.update({"task_id": task_id_counter})
+            add_task(new_task)
+        prioritization_agent(this_task_id)
+        save_state(task_list, task_id_counter, task_status_results)
+
+        time.sleep(1)  # Sleep before checking the task list again
+except KeyboardInterrupt:
+        print("\nStopping script gracefully...")
+        save_state(task_list, task_id_counter, task_status_results)
