@@ -141,13 +141,13 @@ while True:
     if task_list:
         # Print the task list
         print("\033[95m\033[1m"+"\n*****TASK LIST*****\n"+"\033[0m\033[0m")
-        for t in task_list:
-            print(str(t['task_id'])+": "+t['task_name'])
+        for task in task_list:
+            print(f"{task['task_id']}: {task['task_name']}")
 
         # Step 1: Pull the first task
         task = task_list.popleft()
         print("\033[92m\033[1m"+"\n*****NEXT TASK*****\n"+"\033[0m\033[0m")
-        print(str(task['task_id'])+": "+task['task_name'])
+        print(f"{task['task_id']}: {task['task_name']}")
 
         # Send to execution function to complete the task based on the context
         result = execution_agent(OBJECTIVE,task["task_name"])
