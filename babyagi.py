@@ -59,7 +59,7 @@ task_list = deque([])
 def add_task(task: Dict):
     task_list.append(task)
 
-def get_ada_embedding(text) -> List[float]:
+def get_ada_embedding(text: str) -> List[float]:
     text = text.replace("\n", " ")
     return openai.Embedding.create(input=[text], model="text-embedding-ada-002")["data"][0]["embedding"]
 
