@@ -12,15 +12,17 @@ import os
 
 # Parse arguments
 parser = argparse.ArgumentParser()
-parser.add_argument('-e', '--env', help='filename for env')
+parser.add_argument('-e', '--env', nargs='+', help='filenames for env')
 args = parser.parse_args()
 
-# Set environment variables
+# Set environment variables (as extensions)
 if args.env:
-    print('Using env from file:', args.env)
-    load_dotenv(args.env)
-else:
-    load_dotenv()
+    for env_path in args.env:
+        load_dotenv(env_path)
+        print('Using env from file:', env_path)
+
+# Load default environment variables
+load_dotenv()
 
 # Set API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
