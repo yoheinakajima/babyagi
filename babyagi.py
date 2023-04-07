@@ -25,19 +25,26 @@ PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "us-east1-gcp")
 YOUR_TABLE_NAME = os.getenv("TABLE_NAME", "")
 assert YOUR_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
 
-# Run configuration
-DOTENV_EXTENSIONS = os.getenv("DOTENV_EXTENSIONS", "").split(' ')
-
 # Goal configuation
 OBJECTIVE = os.getenv("OBJECTIVE", "")
 INITIAL_TASK = os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", ""))
 
+DOTENV_EXTENSIONS = os.getenv("DOTENV_EXTENSIONS", "").split(' ')
+
+# Command line arguments extension
+# Can override any of the above environment variables
 ENABLE_COMMAND_LINE_ARGS = os.getenv("ENABLE_COMMAND_LINE_ARGS", "false").lower() == "true"
 if ENABLE_COMMAND_LINE_ARGS:
     from argsparser import parse_arguments, load_dotenv_extensions
     OBJECTIVE, INITIAL_TASK, OPENAI_API_MODEL, DOTENV_EXTENSIONS = parse_arguments()
-    # Load environment variables for optional extensions
+
+# Load additional environment variables for enabled extensions
+if DOTENV_EXTENSIONS:
     load_dotenv_extensions(DOTENV_EXTENSIONS)
+
+# TODO: There's still work to be done here to enable people to get
+# defaults from dotenv extensions # but also provide command line
+# arguments to override them
 
 if "gpt-4" in OPENAI_API_MODEL.lower():
     print("\033[91m\033[1m"+"\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"+"\033[0m\033[0m")
