@@ -24,15 +24,15 @@ OPENAI_API_MODEL = get_env_var("OPENAI_API_MODEL", "gpt-3.5-turbo")
 if "gpt-4" in OPENAI_API_MODEL.lower():
     print(f"\033[91m\033[1m"+"\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"+"\033[0m\033[0m")
 
-PINECONE_API_KEY = get_env_var("PINECONE_API_KEY", "")
+PINECONE_API_KEY = get_env_var("PINECONE_API_KEY")
 PINECONE_ENVIRONMENT = get_env_var("PINECONE_ENVIRONMENT", "us-east1-gcp")
 
 # Table config
-YOUR_TABLE_NAME = get_env_var("TABLE_NAME", "")
+YOUR_TABLE_NAME = get_env_var("TABLE_NAME")
 
 # Project config
-OBJECTIVE = sys.argv[1] if len(sys.argv) > 1 else get_env_var("OBJECTIVE", "")
-YOUR_FIRST_TASK = get_env_var("FIRST_TASK", "")
+OBJECTIVE = sys.argv[1] if len(sys.argv) > 1 else get_env_var("OBJECTIVE")
+YOUR_FIRST_TASK = get_env_var("FIRST_TASK")
 
 #Print OBJECTIVE
 print("\033[96m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
@@ -159,6 +159,7 @@ while task_list:
     result_id = f"result_{task['task_id']}"
     vector = enriched_result['data']  # extract the actual result from the dictionary
     index.upsert([(result_id, get_ada_embedding(vector), {"task":task['task_name'], "result":result})])
+
     # Step 3: Create new tasks and reprioritize task list
     new_tasks = task_creation_agent(OBJECTIVE, enriched_result, task["task_name"], [t["task_name"] for t in task_list])
 
