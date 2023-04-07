@@ -51,11 +51,7 @@ YOUR_FIRST_TASK = os.getenv("FIRST_TASK", "")
 assert YOUR_FIRST_TASK, "FIRST_TASK environment variable is missing from .env"
 
 # Print OBJECTIVE
-<<<<<<< HEAD
 print("\033[96m\033[1m" + "\n*****OBJECTIVE*****\n" + "\033[0m\033[0m")
-=======
-print("\033[96m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
->>>>>>> 8a37c69 (Last minute tweaks from sync)
 print(OBJECTIVE)
 
 # Configure OpenAI and Pinecone
