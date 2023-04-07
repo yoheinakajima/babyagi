@@ -83,7 +83,7 @@ def openai_call(prompt: str, model: str = OPENAI_API_MODEL, temperature: float =
         return response.choices[0].text.strip()
     else:
         # Use chat completion API
-        messages=[{"role": "user", "content": prompt}]
+        messages=[{"role": "system", "content": prompt}]
         response = openai.ChatCompletion.create(
             model=model,
             messages=messages,
