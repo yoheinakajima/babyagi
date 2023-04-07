@@ -1,4 +1,4 @@
-# Otto: Autonomous Collective Decision Making (ACDM)
+# Otto: Autonomous Collective Decision Maker (ACDM)
 
 Otto wraps a large language model and a vector database, serving as the initial stage of a digital organization designed to be self-governing, autonomous, and capable of changing scale. The primary goal is to enable agents to collaboratively manage resources, make decisions, and govern themselves. Design decisions encompass autonomous processes that ensure all agents have an equal say in the direction and management of the organization.
 
