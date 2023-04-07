@@ -164,7 +164,7 @@ task_id_counter = 1
 while True:
     if task_list:
         # Print the task list
-        print("\033[95m\033[1m"+"\n*****TASK LIST*****\n"+"\033[0m\033[0m")
+        print("\033[95m\033[1m" + "\n*****TASK LIST*****\n" + "\033[0m\033[0m")
         for t in task_list:
             print(str(t['task_id']) + ": " + t['task_name'])
 
@@ -176,7 +176,7 @@ while True:
         # Send to execution function to complete the task based on the context
         result = execution_agent(OBJECTIVE, task["task_name"])
         this_task_id = int(task["task_id"])
-        print("\033[93m\033[1m"+"\n*****TASK RESULT*****\n"+"\033[0m\033[0m")
+        print("\033[93m\033[1m" + "\n*****TASK RESULT*****\n" + "\033[0m\033[0m")
         print(result)
 
         # Step 2: Enrich result and store in Pinecone
