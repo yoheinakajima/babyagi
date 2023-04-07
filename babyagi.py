@@ -69,30 +69,37 @@ def get_ada_embedding(text):
     return openai.Embedding.create(input=[text], model="text-embedding-ada-002")["data"][0]["embedding"]
 
 def openai_call(prompt: str, model: str = OPENAI_API_MODEL, temperature: float = 0.5, max_tokens: int = 100):
-    if not model.startswith('gpt-'):
-        # Use completion API
-        response = openai.Completion.create(
-            engine=model,
-            prompt=prompt,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0
-        )
-        return response.choices[0].text.strip()
-    else:
-        # Use chat completion API
-        messages=[{"role": "user", "content": prompt}]
-        response = openai.ChatCompletion.create(
-            model=model,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            n=1,
-            stop=None,
-        )
-        return response.choices[0].message.content.strip()
+    while True:
+        try:
+            if not model.startswith('gpt-'):
+                # Use completion API
+                response = openai.Completion.create(
+                    engine=model,
+                    prompt=prompt,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    top_p=1,
+                    frequency_penalty=0,
+                    presence_penalty=0
+                )
+                return response.choices[0].text.strip()
+            else:
+                # Use chat completion API
+                messages=[{"role": "user", "content": prompt}]
+                response = openai.ChatCompletion.create(
+                    model=model,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    n=1,
+                    stop=None,
+                )
+                return response.choices[0].message.content.strip()
+        except openai.error.RateLimitError:
+            print("The OpenAI API rate limit has been exceeded. Waiting 10 seconds and trying again.")
+            time.sleep(10)  # Wait 10 seconds and try again
+        else:
+            break
 
 def task_creation_agent(objective: str, result: Dict, task_description: str, task_list: List[str]):
     prompt = f"You are an task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective}, The last completed task has the result: {result}. This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}. Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks. Return the tasks as an array."
