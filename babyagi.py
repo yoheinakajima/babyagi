@@ -43,7 +43,7 @@ YOUR_TABLE_NAME = os.getenv("TABLE_NAME", "")
 assert YOUR_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
 
 # Project config
-OBJECTIVE = sys.argv[1] if len(sys.argv) > 1 else os.getenv("OBJECTIVE", "")
+OBJECTIVE = os.getenv("OBJECTIVE", "")
 assert OBJECTIVE, "OBJECTIVE environment variable is missing from .env"
 
 YOUR_FIRST_TASK = os.getenv("FIRST_TASK", "")
