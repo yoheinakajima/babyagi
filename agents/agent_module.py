@@ -10,27 +10,32 @@ import sys
 
 USE_GPT4 = False
 
-def create_custom_agent(agent_name: str, role: str):
+
+def create_custom_agent(agent_name: str, role: str, prompt: str):
     def custom_agent(task, shared_context):
-        return f"{agent_name} ({role}) task completed: {task}"
-
-    return custom_agent
-
-def create_prompt_generator_agent():
-    def prompt_generator(task, shared_context):
         task_name = task['task_name']
         task_id = task['task_id']
-        prompt = (f"You are an AI tasked with completing the following task: {task_name}. "
-                  f"Here is the context to help you:\n{shared_context}\n"
-                  f"Generate a prompt that will help another AI complete the task. "
-                  f"Here's your response:\n")
         response = openai_call(prompt, USE_GPT4, 0.7, 2000)
         if response:
             return response
         else:
-            return "No prompt generated."
+            return "No solution generated."
 
-    return prompt_generator
+    return custom_agent
+
+
+def prompt_generator(task, shared_context):
+    task_name = task['task_name']
+    task_id = task['task_id']
+    prompt = (f"You are an AI tasked with completing the following task: {task_name}. "
+              f"Here is the context to help you:\n{shared_context}\n"
+              f"Generate a prompt that will help another AI complete the task, only returning the prompt. "
+              f"Here's your response:\n")
+    response = openai_call(prompt, USE_GPT4, 0.7, 2000)
+    if response:
+        return response
+    else:
+        return "No prompt generated."
 
 def create_python_developer_agent():
     def python_developer(task, shared_context):
@@ -44,26 +49,29 @@ def create_python_developer_agent():
         response = openai_call(prompt, USE_GPT4, 0.7, 2000)
         if is_valid_python_script(response):
             script = response.split('--PYTHON SCRIPT--', 1)[1]
-            save_script_to_file(script, f"task_{task_id}_{task_name.replace(' ', '_')}.py")
+            save_script_to_file(
+                script, f"task_{task_id}_{task_name.replace(' ', '_')}.py")
             return "Python task completed: " + task_name
         else:
             return "The generated result does not contain a valid Python script."
 
     return python_developer
 
+
 def create_javascript_developer_agent():
     def javascript_developer(task, shared_context):
         task_name = task['task_name']
         task_id = task['task_id']
         prompt = (f"You are an AI tasked with completing the following JavaScript task: {task_name}. "
-                    f"Here is the context to help you:\n{shared_context}\n"
-                    f"Generate a JavaScript script that will accomplish the task. "
-                    f"When you are finished, add the line --JAVASCRIPT SCRIPT-- followed by the script. "
-                    f"Here's your response:\n")
+                  f"Here is the context to help you:\n{shared_context}\n"
+                  f"Generate a JavaScript script that will accomplish the task. "
+                  f"When you are finished, add the line --JAVASCRIPT SCRIPT-- followed by the script. "
+                  f"Here's your response:\n")
         response = openai_call(prompt, USE_GPT4, 0.7, 2000)
         if is_valid_javascript_script(response):
             script = response.split('--JAVASCRIPT SCRIPT--', 1)[1]
-            save_script_to_file(script, f"task_{task_id}_{task_name.replace(' ', '_')}.js")
+            save_script_to_file(
+                script, f"task_{task_id}_{task_name.replace(' ', '_')}.js")
             return "JavaScript task completed: " + task_name
         else:
             return "The generated result does not contain a valid JavaScript script."
@@ -75,14 +83,15 @@ def create_css_developer_agent():
         task_name = task['task_name']
         task_id = task['task_id']
         prompt = (f"You are an AI tasked with completing the following CSS task: {task_name}. "
-                    f"Here is the context to help you:\n{shared_context}\n"
-                    f"Generate a CSS script that will accomplish the task. "
-                    f"When you are finished, add the line --CSS SCRIPT-- followed by the script. "
-                    f"Here's your response:\n")
+                  f"Here is the context to help you:\n{shared_context}\n"
+                  f"Generate a CSS script that will accomplish the task. "
+                  f"When you are finished, add the line --CSS SCRIPT-- followed by the script. "
+                  f"Here's your response:\n")
         response = openai_call(prompt, USE_GPT4, 0.7, 2000)
         if is_valid_css_script(response):
             script = response.split('--CSS SCRIPT--', 1)[1]
-            save_script_to_file(script, f"task_{task_id}_{task_name.replace(' ', '_')}.css")
+            save_script_to_file(
+                script, f"task_{task_id}_{task_name.replace(' ', '_')}.css")
             return "CSS task completed: " + task_name
         else:
             return "The generated result does not contain a valid CSS script."
@@ -94,16 +103,18 @@ def create_researcher_agent():
         task_name = task['task_name']
         task_id = task['task_id']
         prompt = (f"You are an AI tasked with completing the following task: {task_name}. "
-                    f"Here is the context to help you:\n{shared_context}\n"
-                    f"Generate a research paper that will help another AI complete the task. "
-                    f"Here's your response:\n")
+                  f"Here is the context to help you:\n{shared_context}\n"
+                  f"Generate a research paper that will help another AI complete the task. "
+                  f"Here's your response:\n")
         response = openai_call(prompt, USE_GPT4, 0.7, 2000)
         if response:
-            save_script_to_file(response, f"task_{task_id}_{task_name.replace(' ', '_')}.txt")
+            save_script_to_file(
+                response, f"task_{task_id}_{task_name.replace(' ', '_')}.txt")
             return "Research task completed: " + task_name
         else:
             return "No research paper generated."
     return researcher
+
 
 def create_new_agents(response: str) -> List[Dict[str, str]]:
     new_agents = []
@@ -123,18 +134,19 @@ def create_new_agents(response: str) -> List[Dict[str, str]]:
 
     return new_agents
 
+
 def create_terminal_agent():
     def terminal(task, shared_context):
         task_name = task['task_name']
         task_id = task['task_id']
         prompt = (f"You are an AI tasked with completing the following terminal task: {task_name}. "
-                    f"Here is the context to help you:\n{shared_context}\n"
-                    f"Generate a terminal command that will accomplish the task. "
-                    f"Only return the command, and make sure it is valid. "
-                    f"for programs that require user input, use your best judgement. "
-                    f"for example, if the program asks for a file name, you can use a hardcoded file name. "
-                    f"When you are finished, add the line --TERMINAL COMMAND-- followed by the command. "
-                    f"Here's your response:\n")
+                  f"Here is the context to help you:\n{shared_context}\n"
+                  f"Generate a terminal command that will accomplish the task. "
+                  f"Only return the command, and make sure it is valid. "
+                  f"for programs that require user input, use your best judgement. "
+                  f"for example, if the program asks for a file name, you can use a hardcoded file name. "
+                  f"When you are finished, add the line --TERMINAL COMMAND-- followed by the command. "
+                  f"Here's your response:\n")
         response = openai_call(prompt, USE_GPT4, 0.7, 2000)
         if is_valid_terminal_command(response):
             command = response.split('--TERMINAL COMMAND--', 1)[1]
@@ -144,7 +156,8 @@ def create_terminal_agent():
             return "The generated result does not contain a valid terminal command."
     return terminal
 
-def prioritization_agent(this_task_id:int, task_list:deque, OBJECTIVE:str, gpt_version: str = 'gpt-3'):
+
+def prioritization_agent(this_task_id: int, task_list: deque, OBJECTIVE: str, gpt_version: str = 'gpt-3'):
     task_names = [t["task_name"] for t in task_list]
     next_task_id = int(this_task_id)+1
     prompt = f"""You are an task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}. Consider the ultimate objective of your team:{OBJECTIVE}. Do not remove any tasks. Return the result as a numbered list, like:

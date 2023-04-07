@@ -8,7 +8,7 @@ from collections import deque
 from typing import Dict, List
 from dotenv import load_dotenv
 import re
-from agents.agent_module import create_python_developer_agent, create_javascript_developer_agent, create_researcher_agent, create_css_developer_agent, create_custom_agent, prioritization_agent, create_new_agents, create_terminal_agent
+from agents.agent_module import create_python_developer_agent, create_javascript_developer_agent, create_researcher_agent, create_css_developer_agent, create_custom_agent, prioritization_agent, create_new_agents, create_terminal_agent, prompt_generator
 from helper import openai_call
 
 #Set Variables
@@ -86,31 +86,22 @@ def get_ada_embedding(text):
     return openai.Embedding.create(input=[text], model="text-embedding-ada-002")["data"][0]["embedding"]
 
 def task_creation_agent(objective: str, result: Dict, task_description: str, task_list: List[str], gpt_version: str = 'gpt-3'):
-    prompt = f"You are an task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective}, The last completed task has the result: {result}. This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}. Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks. Return the tasks as an array."
+    required_keywords = {
+        "python": ["python"],
+        "javascript": ["javascript"],
+        "terminal": ["terminal"],
+        "research": ["research", "study"],
+    }
+    keywords = []
+    for agent_type, agent_keywords in required_keywords.items():
+        keywords += agent_keywords
+    keyword_str = ", ".join(keywords)
+    
+    prompt = f"You are an task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective}, The last completed task has the result: {result}. This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}. Based on the result and using the keywords {keyword_str}, create new tasks to be completed by the AI system that do not overlap with incomplete tasks. Only use the keywords if nessesary. The keywords are there to help trigger certain functions, only use them if the task actually requires one of the keywords. Return the tasks as an array."
+    
     response = openai_call(prompt, USE_GPT4)
     new_tasks = response.split('\n')
     return [{"task_name": task_name} for task_name in new_tasks]
-
-
-# def execution_agent(objective: str, task: str, output_types: List[str], gpt_version: str = 'gpt-3') -> str:
-#     context = context_agent(index_name=YOUR_TABLE_NAME, query=objective, n=5)
-#     output_types_str = ' or '.join(output_types)
-#     prompt = (f"You are an AI who performs one task based on the following objective: {objective}.\n"
-#               f"Take into account these previously completed tasks: {context}\n"
-#               f"Your task: {task}\n"
-#               f"Generate a complete response which may include any of the following output types: {output_types_str}. "
-#               f"If your response includes a Python script, add the line --PYTHON SCRIPT-- before the script. "
-#               f"Here's your response:\n")
-#     return openai_call(prompt, USE_GPT4, 0.7, 2000)
-
-# def process_response(result: str, task: Dict):
-#     if is_valid_python_script(result):
-#         script = result.split('--PYTHON SCRIPT--', 1)[1]
-#         save_script_to_file(script, f"task_{task['task_id']}_{task['task_name'].replace(' ', '_')}.py")
-#     else:
-#         print("The generated result does not contain a valid Python script.")
-#         print("Generated Result: ", result)  # Print the result for debugging purposes
-
 
 def context_agent(query: str, index_name: str, n: int):
     query_embedding = get_ada_embedding(query)
@@ -149,7 +140,8 @@ def main_agent(task: Dict):
         agent = agents[agent_key]
     else:
         if agent_key not in agents:
-            agents[agent_key] = create_custom_agent(agent_key, "Custom")
+            prompt = prompt_generator(task_name, shared_context=shared_context)
+            agents[agent_key] = create_custom_agent(agent_key, "Custom", prompt=prompt)
         agent = agents[agent_key]
 
     # Agents share information through a shared context or a messaging system
@@ -178,6 +170,7 @@ def get_shared_context(context_key: str):
 add_task(first_task)
 # Main loop
 task_id_counter = 1
+
 while True:
     if task_list:
         # Print the task list
