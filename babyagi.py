@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import os
 import openai
 import pinecone
@@ -9,14 +10,27 @@ from typing import Dict, List, Optional
 from dotenv import load_dotenv
 import os
 
-# Set Variables
+# Parse arguments for optional extensions
+parser = argparse.ArgumentParser()
+parser.add_argument('-e', '--env', nargs='+', help='filenames for env')
+args = parser.parse_args()
+
+# Load default environment variables (.env)
 load_dotenv()
+
+# Set environment variables for optional extensions
+if args.env:
+    for env_path in args.env:
+        load_dotenv(env_path)
+        print('Using env from file:', env_path)
+
 
 def get_env_var(var_name: str, default_value: Optional[str] = None) -> str:
     value = os.getenv(var_name, default_value)
     assert value, f"{var_name} environment variable is missing from .env"
     return value
 
+  
 # Set API Keys
 OPENAI_API_KEY = get_env_var("OPENAI_API_KEY")
 OPENAI_API_MODEL = get_env_var("OPENAI_API_MODEL", "gpt-3.5-turbo")
@@ -33,6 +47,7 @@ YOUR_TABLE_NAME = get_env_var("TABLE_NAME")
 # Project config
 OBJECTIVE = sys.argv[1] if len(sys.argv) > 1 else get_env_var("OBJECTIVE")
 YOUR_FIRST_TASK = get_env_var("FIRST_TASK")
+
 
 #Print OBJECTIVE
 print("\033[96m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
@@ -125,7 +140,7 @@ def context_agent(query: str, n: int) -> List[str]:
     results = index.query(query_embedding, top_k=n, include_metadata=True)
     #print("***** RESULTS *****")
     #print(results)
-    sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)    
+    sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)
     return [(str(item.metadata['task'])) for item in sorted_results]
 
 # Add the first task
