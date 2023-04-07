@@ -102,7 +102,7 @@ openai.api_key = OPENAI_API_KEY
 chroma_persist_dir = "babyagi"
 chroma_client = chromadb.Client(
     settings=chromadb.config.Settings(
-        api_impl="parquet+duckdb",
+        chroma_db_impl="duckdb+parquet",
         persist_directory=chroma_persist_dir,
     )
 )
@@ -241,12 +241,15 @@ def context_agent(query: str, top_results_num: int):
         list: A list of tasks as context for the given query, sorted by relevance.
 
     """
-    query_embedding = get_ada_embedding(query)
-    results = collection.query(query_embedding, top_k=top_results_num, include_metadata=True, namespace=OBJECTIVE)
+    count = collection.count()
+    if count == 0:
+        return []
+    results = collection.query(
+        query_texts=query, n_results=min(n, count), include=["metadatas"]
+    )
     # print("***** RESULTS *****")
     # print(results)
-    sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)
-    return [(str(item.metadata["task"])) for item in sorted_results]
+    return [item["task"] for item in results["metadatas"][0]]
 
 
 # Add the first task
@@ -282,8 +285,8 @@ while True:
             "data"
         ]  # extract the actual result from the dictionary
 
-        if len(
-            collection.get(ids=[result_id], include=[])["ids"] > 0
+        if (
+            len(collection.get(ids=[result_id], include=[])["ids"]) > 0
         ):  # Check if the result already exists
             collection.update(
                 ids=result_id,
@@ -305,10 +308,10 @@ while True:
         [t["task_name"] for t in task_list],
     )
 
-        for new_task in new_tasks:
-            task_id_counter += 1
-            new_task.update({"task_id": task_id_counter})
-            add_task(new_task)
-        prioritization_agent(this_task_id)
+    for new_task in new_tasks:
+        task_id_counter += 1
+        new_task.update({"task_id": task_id_counter})
+        add_task(new_task)
+    prioritization_agent(this_task_id)
 
     time.sleep(1)  # Sleep before checking the task list again
