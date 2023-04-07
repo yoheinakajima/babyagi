@@ -6,6 +6,7 @@ import pinecone
 from collections import deque
 from typing import Dict, List
 from dotenv import load_dotenv
+import subprocess
 
 #Set Variables
 load_dotenv()
@@ -31,6 +32,7 @@ assert YOUR_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
 ENABLE_COMMAND_LINE_ARGS = os.getenv("ENABLE_COMMAND_LINE_ARGS", "false").lower() == "true"
 
 USE_GPT4 = False
+USE_LLAMA = False
 BABY_NAME = os.getenv("BABY_NAME", "BabyAGI")
 OBJECTIVE = os.getenv("OBJECTIVE", "")
 INITIAL_TASK = os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", ""))
@@ -39,11 +41,11 @@ JOIN_EXISTING_OBJECTIVE = False
 
 if ENABLE_COMMAND_LINE_ARGS:
     from extensions.argsparser import parse_arguments
-    OBJECTIVE, INITIAL_TASK, USE_GPT4, BABY_NAME, COOPERATIVE_MODE, JOIN_EXISTING_OBJECTIVE = parse_arguments()
+    OBJECTIVE, INITIAL_TASK, USE_GPT4, USE_LLAMA, BABY_NAME, COOPERATIVE_MODE, JOIN_EXISTING_OBJECTIVE = parse_arguments()
 
 print("\033[95m\033[1m"+"\n*****CONFIGURATION*****\n"+"\033[0m\033[0m")
 print(f"Name: {BABY_NAME}")
-print(f"LLM : {'GPT-4' if USE_GPT4 else 'GPT-3'}")
+print(f"LLM : {'GPT-4' if USE_GPT4 else 'LLaMa' if USE_LLAMA else 'GPT-3'}")
 print(f"Mode: {'none' if COOPERATIVE_MODE in ['n', 'none'] else 'local' if COOPERATIVE_MODE in ['l', 'local'] else 'distributed' if COOPERATIVE_MODE in ['d', 'distributed'] else 'undefined'}")
 
 if USE_GPT4:
@@ -111,21 +113,9 @@ def get_ada_embedding(text):
     text = text.replace("\n", " ")
     return openai.Embedding.create(input=[text], model="text-embedding-ada-002")["data"][0]["embedding"]
 
-# Call the correct GPT model
-def openai_call(prompt: str, use_gpt4: bool = False, temperature: float = 0.5, max_tokens: int = 100):
-    if not use_gpt4:
-        # GPT-3 DaVinci
-        response = openai.Completion.create(
-            engine='text-davinci-003',
-            prompt=prompt,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0
-        )
-        return response.choices[0].text.strip()
-    else:
+# Call the right LLM model
+def call_model(prompt: str, use_gpt4: bool = False, use_llama: bool = False, temperature: float = 0.5, max_tokens: int = 100):
+    if use_gpt4:
         # GPT-4 chat
         messages=[{"role": "user", "content": prompt}]
         response = openai.ChatCompletion.create(
@@ -137,11 +127,28 @@ def openai_call(prompt: str, use_gpt4: bool = False, temperature: float = 0.5, m
             stop=None,
         )
         return response.choices[0].message.content.strip()
+    elif use_llama:
+        print(f"Calling LLaMa with prompt: {prompt}")
+        cmd = cmd = ["llama/main", "-p", prompt]
+        result = subprocess.run(cmd, shell=True, stderr=subprocess.DEVNULL, stdout=subprocess.PIPE, text=True)
+        return result.stdout.strip()
+    else:
+        # GPT-3 DaVinci
+        response = openai.Completion.create(
+            engine='text-davinci-003',
+            prompt=prompt,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0
+        )
+        return response.choices[0].text.strip()
 
 # Create the follow up tasks based on the objective, the result of the last task, and the list of incomplete tasks
 def task_creation_agent(objective: str, result: Dict, task_description: str, tasks: List[str]):
     prompt = f"You are an task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective}, The last completed task has the result: {result}. This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(tasks)}. Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks. Return the tasks as an array."
-    response = openai_call(prompt, USE_GPT4)
+    response = call_model(prompt, USE_GPT4, USE_LLAMA)
     new_tasks = response.split('\n')
     return [{"task_name": task_name} for task_name in new_tasks]
 
@@ -153,7 +160,7 @@ def prioritization_agent():
     #. First task
     #. Second task
     Start the task list with number {tasks_storage.next_task_id()}."""
-    response = openai_call(prompt, USE_GPT4)
+    response = call_model(prompt, USE_GPT4, USE_LLAMA)
     new_tasks = response.split('\n')
     new_tasks_list = []
     for task_string in new_tasks:
@@ -171,7 +178,7 @@ def execution_agent(objective:str, task: str) -> str:
     #print("\n*******RELEVANT CONTEXT******\n")
     #print(context)
     prompt =f"You are an AI who performs one task based on the following objective: {objective}.\nTake into account these previously completed tasks: {context}\nYour task: {task}\nResponse:"
-    return openai_call(prompt, USE_GPT4, 0.7, 2000)
+    return call_model(prompt, USE_GPT4, USE_LLAMA, 0.7, 2000)
 
 # Get the top n completed tasks for the objective
 def context_agent(query: str, index: str, n: int):

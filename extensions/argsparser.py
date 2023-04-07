@@ -41,8 +41,12 @@ examples:
     join an existing objective.
     install cooperative requirements.
     ''')
-    parser.add_argument('-4', '--gpt-4', dest='use_gpt4', action='store_true', help='''
+    group2 = parser.add_mutually_exclusive_group()
+    group2.add_argument('-4', '--gpt-4', dest='use_gpt4', action='store_true', help='''
     use GPT-4 instead of GPT-3
+    ''')
+    group2.add_argument('-l', '--llama', dest='use_llama', action='store_true', help='''
+    use LLaMa instead of GPT-3
     ''')
     parser.add_argument('-h', '-?', '--help', action='help', help='''
     show this help message and exit
