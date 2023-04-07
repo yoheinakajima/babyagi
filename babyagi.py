@@ -8,6 +8,8 @@ from collections import deque
 from typing import Dict, List
 from dotenv import load_dotenv
 import re
+from agents.agent_module import create_python_developer_agent, create_javascript_developer_agent, create_researcher_agent, create_css_developer_agent, create_custom_agent, prioritization_agent, create_new_agents, create_terminal_agent
+from helper import openai_call
 
 #Set Variables
 load_dotenv()
@@ -58,6 +60,7 @@ table_name = YOUR_TABLE_NAME
 dimension = 1536
 metric = "cosine"
 pod_type = "p1"
+
 if table_name not in pinecone.list_indexes():
     pinecone.create_index(table_name, dimension=dimension, metric=metric, pod_type=pod_type)
 
@@ -82,104 +85,32 @@ def get_ada_embedding(text):
     text = text.replace("\n", " ")
     return openai.Embedding.create(input=[text], model="text-embedding-ada-002")["data"][0]["embedding"]
 
-def openai_call(prompt: str, use_gpt4: bool = False, temperature: float = 0.5, max_tokens: int = 100):
-    if not use_gpt4:
-        #Call GPT-3 DaVinci model
-        response = openai.Completion.create(
-            engine='text-davinci-003',
-            prompt=prompt,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0
-        )
-        return response.choices[0].text.strip()
-    else:
-        #Call GPT-4 chat model
-        messages=[{"role": "user", "content": prompt}]
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages = messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            n=1,
-            stop=None,
-        )
-        return response.choices[0].message.content.strip()
-
 def task_creation_agent(objective: str, result: Dict, task_description: str, task_list: List[str], gpt_version: str = 'gpt-3'):
     prompt = f"You are an task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective}, The last completed task has the result: {result}. This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}. Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks. Return the tasks as an array."
     response = openai_call(prompt, USE_GPT4)
     new_tasks = response.split('\n')
     return [{"task_name": task_name} for task_name in new_tasks]
 
-def prioritization_agent(this_task_id:int, gpt_version: str = 'gpt-3'):
-    global task_list
-    task_names = [t["task_name"] for t in task_list]
-    next_task_id = int(this_task_id)+1
-    prompt = f"""You are an task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}. Consider the ultimate objective of your team:{OBJECTIVE}. Do not remove any tasks. Return the result as a numbered list, like:
-    #. First task
-    #. Second task
-    Start the task list with number {next_task_id}."""
-    response = openai_call(prompt, USE_GPT4)
-    new_tasks = response.split('\n')
-    task_list = deque()
-    for task_string in new_tasks:
-        task_parts = task_string.strip().split(".", 1)
-        if len(task_parts) == 2:
-            task_id = task_parts[0].strip()
-            task_name = task_parts[1].strip()
-            task_list.append({"task_id": task_id, "task_name": task_name})
 
-def is_valid_python_script(code: str) -> bool:
-    return "--PYTHON SCRIPT--" in code
+# def execution_agent(objective: str, task: str, output_types: List[str], gpt_version: str = 'gpt-3') -> str:
+#     context = context_agent(index_name=YOUR_TABLE_NAME, query=objective, n=5)
+#     output_types_str = ' or '.join(output_types)
+#     prompt = (f"You are an AI who performs one task based on the following objective: {objective}.\n"
+#               f"Take into account these previously completed tasks: {context}\n"
+#               f"Your task: {task}\n"
+#               f"Generate a complete response which may include any of the following output types: {output_types_str}. "
+#               f"If your response includes a Python script, add the line --PYTHON SCRIPT-- before the script. "
+#               f"Here's your response:\n")
+#     return openai_call(prompt, USE_GPT4, 0.7, 2000)
 
-def save_script_to_file(code: str, filename: str, folder: str = "generated_scripts"):
-    # Create the folder if it doesn't exist
-    if not os.path.exists(folder):
-        os.makedirs(folder)
+# def process_response(result: str, task: Dict):
+#     if is_valid_python_script(result):
+#         script = result.split('--PYTHON SCRIPT--', 1)[1]
+#         save_script_to_file(script, f"task_{task['task_id']}_{task['task_name'].replace(' ', '_')}.py")
+#     else:
+#         print("The generated result does not contain a valid Python script.")
+#         print("Generated Result: ", result)  # Print the result for debugging purposes
 
-    # Save the code to a file
-    with open(os.path.join(folder, filename), "w") as file:
-        file.write(code)
-
-def execution_agent(objective: str, task: str, output_types: List[str], gpt_version: str = 'gpt-3') -> str:
-    context = context_agent(index_name=YOUR_TABLE_NAME, query=objective, n=5)
-    output_types_str = ' or '.join(output_types)
-    prompt = (f"You are an AI who performs one task based on the following objective: {objective}.\n"
-              f"Take into account these previously completed tasks: {context}\n"
-              f"Your task: {task}\n"
-              f"Generate a complete response which may include any of the following output types: {output_types_str}. "
-              f"If your response includes a Python script, add the line --PYTHON SCRIPT-- before the script. "
-              f"Here's your response:\n")
-    return openai_call(prompt, USE_GPT4, 0.7, 2000)
-
-def process_response(result: str, task: Dict):
-    if is_valid_python_script(result):
-        script = result.split('--PYTHON SCRIPT--', 1)[1]
-        save_script_to_file(script, f"task_{task['task_id']}_{task['task_name'].replace(' ', '_')}.py")
-    else:
-        print("The generated result does not contain a valid Python script.")
-        print("Generated Result: ", result)  # Print the result for debugging purposes
-
-def create_new_agents(response: str) -> List[Dict[str, str]]:
-    new_agents = []
-
-    # Regular expression to match new agent format: --NEW AGENT--:AgentName:Role
-    agent_pattern = re.compile(r'--NEW AGENT--:(.+?):(.+?)\n')
-
-    # Iterate over all matched agents in the response
-    for agent_match in agent_pattern.finditer(response):
-        agent_name = agent_match.group(1).strip()
-        agent_role = agent_match.group(2).strip()
-
-        new_agents.append({
-            'name': agent_name,
-            'role': agent_role
-        })
-
-    return new_agents
 
 def context_agent(query: str, index_name: str, n: int):
     query_embedding = get_ada_embedding(query)
@@ -206,15 +137,20 @@ def main_agent(task: Dict):
         agent_key = "JavaScriptDeveloper"
         if agent_key not in agents:
             agents[agent_key] = create_javascript_developer_agent()
+    elif "terminal" in task_name:
+        agent_key = "TerminalUser"
+        if agent_key not in agents:
+            agents[agent_key] = create_terminal_agent()
     elif "research" in task_name:
         agent_key = "Researcher"
         if agent_key not in agents:
             agents[agent_key] = create_researcher_agent()
-
     if agent_key is not None:
         agent = agents[agent_key]
     else:
-        return "No suitable agent found for the task."
+        if agent_key not in agents:
+            agents[agent_key] = create_custom_agent(agent_key, "Custom")
+        agent = agents[agent_key]
 
     # Agents share information through a shared context or a messaging system
     shared_context = get_shared_context(task_name)
@@ -227,66 +163,6 @@ def main_agent(task: Dict):
             agents[new_agent['name']] = create_custom_agent(new_agent['name'], new_agent['role'])
 
     return result
-
-def create_custom_agent(agent_name: str, role: str):
-    def custom_agent(task, shared_context):
-        return f"{agent_name} ({role}) task completed: {task}"
-
-    return custom_agent
-
-def create_prompt_generator_agent():
-    def prompt_generator(task, shared_context):
-        task_name = task['task_name']
-        task_id = task['task_id']
-        prompt = (f"You are an AI tasked with completing the following task: {task_name}. "
-                  f"Here is the context to help you:\n{shared_context}\n"
-                  f"Generate a prompt that will help another AI complete the task. "
-                  f"Here's your response:\n")
-        response = openai_call(prompt, USE_GPT4, 0.7, 2000)
-        if response:
-            return response
-        else:
-            return "No prompt generated."
-
-    return prompt_generator
-
-def create_python_developer_agent():
-    def python_developer(task, shared_context):
-        task_name = task['task_name']
-        task_id = task['task_id']
-        prompt = (f"You are an AI tasked with completing the following Python task: {task_name}. "
-                  f"Here is the context to help you:\n{shared_context}\n"
-                  f"Generate a Python script that will accomplish the task. "
-                  f"When you are finished, add the line --PYTHON SCRIPT-- followed by the script. "
-                  f"Here's your response:\n")
-        response = openai_call(prompt, USE_GPT4, 0.7, 2000)
-        if is_valid_python_script(response):
-            script = response.split('--PYTHON SCRIPT--', 1)[1]
-            save_script_to_file(script, f"task_{task_id}_{task_name.replace(' ', '_')}.py")
-            return "Python task completed: " + task_name
-        else:
-            return "The generated result does not contain a valid Python script."
-
-    return python_developer
-
-def create_javascript_developer_agent():
-    def javascript_developer(task, shared_context):
-        task_name = task['task_name']
-        task_id = task['task_id']
-        result = f"JavaScript task {task_id} completed: {task_name}"
-        return result
-
-    return javascript_developer
-
-
-def create_researcher_agent():
-    def researcher(task, shared_context):
-        task_name = task['task_name']
-        task_id = task['task_id']
-        result = f"Research task {task_id} completed: {task_name}"
-        return result
-
-    return researcher
 
 # Example function to get shared context
 def get_shared_context(context_key: str):
@@ -317,7 +193,7 @@ while True:
         # Send to main_agent function to complete the task based on the context
         result = main_agent(task)
 
-        process_response(result, task)
+        # process_response(result, task)
 
         this_task_id = int(task["task_id"])
         print("\033[93m\033[1m"+"\n*****TASK RESULT*****\n"+"\033[0m\033[0m")
@@ -336,6 +212,6 @@ while True:
         task_id_counter += 1
         new_task.update({"task_id": task_id_counter})
         add_task(new_task)
-    prioritization_agent(this_task_id)
+    prioritization_agent(this_task_id, task_list=task_list, OBJECTIVE=OBJECTIVE)
 
     time.sleep(1)  # Sleep before checking the task list again
