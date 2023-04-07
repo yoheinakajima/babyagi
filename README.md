@@ -27,11 +27,11 @@ The project comprises the following components:
 ## Installation & Usage
 
 1. Install the required packages: pip install -r requirements.txt
-2. In `configs.yaml` file, set your OpenAI and Pinecone API keys in the `OPENAI_API_KEY` and `PINECONE_API_KEY` variables.
+2. Rename `config_copy.yaml`to`config.yaml`, set your OpenAI and Pinecone API keys in the `OPENAI_API_KEY` and `PINECONE_API_KEY` variables.
 3. Set the Pinecone environment in the `PINECONE_ENVIRONMENT` variable.
 4. Set the name of the table where the task results will be stored in the `TABLE_NAME` variable.
 5. Set the first task of the system in the `FIRST_TASK` variable.
-6. Run the script: python scripts/main.py
+6. In root directory, run the script: python scripts/main.py
 
 ## Support
 

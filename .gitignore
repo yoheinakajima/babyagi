@@ -12,3 +12,6 @@ __pycache__/
 
 # Ignore log files
 *.log
+
+# Ignore config file
+config/config.yaml
