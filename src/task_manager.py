@@ -21,6 +21,15 @@ class TaskManager:
         # self.task_list = deque()
         self.task_list = []
 
+
+    def get_tasks(self) -> List[Dict[str, Union[str, Dict]]]:
+        """
+        Get the list of tasks.
+
+        :return: The list of tasks.
+        """
+        return self.task_list
+
     @task_format_validation
     def add_task(self, task: Dict[str, Union[str, Dict]]) -> None:
         """

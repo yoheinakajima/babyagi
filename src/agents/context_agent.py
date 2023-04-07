@@ -47,4 +47,5 @@ class ContextAgent(BaseAgent):
         :return: A list of relevant tasks.
         """
         sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)
+
         return [str(item.metadata['task']) for item in sorted_results]
