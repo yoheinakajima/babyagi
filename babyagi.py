@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import os
 import openai
 import pinecone
@@ -9,8 +10,17 @@ from typing import Dict, List
 from dotenv import load_dotenv
 import os
 
-# Set Variables
-load_dotenv()
+# Parse arguments
+parser = argparse.ArgumentParser()
+parser.add_argument('-e', '--env', help='filename for env')
+args = parser.parse_args()
+
+# Set environment variables
+if args.env:
+    print('Using env from file:', args.env)
+    load_dotenv(args.env)
+else:
+    load_dotenv()
 
 # Set API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
@@ -130,7 +140,7 @@ def context_agent(query: str, n: int):
     results = index.query(query_embedding, top_k=n, include_metadata=True)
     #print("***** RESULTS *****")
     #print(results)
-    sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)    
+    sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)
     return [(str(item.metadata['task'])) for item in sorted_results]
 
 # Add the first task
