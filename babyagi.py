@@ -12,22 +12,23 @@ from dotenv import load_dotenv
 #Set Variables
 load_dotenv()
 
-# Log print output to txt file
-original_print = print
-def print(*tasks):
-    output = []
-    for task in tasks:
-        output.append(str(task))
-    output = " ".join(output)
-    output_wo_ansi = re.sub(r'\033\[\d+m', "", output)
-    original_print(output)
-    write_to_file(output_wo_ansi)
+def logged_print(*args):
+    """
+    Log the output to a .txt file and print it to the console
+    """
+    # Remove ANSI escape sequences from the string
+    output_wo_ansi = re.sub(r"\033\[\d+m", "", *args)
 
-def write_to_file(output_wo_ansi):
-    file_name = f"./tasks/{OBJECTIVE}.txt"
-    os.makedirs(os.path.dirname(file_name), exist_ok=True)
-    with open(file_name, "a+") as file:
-        file.write(f"\n{output_wo_ansi}")    
+    # Create the file path and ensure that the directory exists
+    file_path = f"./tasks/{OBJECTIVE}.txt"
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+    # Append the output to the file
+    with open(file_path, "a+") as file:
+        file.write(f"\n{output_wo_ansi}")
+
+    # Print unmodified output to the console
+    print(*args)
 
 # Set API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
@@ -36,7 +37,7 @@ assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env
 # Use GPT-3 model
 USE_GPT4 = False
 if USE_GPT4:
-    print("\033[91m"+"\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"+"\033[0m")
+    logged_print("\033[91m"+"\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"+"\033[0m")
 
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
 assert PINECONE_API_KEY, "PINECONE_API_KEY environment variable is missing from .env"
@@ -56,8 +57,8 @@ YOUR_FIRST_TASK = os.getenv("FIRST_TASK", "")
 assert YOUR_FIRST_TASK, "FIRST_TASK environment variable is missing from .env"
 
 #Print OBJECTIVE
-print("\033[96m"+"\n*****OBJECTIVE*****\n"+"\033[0m")
-print(OBJECTIVE)
+logged_print("\033[96m"+"\n*****OBJECTIVE*****\n"+"\033[0m")
+logged_print(OBJECTIVE)
 
 # Configure OpenAI and Pinecone
 openai.api_key = OPENAI_API_KEY
@@ -164,20 +165,20 @@ task_id_counter = 1
 while True:
     if task_list:
         # Print the task list
-        print("\033[95m"+"\n*****TASK LIST*****\n"+"\033[0m")
+        logged_print("\033[95m"+"\n*****TASK LIST*****\n"+"\033[0m")
         for t in task_list:
-            print(str(t['task_id'])+": "+t['task_name'])
+            logged_print(str(t['task_id'])+": "+t['task_name'])
 
         # Step 1: Pull the first task
         task = task_list.popleft()
-        print("\033[92m"+"\n*****NEXT TASK*****\n"+"\033[0m")
-        print(str(task['task_id'])+": "+task['task_name'])
+        logged_print("\033[92m"+"\n*****NEXT TASK*****\n"+"\033[0m")
+        logged_print(str(task['task_id'])+": "+task['task_name'])
 
         # Send to execution function to complete the task based on the context
         result = execution_agent(OBJECTIVE,task["task_name"])
         this_task_id = int(task["task_id"])
-        print("\033[93m"+"\n*****TASK RESULT*****\n"+"\033[0m")
-        print(result)
+        logged_print("\033[93m"+"\n*****TASK RESULT*****\n"+"\033[0m")
+        logged_print(result)
 
         # Step 2: Enrich result and store in Pinecone
         enriched_result = {'data': result}  # This is where you should enrich the result if needed
