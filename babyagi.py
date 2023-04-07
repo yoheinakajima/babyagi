@@ -150,7 +150,7 @@ while True:
         print(f"{task['task_id']}: {task['task_name']}")
 
         # Send to execution function to complete the task based on the context
-        result = execution_agent(OBJECTIVE,task["task_name"])
+        result = execution_agent(OBJECTIVE, task["task_name"])
         this_task_id = int(task["task_id"])
         print("\033[93m\033[1m"+"\n*****TASK RESULT*****\n"+"\033[0m\033[0m")
         print(result)
@@ -159,10 +159,10 @@ while True:
         enriched_result = {'data': result}  # This is where you should enrich the result if needed
         result_id = f"result_{task['task_id']}"
         vector = enriched_result['data']  # extract the actual result from the dictionary
-        index.upsert([(result_id, get_ada_embedding(vector),{"task":task['task_name'],"result":result})])
+        index.upsert([(result_id, get_ada_embedding(vector), {"task":task['task_name'], "result":result})])
 
     # Step 3: Create new tasks and reprioritize task list
-    new_tasks = task_creation_agent(OBJECTIVE,enriched_result, task["task_name"], [t["task_name"] for t in task_list])
+    new_tasks = task_creation_agent(OBJECTIVE, enriched_result, task["task_name"], [t["task_name"] for t in task_list])
 
     for new_task in new_tasks:
         task_id_counter += 1
