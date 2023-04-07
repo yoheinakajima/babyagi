@@ -33,6 +33,10 @@ assert PINECONE_ENVIRONMENT, "PINECONE_ENVIRONMENT environment variable is missi
 YOUR_TABLE_NAME = os.getenv("TABLE_NAME", "")
 assert YOUR_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
 
+# Shared Context
+YOUR_SHARED_CONTEXT = os.getenv("SHARED_CONTEXT", "")
+assert YOUR_SHARED_CONTEXT, "SHARED_CONTEXT environment variable is missing from .env"
+
 # Project config
 OBJECTIVE = sys.argv[1] if len(sys.argv) > 1 else os.getenv("OBJECTIVE", "")
 assert OBJECTIVE, "OBJECTIVE environment variable is missing from .env"
@@ -59,6 +63,14 @@ if table_name not in pinecone.list_indexes():
 
 # Connect to the index
 index = pinecone.Index(table_name)
+
+# Create Pinecone shared context
+shared_context_table_name = YOUR_SHARED_CONTEXT
+if shared_context_table_name not in pinecone.list_indexes():
+    pinecone.create_index(shared_context_table_name, dimension=dimension, metric=metric, pod_type=pod_type)
+
+# Connect to the shared context index
+shared_context_index = pinecone.Index(shared_context_table_name)
 
 # Task list
 task_list = deque([])
@@ -222,19 +234,64 @@ def create_custom_agent(agent_name: str, role: str):
 
     return custom_agent
 
+def create_prompt_generator_agent():
+    def prompt_generator(task, shared_context):
+        task_name = task['task_name']
+        task_id = task['task_id']
+        prompt = (f"You are an AI tasked with completing the following task: {task_name}. "
+                  f"Here is the context to help you:\n{shared_context}\n"
+                  f"Generate a prompt that will help another AI complete the task. "
+                  f"Here's your response:\n")
+        response = openai_call(prompt, USE_GPT4, 0.7, 2000)
+        if response:
+            return response
+        else:
+            return "No prompt generated."
+
+    return prompt_generator
+
 def create_python_developer_agent():
-    return lambda task, shared_context: "Python task completed: " + task
+    def python_developer(task, shared_context):
+        task_name = task['task_name']
+        task_id = task['task_id']
+        prompt = (f"You are an AI tasked with completing the following Python task: {task_name}. "
+                  f"Here is the context to help you:\n{shared_context}\n"
+                  f"Generate a Python script that will accomplish the task. "
+                  f"When you are finished, add the line --PYTHON SCRIPT-- followed by the script. "
+                  f"Here's your response:\n")
+        response = openai_call(prompt, USE_GPT4, 0.7, 2000)
+        if is_valid_python_script(response):
+            script = response.split('--PYTHON SCRIPT--', 1)[1]
+            save_script_to_file(script, f"task_{task_id}_{task_name.replace(' ', '_')}.py")
+            return "Python task completed: " + task_name
+        else:
+            return "The generated result does not contain a valid Python script."
+
+    return python_developer
 
 def create_javascript_developer_agent():
-    return lambda task, shared_context: "JavaScript task completed: " + task
+    def javascript_developer(task, shared_context):
+        task_name = task['task_name']
+        task_id = task['task_id']
+        result = f"JavaScript task {task_id} completed: {task_name}"
+        return result
+
+    return javascript_developer
+
 
 def create_researcher_agent():
-    return lambda task, shared_context: "Research task completed: " + task
+    def researcher(task, shared_context):
+        task_name = task['task_name']
+        task_id = task['task_id']
+        result = f"Research task {task_id} completed: {task_name}"
+        return result
+
+    return researcher
 
 # Example function to get shared context
 def get_shared_context(context_key: str):
     query_embedding = get_ada_embedding(context_key)
-    results = index.query(query_embedding, top_k=1, include_metadata=True)
+    results = shared_context_index.query(query_embedding, top_k=1, include_metadata=True)
 
     if results.matches:
         return results.matches[0].metadata["value"]
