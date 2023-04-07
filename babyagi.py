@@ -12,32 +12,27 @@ import os
 # Set Variables
 load_dotenv()
 
-# Set API Keys
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env"
+def get_env_var(var_name: str, default_value: Optional[str] = None) -> str:
+    value = os.getenv(var_name, default_value)
+    assert value, f"{var_name} environment variable is missing from .env"
+    return value
 
-OPENAI_API_MODEL = os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo")
-assert OPENAI_API_MODEL, "OPENAI_API_MODEL environment variable is missing from .env"
+# Set API Keys
+OPENAI_API_KEY = get_env_var("OPENAI_API_KEY")
+OPENAI_API_MODEL = get_env_var("OPENAI_API_MODEL", "gpt-3.5-turbo")
 
 if "gpt-4" in OPENAI_API_MODEL.lower():
     print(f"\033[91m\033[1m"+"\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"+"\033[0m\033[0m")
 
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
-assert PINECONE_API_KEY, "PINECONE_API_KEY environment variable is missing from .env"
-
-PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "us-east1-gcp")
-assert PINECONE_ENVIRONMENT, "PINECONE_ENVIRONMENT environment variable is missing from .env"
+PINECONE_API_KEY = get_env_var("PINECONE_API_KEY", "")
+PINECONE_ENVIRONMENT = get_env_var("PINECONE_ENVIRONMENT", "us-east1-gcp")
 
 # Table config
-YOUR_TABLE_NAME = os.getenv("TABLE_NAME", "")
-assert YOUR_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
+YOUR_TABLE_NAME = get_env_var("TABLE_NAME", "")
 
 # Project config
-OBJECTIVE = sys.argv[1] if len(sys.argv) > 1 else os.getenv("OBJECTIVE", "")
-assert OBJECTIVE, "OBJECTIVE environment variable is missing from .env"
-
-YOUR_FIRST_TASK = os.getenv("FIRST_TASK", "")
-assert YOUR_FIRST_TASK, "FIRST_TASK environment variable is missing from .env"
+OBJECTIVE = sys.argv[1] if len(sys.argv) > 1 else get_env_var("OBJECTIVE", "")
+YOUR_FIRST_TASK = get_env_var("FIRST_TASK", "")
 
 #Print OBJECTIVE
 print("\033[96m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
