@@ -51,7 +51,11 @@ YOUR_FIRST_TASK = os.getenv("FIRST_TASK", "")
 assert YOUR_FIRST_TASK, "FIRST_TASK environment variable is missing from .env"
 
 # Print OBJECTIVE
+<<<<<<< HEAD
 print("\033[96m\033[1m" + "\n*****OBJECTIVE*****\n" + "\033[0m\033[0m")
+=======
+print("\033[96m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
+>>>>>>> 8a37c69 (Last minute tweaks from sync)
 print(OBJECTIVE)
 
 # Configure OpenAI and Pinecone
@@ -148,7 +152,7 @@ def context_agent(query: str, n: int):
     results = index.query(query_embedding, top_k=n, include_metadata=True)
     # print("***** RESULTS *****")
     # print(results)
-    sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)    
+    sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)
     return [(str(item.metadata['task'])) for item in sorted_results]
 
 
