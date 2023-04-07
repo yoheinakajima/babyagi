@@ -7,10 +7,12 @@ import sys
 from collections import deque
 from typing import Dict, List
 from dotenv import load_dotenv
-import os
+import re
 
 #Set Variables
 load_dotenv()
+
+agents = {}
 
 # Set API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
@@ -37,6 +39,7 @@ assert OBJECTIVE, "OBJECTIVE environment variable is missing from .env"
 
 YOUR_FIRST_TASK = os.getenv("FIRST_TASK", "")
 assert YOUR_FIRST_TASK, "FIRST_TASK environment variable is missing from .env"
+
 
 #Print OBJECTIVE
 print("\033[96m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
@@ -117,21 +120,59 @@ def prioritization_agent(this_task_id:int, gpt_version: str = 'gpt-3'):
             task_name = task_parts[1].strip()
             task_list.append({"task_id": task_id, "task_name": task_name})
 
-def execution_agent(objective:str,task: str, gpt_version: str = 'gpt-3') -> str:
-    #context = context_agent(index="quickstart", query="my_search_query", n=5)
-    context=context_agent(index=YOUR_TABLE_NAME, query=objective, n=5)
-    #print("\n*******RELEVANT CONTEXT******\n")
-    #print(context)
-    prompt =f"You are an AI who performs one task based on the following objective: {objective}.\nTake into account these previously completed tasks: {context}\nYour task: {task}\nResponse:"
+def is_valid_python_script(code: str) -> bool:
+    return "--PYTHON SCRIPT--" in code
+
+def save_script_to_file(code: str, filename: str, folder: str = "generated_scripts"):
+    # Create the folder if it doesn't exist
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+    # Save the code to a file
+    with open(os.path.join(folder, filename), "w") as file:
+        file.write(code)
+
+def execution_agent(objective: str, task: str, output_types: List[str], gpt_version: str = 'gpt-3') -> str:
+    context = context_agent(index_name=YOUR_TABLE_NAME, query=objective, n=5)
+    output_types_str = ' or '.join(output_types)
+    prompt = (f"You are an AI who performs one task based on the following objective: {objective}.\n"
+              f"Take into account these previously completed tasks: {context}\n"
+              f"Your task: {task}\n"
+              f"Generate a complete response which may include any of the following output types: {output_types_str}. "
+              f"If your response includes a Python script, add the line --PYTHON SCRIPT-- before the script. "
+              f"Here's your response:\n")
     return openai_call(prompt, USE_GPT4, 0.7, 2000)
 
-def context_agent(query: str, index: str, n: int):
+def process_response(result: str, task: Dict):
+    if is_valid_python_script(result):
+        script = result.split('--PYTHON SCRIPT--', 1)[1]
+        save_script_to_file(script, f"task_{task['task_id']}_{task['task_name'].replace(' ', '_')}.py")
+    else:
+        print("The generated result does not contain a valid Python script.")
+        print("Generated Result: ", result)  # Print the result for debugging purposes
+
+def create_new_agents(response: str) -> List[Dict[str, str]]:
+    new_agents = []
+
+    # Regular expression to match new agent format: --NEW AGENT--:AgentName:Role
+    agent_pattern = re.compile(r'--NEW AGENT--:(.+?):(.+?)\n')
+
+    # Iterate over all matched agents in the response
+    for agent_match in agent_pattern.finditer(response):
+        agent_name = agent_match.group(1).strip()
+        agent_role = agent_match.group(2).strip()
+
+        new_agents.append({
+            'name': agent_name,
+            'role': agent_role
+        })
+
+    return new_agents
+
+def context_agent(query: str, index_name: str, n: int):
     query_embedding = get_ada_embedding(query)
-    index = pinecone.Index(index_name=index)
     results = index.query(query_embedding, top_k=n,
     include_metadata=True)
-    #print("***** RESULTS *****")
-    #print(results)
     sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)    
     return [(str(item.metadata['task'])) for item in sorted_results]
 
@@ -140,6 +181,66 @@ first_task = {
     "task_id": 1,
     "task_name": YOUR_FIRST_TASK
 }
+
+def main_agent(task: Dict):
+    task_name = task["task_name"].lower()
+    agent_key = None
+
+    if "python" in task_name:
+        agent_key = "PythonDeveloper"
+        if agent_key not in agents:
+            agents[agent_key] = create_python_developer_agent()
+    elif "javascript" in task_name:
+        agent_key = "JavaScriptDeveloper"
+        if agent_key not in agents:
+            agents[agent_key] = create_javascript_developer_agent()
+    elif "research" in task_name:
+        agent_key = "Researcher"
+        if agent_key not in agents:
+            agents[agent_key] = create_researcher_agent()
+
+    if agent_key is not None:
+        agent = agents[agent_key]
+    else:
+        return "No suitable agent found for the task."
+
+    # Agents share information through a shared context or a messaging system
+    shared_context = get_shared_context(task_name)
+    result = agent(task, shared_context)
+
+    # Check if there are new agents to be created
+    new_agents = create_new_agents(result)
+    for new_agent in new_agents:
+        if new_agent['name'] not in agents:
+            agents[new_agent['name']] = create_custom_agent(new_agent['name'], new_agent['role'])
+
+    return result
+
+def create_custom_agent(agent_name: str, role: str):
+    def custom_agent(task, shared_context):
+        return f"{agent_name} ({role}) task completed: {task}"
+
+    return custom_agent
+
+def create_python_developer_agent():
+    return lambda task, shared_context: "Python task completed: " + task
+
+def create_javascript_developer_agent():
+    return lambda task, shared_context: "JavaScript task completed: " + task
+
+def create_researcher_agent():
+    return lambda task, shared_context: "Research task completed: " + task
+
+# Example function to get shared context
+def get_shared_context(context_key: str):
+    query_embedding = get_ada_embedding(context_key)
+    results = index.query(query_embedding, top_k=1, include_metadata=True)
+
+    if results.matches:
+        return results.matches[0].metadata["value"]
+    else:
+        return None 
+    
 
 add_task(first_task)
 # Main loop
@@ -156,8 +257,11 @@ while True:
         print("\033[92m\033[1m"+"\n*****NEXT TASK*****\n"+"\033[0m\033[0m")
         print(str(task['task_id'])+": "+task['task_name'])
 
-        # Send to execution function to complete the task based on the context
-        result = execution_agent(OBJECTIVE,task["task_name"])
+        # Send to main_agent function to complete the task based on the context
+        result = main_agent(task)
+
+        process_response(result, task)
+
         this_task_id = int(task["task_id"])
         print("\033[93m\033[1m"+"\n*****TASK RESULT*****\n"+"\033[0m\033[0m")
         print(result)
@@ -177,4 +281,4 @@ while True:
         add_task(new_task)
     prioritization_agent(this_task_id)
 
-time.sleep(1)  # Sleep before checking the task list again
+    time.sleep(1)  # Sleep before checking the task list again
