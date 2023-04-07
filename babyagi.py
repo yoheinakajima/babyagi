@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import os
 import openai
 import pinecone
@@ -9,8 +10,19 @@ from typing import Dict, List
 from dotenv import load_dotenv
 import os
 
-# Set Variables
+# Parse arguments for optional extensions
+parser = argparse.ArgumentParser()
+parser.add_argument('-e', '--env', nargs='+', help='filenames for env')
+args = parser.parse_args()
+
+# Load default environment variables (.env)
 load_dotenv()
+
+# Set environment variables for optional extensions
+if args.env:
+    for env_path in args.env:
+        load_dotenv(env_path)
+        print('Using env from file:', env_path)
 
 # Set API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
@@ -33,7 +45,7 @@ YOUR_TABLE_NAME = os.getenv("TABLE_NAME", "")
 assert YOUR_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
 
 # Project config
-OBJECTIVE = sys.argv[1] if len(sys.argv) > 1 else os.getenv("OBJECTIVE", "")
+OBJECTIVE = os.getenv("OBJECTIVE", "")
 assert OBJECTIVE, "OBJECTIVE environment variable is missing from .env"
 
 YOUR_FIRST_TASK = os.getenv("FIRST_TASK", "")
@@ -130,7 +142,7 @@ def context_agent(query: str, n: int):
     results = index.query(query_embedding, top_k=n, include_metadata=True)
     #print("***** RESULTS *****")
     #print(results)
-    sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)    
+    sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)
     return [(str(item.metadata['task'])) for item in sorted_results]
 
 # Add the first task
