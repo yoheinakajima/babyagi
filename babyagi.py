@@ -5,7 +5,7 @@ import pinecone
 import time
 import sys
 from collections import deque
-from typing import Dict, List
+from typing import Dict, List, Optional
 from dotenv import load_dotenv
 import os
 
@@ -64,11 +64,11 @@ task_list = deque([])
 def add_task(task: Dict):
     task_list.append(task)
 
-def get_ada_embedding(text):
+def get_ada_embedding(text) -> List[float]:
     text = text.replace("\n", " ")
     return openai.Embedding.create(input=[text], model="text-embedding-ada-002")["data"][0]["embedding"]
 
-def openai_call(prompt: str, model: str = OPENAI_API_MODEL, temperature: float = 0.5, max_tokens: int = 100):
+def openai_call(prompt: str, model: str = OPENAI_API_MODEL, temperature: float = 0.5, max_tokens: int = 100) -> str:
     if not model.startswith('gpt-'):
         # Use completion API
         response = openai.Completion.create(
@@ -94,7 +94,7 @@ def openai_call(prompt: str, model: str = OPENAI_API_MODEL, temperature: float =
         )
         return response.choices[0].message.content.strip()
 
-def task_creation_agent(objective: str, result: Dict, task_description: str, task_list: List[str]):
+def task_creation_agent(objective: str, result: Dict, task_description: str, task_list: List[str]) -> List[dict]:
     prompt = f"You are an task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective}, The last completed task has the result: {result}. This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}. Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks. Return the tasks as an array."
     response = openai_call(prompt)
     new_tasks = response.split('\n')
@@ -125,7 +125,7 @@ def execution_agent(objective: str, task: str) -> str:
     prompt =f"You are an AI who performs one task based on the following objective: {objective}.\nTake into account these previously completed tasks: {context}\nYour task: {task}\nResponse:"
     return openai_call(prompt, temperature=0.7, max_tokens=2000)
 
-def context_agent(query: str, n: int):
+def context_agent(query: str, n: int) -> List[str]:
     query_embedding = get_ada_embedding(query)
     results = index.query(query_embedding, top_k=n, include_metadata=True)
     #print("***** RESULTS *****")
