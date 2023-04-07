@@ -42,7 +42,7 @@ The task_creation_agent() function is where OpenAI's API is used to create new t
 </br>
 The prioritization_agent() function is where OpenAI's API is used to reprioritize the task list. The function takes one parameter, the ID of the current task. It sends a prompt to OpenAI's API, which returns the reprioritized task list as a numbered list.
 
-Finally, the script uses Chroma to store and retrieve task results for context. The script creates a Chroma collection based on the table name specified in the YOUR_TABLE_NAME variable. Chroma is then used to store the results of the task in the collection, along with the task name and any additional metadata.
+Finally, the script uses Chroma to store and retrieve task results for context. The script creates a Chroma collection based on the table name specified in the TABLE_NAME variable. Chroma is then used to store the results of the task in the collection, along with the task name and any additional metadata.
 
 # How to Use<a name="how-to-use"></a>
 
