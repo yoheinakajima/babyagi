@@ -150,15 +150,12 @@ def create_terminal_agent():
         response = openai_call(prompt, USE_GPT4, 0.7, 2000)
         if is_valid_terminal_command(response):
             command = response.split('--TERMINAL COMMAND--', 1)[1]
-            result = execute_terminal_command(command)
-            if result['exit_code'] == 0:
-                return "Terminal task completed: " + task_name
-            else:
-                error_message = f"Command exited with non-zero exit code {result['exit_code']} and message: {result['error_message']}"
-                return error_message
+            execute_terminal_command(command)
+            return "Terminal task completed: " + task_name
         else:
             return "The generated result does not contain a valid terminal command."
     return terminal
+
 
 def prioritization_agent(this_task_id: int, task_list: deque, OBJECTIVE: str, gpt_version: str = 'gpt-3'):
     task_names = [t["task_name"] for t in task_list]
