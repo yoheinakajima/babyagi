@@ -1,3 +1,9 @@
+
+Here's a proof of concept, GPT writing directly into the terminal to create a basic React App
+
+<img width="809" alt="Screen Shot 2023-04-08 at 12 09 36 AM" src="https://user-images.githubusercontent.com/97474920/230704546-c55f437b-49c5-44fb-b24c-e45691e3b99a.png">
+
+
 #Terminal GPT Task Management System
 
 This task management system leverages OpenAI's GPT-3 or GPT-4 and Pinecone's vector similarity search to automate task management, including task generation, agent assignment, and task prioritization. Forked from babyagi, the main goal of this repo is to give GPT full access to the terminal.
