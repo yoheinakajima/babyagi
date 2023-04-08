@@ -70,7 +70,7 @@ openai.api_key = OPENAI_API_KEY
 
 # Create FAISS index
 embeddings_model = OpenAIEmbeddings(model="text-embedding-ada-002")
-index = FAISS.from_texts(["_"], embeddings_model, metadatas=[{"text":"None"}])
+index = FAISS.from_texts(["_"], embeddings_model, metadatas=[{"task":INITIAL_TASK}])
 
 # Task list
 task_list = deque([])
@@ -172,7 +172,7 @@ def context_agent(query: str, n: int):
     # print("***** RESULTS *****")
     # print(results)
     sorted_results = sorted(results, key=lambda x: x[1], reverse=True)
-    return [item[0].page_content for item in sorted_results]
+    return [item[0].metadata["task"] for item in sorted_results]
 
 
 # Add the first task
@@ -204,13 +204,7 @@ while True:
             "data": result
         }  # This is where you should enrich the result if needed
         result_id = f"result_{task['task_id']}"
-        #vector = get_ada_embedding(
-        #    enriched_result["data"]
-        #)  # get vector of the actual result extracted from the dictionary
-        #index.upsert(
-        #    [(result_id, vector, {"task": task["task_name"], "result": result})]
-        #)
-        index.add_texts([result], metadatas=[{"task":task["task_name"], "result":result}])
+        index.add_texts([result], metadatas=[{"task":task["task_name"]}])
 
         # Step 3: Create new tasks and reprioritize task list
         new_tasks = task_creation_agent(
