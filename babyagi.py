@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import subprocess
 import time
 from collections import deque
 from typing import Dict, List
@@ -118,7 +119,12 @@ def openai_call(
 ):
     while True:
         try:
-            if not model.startswith("gpt-"):
+            if model.startswith("llama"):
+                # Spawn a subprocess to run llama.cpp
+                cmd = cmd = ["llama/main", "-p", prompt]
+                result = subprocess.run(cmd, shell=True, stderr=subprocess.DEVNULL, stdout=subprocess.PIPE, text=True)
+                return result.stdout.strip()
+            elif not model.startswith("gpt-"):
                 # Use completion API
                 response = openai.Completion.create(
                     engine=model,
@@ -130,11 +136,6 @@ def openai_call(
                     presence_penalty=0,
                 )
                 return response.choices[0].text.strip()
-            elif model.startswith("llama"):
-                # Spawn a subprocess to run llama.cpp
-                cmd = cmd = ["llama/main", "-p", prompt]
-                result = subprocess.run(cmd, shell=True, stderr=subprocess.DEVNULL, stdout=subprocess.PIPE, text=True)
-                return result.stdout.strip()
             else:
                 # Use chat completion API
                 messages = [{"role": "user", "content": prompt}]
