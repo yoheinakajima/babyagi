@@ -168,7 +168,6 @@ def execution_agent(objective: str, task: str) -> str:
 
 
 def context_agent(query: str, n: int):
-    query_embedding = get_ada_embedding(query)
     results = index.similarity_search_with_score(query, k=n)
     # print("***** RESULTS *****")
     # print(results)
