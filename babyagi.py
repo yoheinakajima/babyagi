@@ -1,58 +1,61 @@
 #!/usr/bin/env python3
-import argparse
 import os
+import time
 import openai
 import pinecone
-import time
-import sys
 from collections import deque
 from typing import Dict, List
 from dotenv import load_dotenv
 
-# Parse arguments for optional extensions
-parser = argparse.ArgumentParser()
-parser.add_argument('-e', '--env', nargs='+', help='filenames for env')
-args = parser.parse_args()
-
 # Load default environment variables (.env)
 load_dotenv()
-
-# Set environment variables for optional extensions
-if args.env:
-    for env_path in args.env:
-        load_dotenv(env_path)
-        print('Using env from file:', env_path)
 
 # Set API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env"
 
 OPENAI_API_MODEL = os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo")
-assert OPENAI_API_MODEL, "OPENAI_API_MODEL environment variable is missing from .env"
-
-if "gpt-4" in OPENAI_API_MODEL.lower():
-    print("\033[91m\033[1m"+"\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****" + "\033[0m\033[0m")
 
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
 assert PINECONE_API_KEY, "PINECONE_API_KEY environment variable is missing from .env"
 
-PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "us-east1-gcp")
+PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "")
 assert PINECONE_ENVIRONMENT, "PINECONE_ENVIRONMENT environment variable is missing from .env"
 
 # Table config
 YOUR_TABLE_NAME = os.getenv("TABLE_NAME", "")
 assert YOUR_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
 
-# Project config
+# Goal configuation
 OBJECTIVE = os.getenv("OBJECTIVE", "")
-assert OBJECTIVE, "OBJECTIVE environment variable is missing from .env"
+INITIAL_TASK = os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", ""))
 
-YOUR_FIRST_TASK = os.getenv("FIRST_TASK", "")
-assert YOUR_FIRST_TASK, "FIRST_TASK environment variable is missing from .env"
+DOTENV_EXTENSIONS = os.getenv("DOTENV_EXTENSIONS", "").split(' ')
+
+# Command line arguments extension
+# Can override any of the above environment variables
+ENABLE_COMMAND_LINE_ARGS = os.getenv("ENABLE_COMMAND_LINE_ARGS", "false").lower() == "true"
+if ENABLE_COMMAND_LINE_ARGS:
+    from extensions.argparseext import parse_arguments
+    OBJECTIVE, INITIAL_TASK, OPENAI_API_MODEL, DOTENV_EXTENSIONS = parse_arguments()
+
+# Load additional environment variables for enabled extensions
+if DOTENV_EXTENSIONS:
+    from extensions.dotenvext import load_dotenv_extensions
+    load_dotenv_extensions(DOTENV_EXTENSIONS)
+
+# TODO: There's still work to be done here to enable people to get
+# defaults from dotenv extensions # but also provide command line
+# arguments to override them
+
+if "gpt-4" in OPENAI_API_MODEL.lower():
+    print("\033[91m\033[1m"+"\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"+"\033[0m\033[0m")
 
 # Print OBJECTIVE
-print("\033[96m\033[1m" + "\n*****OBJECTIVE*****\n" + "\033[0m\033[0m")
-print(OBJECTIVE)
+print("\033[94m\033[1m" + "\n*****OBJECTIVE*****\n" + "\033[0m\033[0m")
+print(f"{OBJECTIVE}")
+
+print("\033[93m\033[1m"+"\nInitial task:"+"\033[0m\033[0m"+f" {INITIAL_TASK}")
 
 # Configure OpenAI and Pinecone
 openai.api_key = OPENAI_API_KEY
@@ -83,30 +86,37 @@ def get_ada_embedding(text):
 
 
 def openai_call(prompt: str, model: str = OPENAI_API_MODEL, temperature: float = 0.5, max_tokens: int = 100):
-    if not model.startswith('gpt-'):
-        # Use completion API
-        response = openai.Completion.create(
-            engine=model,
-            prompt=prompt,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0
-        )
-        return response.choices[0].text.strip()
-    else:
-        # Use chat completion API
-        messages = [{"role": "user", "content": prompt}]
-        response = openai.ChatCompletion.create(
-            model=model,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            n=1,
-            stop=None,
-        )
-        return response.choices[0].message.content.strip()
+    while True:
+        try:
+            if not model.startswith('gpt-'):
+                # Use completion API
+                response = openai.Completion.create(
+                    engine=model,
+                    prompt=prompt,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    top_p=1,
+                    frequency_penalty=0,
+                    presence_penalty=0
+                )
+                return response.choices[0].text.strip()
+            else:
+                # Use chat completion API
+                messages=[{"role": "user", "content": prompt}]
+                response = openai.ChatCompletion.create(
+                    model=model,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    n=1,
+                    stop=None,
+                )
+                return response.choices[0].message.content.strip()
+        except openai.error.RateLimitError:
+            print("The OpenAI API rate limit has been exceeded. Waiting 10 seconds and trying again.")
+            time.sleep(10)  # Wait 10 seconds and try again
+        else:
+            break
 
 
 def task_creation_agent(objective: str, result: Dict, task_description: str, task_list: List[str]):
@@ -155,7 +165,7 @@ def context_agent(query: str, n: int):
 # Add the first task
 first_task = {
     "task_id": 1,
-    "task_name": YOUR_FIRST_TASK
+    "task_name": INITIAL_TASK
 }
 
 add_task(first_task)
@@ -182,16 +192,16 @@ while True:
         # Step 2: Enrich result and store in Pinecone
         enriched_result = {'data': result}  # This is where you should enrich the result if needed
         result_id = f"result_{task['task_id']}"
-        vector = enriched_result['data']  # extract the actual result from the dictionary
-        index.upsert([(result_id, get_ada_embedding(vector), {"task": task['task_name'], "result":result})])
+        vector = get_ada_embedding(enriched_result['data'])  # get vector of the actual result extracted from the dictionary
+        index.upsert([(result_id, vector, {"task": task['task_name'], "result": result})])
 
-    # Step 3: Create new tasks and reprioritize task list
-    new_tasks = task_creation_agent(OBJECTIVE, enriched_result, task["task_name"], [t["task_name"] for t in task_list])
+        # Step 3: Create new tasks and reprioritize task list
+        new_tasks = task_creation_agent(OBJECTIVE, enriched_result, task["task_name"], [t["task_name"] for t in task_list])
 
-    for new_task in new_tasks:
-        task_id_counter += 1
-        new_task.update({"task_id": task_id_counter})
-        add_task(new_task)
-    prioritization_agent(this_task_id)
+        for new_task in new_tasks:
+            task_id_counter += 1
+            new_task.update({"task_id": task_id_counter})
+            add_task(new_task)
+        prioritization_agent(this_task_id)
 
     time.sleep(1)  # Sleep before checking the task list again
