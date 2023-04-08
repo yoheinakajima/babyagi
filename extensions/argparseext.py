@@ -1,11 +1,6 @@
 import os
 import sys
 import argparse
-from dotenv import load_dotenv
-
-def load_dotenv_extensions(dotenv_files):
-    for dotenv_file in dotenv_files:
-        load_dotenv(dotenv_file)
 
 # Extract the env filenames in the -e flag only
 # Ignore any other arguments
@@ -28,10 +23,13 @@ def parse_dotenv_extensions(argv):
     return parser.parse_args(env_argv).env
 
 def parse_arguments():
+    dotenv_extensions = parse_dotenv_extensions(sys.argv)
     # Check if we need to load any additional env files
     # This allows us to override the default .env file
-    # and update the default values for the command line arguments
-    load_dotenv_extensions(parse_dotenv_extensions(sys.argv))
+    # and update the default values for any command line arguments
+    if dotenv_extensions:
+        from extensions.dotenvext import load_dotenv_extensions
+        load_dotenv_extensions(parse_dotenv_extensions(sys.argv))
 
     # Now parse the full command line arguments
     parser = argparse.ArgumentParser(
@@ -52,7 +50,7 @@ def parse_arguments():
     # to load those in the main file later as well
     parser.add_argument('-e', '--env', nargs='+', help='''
     filenames for additional env variables to load
-    ''', default=os.getenv("DOTENV_EXTENSIONS", ""))
+    ''', default=os.getenv("DOTENV_EXTENSIONS", "").split(' '))
     parser.add_argument('-h', '-?', '--help', action='help', help='''
     show this help message and exit
     ''')

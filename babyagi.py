@@ -35,11 +35,12 @@ DOTENV_EXTENSIONS = os.getenv("DOTENV_EXTENSIONS", "").split(' ')
 # Can override any of the above environment variables
 ENABLE_COMMAND_LINE_ARGS = os.getenv("ENABLE_COMMAND_LINE_ARGS", "false").lower() == "true"
 if ENABLE_COMMAND_LINE_ARGS:
-    from argsparser import parse_arguments, load_dotenv_extensions
+    from extensions.argparseext import parse_arguments
     OBJECTIVE, INITIAL_TASK, OPENAI_API_MODEL, DOTENV_EXTENSIONS = parse_arguments()
 
 # Load additional environment variables for enabled extensions
 if DOTENV_EXTENSIONS:
+    from extensions.dotenvext import load_dotenv_extensions
     load_dotenv_extensions(DOTENV_EXTENSIONS)
 
 # TODO: There's still work to be done here to enable people to get
