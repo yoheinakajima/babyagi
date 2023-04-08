@@ -1,3 +1,7 @@
+# First Successful Prompt
+OBJECTIVE='Create a simple react app that displays a list of items'
+FIRST_TASK='created an app called "my-app" terminal using npx'
+
 
 Here's a proof of concept, GPT writing directly into the terminal to create a basic React App
 
