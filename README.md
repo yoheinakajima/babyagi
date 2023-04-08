@@ -12,6 +12,14 @@ Here's a proof of concept, GPT writing directly into the terminal to create a ba
 
 <img width="809" alt="Screen Shot 2023-04-08 at 12 09 36 AM" src="https://user-images.githubusercontent.com/97474920/230704546-c55f437b-49c5-44fb-b24c-e45691e3b99a.png">
 
+# Hive Mind
+
+In the context of the Terminal GPT task management system, the shared context (also referred to as the "hive mind") is a Pinecone index that stores information about completed tasks and their results. This allows agents to access previously completed tasks and their results when working on new tasks. The shared context can be thought of as a collective knowledge base that agents can use to improve their performance.
+
+For example, suppose an agent is assigned a new task that is similar to a previously completed task. The agent can access the shared context to retrieve information about the previous task, including its solution and any relevant context. This can help the agent generate a more accurate and efficient solution for the new task.
+
+The shared context is updated in real-time as tasks are completed and new information is added. This allows agents to access the most up-to-date information when working on tasks. Additionally, the shared context can be used to identify patterns or trends in completed tasks, which can be used to improve the overall performance of the task management system.
+
 # Setup
 
 To set up the system, follow these steps:
