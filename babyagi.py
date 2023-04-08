@@ -95,11 +95,8 @@ if table_name not in pinecone.list_indexes():
 # Connect to the index
 index = pinecone.Index(table_name)
 
-# Task storage supporting only a single instance of BabyAGI
-class SingleTaskListStorage:
-    def __init__(self):
-        self.tasks = deque([])
-        self.task_id_counter = 0
+# Task list
+task_list = deque([])
 
 
 def add_task(task: Dict):
@@ -192,8 +189,7 @@ def prioritization_agent(this_task_id: int):
         if len(task_parts) == 2:
             task_id = task_parts[0].strip()
             task_name = task_parts[1].strip()
-            new_tasks_list.append({"task_id": task_id, "task_name": task_name})
-    tasks_storage.replace(new_tasks_list)
+            task_list.append({"task_id": task_id, "task_name": task_name})
 
 
 def execution_agent(objective: str, task: str) -> str:
@@ -219,10 +215,11 @@ def context_agent(query: str, n: int):
 # Add the first task
 first_task = {"task_id": 1, "task_name": INITIAL_TASK}
 
+add_task(first_task)
 # Main loop
+task_id_counter = 1
 while True:
-    # As long as there are tasks in the storage...
-    if not tasks_storage.is_empty():
+    if task_list:
         # Print the task list
         print("\033[95m\033[1m" + "\n*****TASK LIST*****\n" + "\033[0m\033[0m")
         for t in task_list:
@@ -265,4 +262,4 @@ while True:
             add_task(new_task)
         prioritization_agent(this_task_id)
 
-    time.sleep(5)  # Sleep before checking the task list again
+    time.sleep(1)  # Sleep before checking the task list again
