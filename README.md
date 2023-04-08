@@ -1,6 +1,6 @@
 # Terminal GPT Task Management System
 
-This task management system leverages OpenAI's GPT-3 or GPT-4 and Pinecone's vector similarity search to automate task management, including task generation, agent assignment, and task prioritization. Forked from babyagi, the main goal of this repo is to give GPT full access to the terminal.
+This task management system leverages OpenAI's GPT-3 or GPT-4 and Pinecone's vector similarity search to automate task management, including task generation, agent assignment, and task prioritization. Forked from babyagi, the main goal of this repo is to give GPT full access to the terminal. By giving GPT access to the terminal there would no longer be a limit on it's abilities: react development, internet search, optimizing computer settings, improved file management/organization. LITERALLY NO LIMITS TO WHAT CAN BE DONE
 
 # Proof of Concept
 OBJECTIVE='Create a simple react app that displays a list of items'
