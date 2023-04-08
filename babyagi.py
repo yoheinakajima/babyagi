@@ -9,7 +9,7 @@ from typing import Dict, List
 from dotenv import load_dotenv
 import re
 from agents.agent_module import create_python_developer_agent, create_javascript_developer_agent, create_researcher_agent, create_css_developer_agent, create_custom_agent, prioritization_agent, create_new_agents, create_terminal_agent, prompt_generator
-from helper import openai_call
+from helper import openai_call, execute_terminal_command
 
 #Set Variables
 load_dotenv()
@@ -119,6 +119,7 @@ first_task = {
 def main_agent(task: Dict):
     task_name = task["task_name"].lower()
     agent_key = None
+    shared_context = get_shared_context(task_name)
 
     if "python" in task_name:
         agent_key = "PythonDeveloper"
@@ -145,7 +146,6 @@ def main_agent(task: Dict):
         agent = agents[agent_key]
 
     # Agents share information through a shared context or a messaging system
-    shared_context = get_shared_context(task_name)
     result = agent(task, shared_context)
 
     # Check if there are new agents to be created
@@ -198,13 +198,14 @@ while True:
         vector = enriched_result['data']  # extract the actual result from the dictionary
         index.upsert([(result_id, get_ada_embedding(vector),{"task":task['task_name'],"result":result})])
 
-    # Step 3: Create new tasks and reprioritize task list
-    new_tasks = task_creation_agent(OBJECTIVE,enriched_result, task["task_name"], [t["task_name"] for t in task_list])
-
-    for new_task in new_tasks:
-        task_id_counter += 1
-        new_task.update({"task_id": task_id_counter})
-        add_task(new_task)
-    prioritization_agent(this_task_id, task_list=task_list, OBJECTIVE=OBJECTIVE)
-
-    time.sleep(1)  # Sleep before checking the task list again
+        # Step 3: Create new tasks and reprioritize task list
+        new_tasks = task_creation_agent(OBJECTIVE, enriched_result, task["task_name"], [t["task_name"] for t in task_list])
+        
+        for new_task in new_tasks:
+            task_id_counter += 1
+            new_task.update({"task_id": task_id_counter})
+            add_task(new_task)
+        
+        prioritization_agent(this_task_id, task_list=task_list, OBJECTIVE=OBJECTIVE)
+        
+        time.sleep(1)  # Sleep before checking the task list again
