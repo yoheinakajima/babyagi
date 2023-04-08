@@ -5,12 +5,30 @@
 This task management system leverages OpenAI's GPT-3 or GPT-4 and Pinecone's vector similarity search to automate task management, including task generation, agent assignment, and task prioritization. Forked from babyagi, the main goal of this repo is to give GPT full access to the terminal. By giving GPT access to the terminal there would no longer be a limit on it's abilities: react development, internet search, optimizing computer settings, improved file management/organization. LITERALLY NO LIMITS TO WHAT CAN BE DONE
 
 # Proof of Concept
+
+### Terminal Access
+
 OBJECTIVE='Create a simple react app that displays a list of items'
 FIRST_TASK='created an app called "my-app" terminal using npx'
 
 Here's a proof of concept, GPT writing directly into the terminal to create a basic React App
 
 <img width="809" alt="Screen Shot 2023-04-08 at 12 09 36 AM" src="https://user-images.githubusercontent.com/97474920/230704546-c55f437b-49c5-44fb-b24c-e45691e3b99a.png">
+
+### Python Scripting 
+
+OBJECTIVE='Write a python script that solves a simple task'
+FIRST_TASK='Write a python script'
+
+This is a very basic example but it should give you an idea on the capabilties of this system
+
+<img width="466" alt="Screen Shot 2023-04-08 at 12 36 39 AM" src="https://user-images.githubusercontent.com/97474920/230705323-b25bcbfd-1486-4421-ab19-bc699c5c5f27.png">
+
+<img width="351" alt="Screen Shot 2023-04-08 at 12 38 43 AM" src="https://user-images.githubusercontent.com/97474920/230705336-29f44d0a-a038-4e04-bc69-152e377720b9.png">
+
+<img width="487" alt="Screen Shot 2023-04-08 at 12 39 14 AM" src="https://user-images.githubusercontent.com/97474920/230705348-7b7a3e36-a117-4053-950e-5d72b740eac6.png">
+
+
 
 # Hive Mind
 
