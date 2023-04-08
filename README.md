@@ -1,7 +1,9 @@
 #Terminal GPT Task Management System
+
 This task management system leverages OpenAI's GPT-3 or GPT-4 and Pinecone's vector similarity search to automate task management, including task generation, agent assignment, and task prioritization. Forked from babyagi, the main goal of this repo is to give GPT full access to the terminal.
 
 #Setup
+
 To set up the system, follow these steps:
 
 Install the required Python libraries by running: 'pip install -r requirements.txt'.
@@ -33,17 +35,20 @@ Task Class
 The Task class represents a single task to be completed.
 
 Attributes
+
 'task_id (int)': The unique identifier of the task.
 'task_name (str)': A short description of the task.
 'completed (bool)': Whether the task has been completed or not.
 'result (any)': The result of the task, if completed.
 
 Methods
+
 complete(result: any): Marks the task as completed and sets its result.
 TaskManager Class
 The TaskManager class manages a list of Task objects.
 
 Attributes
+
 task_list (List[Task]): A list of Task objects.
 Methods
 add_task(task: Task): Adds a new task to the task list.
@@ -71,7 +76,8 @@ This function takes a string of code and saves it to a file with the specified f
 
 This function takes a command string and executes it in the terminal. Any newlines in the command will be removed before execution.
 
-Validation Module
+#Validation Module
+
 The validation module contains functions that validate code snippets or commands in various languages or formats:
 
 is_valid_python_script(code: str) -> bool: Determines if the input string code is a valid Python script.
@@ -82,6 +88,7 @@ Agent Module
 The agent module contains functions and classes that help in generating and managing AI-generated solutions to programming and research tasks.
 
 Agent Functions
+
 The following functions represent different types of AI agents that can be used to generate solutions to programming and research tasks. Each function takes a task and shared context as input, generates a response using OpenAI's GPT-3 or GPT-4, and returns a string representation of the solution. If the generated solution is a valid script or command, it is saved to a file or executed, respectively.
 
 'create_custom_agent(agent_name: str, role: str, prompt: str)': Creates a custom AI agent with the given agent_name, role, and prompt.
