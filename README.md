@@ -8,8 +8,7 @@ This task management system leverages OpenAI's GPT-3 or GPT-4 and Pinecone's vec
 
 ### Terminal Access
 
-OBJECTIVE='Create a simple react app that displays a list of items'
-FIRST_TASK='created an app called "my-app" terminal using npx'
+<img width="555" alt="Screen Shot 2023-04-08 at 12 41 24 AM" src="https://user-images.githubusercontent.com/97474920/230705402-a7818e13-bd3e-403f-b6ab-1290d14358a2.png">
 
 Here's a proof of concept, GPT writing directly into the terminal to create a basic React App
 
