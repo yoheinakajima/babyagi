@@ -3,6 +3,7 @@ __pycache__/
 *$py.class
 
 .env
+.env.*
 env/
 .venv
 venv/
@@ -11,4 +12,4 @@ venv/
 .idea/
 
 models
-llama
+llama/
