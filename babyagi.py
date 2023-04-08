@@ -5,8 +5,9 @@ from collections import deque
 from typing import Dict, List
 
 import openai
-import pinecone
 from dotenv import load_dotenv
+from langchain.vectorstores import FAISS
+from langchain.embeddings.openai import OpenAIEmbeddings
 
 # Load default environment variables (.env)
 load_dotenv()
@@ -24,18 +25,6 @@ if "gpt-4" in OPENAI_API_MODEL.lower():
         + "\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"
         + "\033[0m\033[0m"
     )
-
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
-assert PINECONE_API_KEY, "PINECONE_API_KEY environment variable is missing from .env"
-
-PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "")
-assert (
-    PINECONE_ENVIRONMENT
-), "PINECONE_ENVIRONMENT environment variable is missing from .env"
-
-# Table config
-YOUR_TABLE_NAME = os.getenv("TABLE_NAME", "")
-assert YOUR_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
 
 # Goal configuation
 OBJECTIVE = os.getenv("OBJECTIVE", "")
@@ -78,20 +67,9 @@ print("\033[93m\033[1m" + "\nInitial task:" + "\033[0m\033[0m" + f" {INITIAL_TAS
 
 # Configure OpenAI and Pinecone
 openai.api_key = OPENAI_API_KEY
-pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_ENVIRONMENT)
 
-# Create Pinecone index
-table_name = YOUR_TABLE_NAME
-dimension = 1536
-metric = "cosine"
-pod_type = "p1"
-if table_name not in pinecone.list_indexes():
-    pinecone.create_index(
-        table_name, dimension=dimension, metric=metric, pod_type=pod_type
-    )
-
-# Connect to the index
-index = pinecone.Index(table_name)
+# Create FAISS index
+index = FAISS.from_texts(["0"], OpenAIEmbeddings(), metadatas=[{"text":"None"}])
 
 # Task list
 task_list = deque([])
@@ -198,11 +176,11 @@ def execution_agent(objective: str, task: str) -> str:
 
 def context_agent(query: str, n: int):
     query_embedding = get_ada_embedding(query)
-    results = index.query(query_embedding, top_k=n, include_metadata=True)
+    results = index.similarity_search_with_score(query, k=n)
     # print("***** RESULTS *****")
     # print(results)
-    sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)
-    return [(str(item.metadata["task"])) for item in sorted_results]
+    sorted_results = sorted(results, key=lambda x: x[1], reverse=True)
+    return [item[0].page_content for item in sorted_results]
 
 
 # Add the first task
@@ -229,17 +207,18 @@ while True:
         print("\033[93m\033[1m" + "\n*****TASK RESULT*****\n" + "\033[0m\033[0m")
         print(result)
 
-        # Step 2: Enrich result and store in Pinecone
+        # Step 2: Enrich result and store in index
         enriched_result = {
             "data": result
         }  # This is where you should enrich the result if needed
         result_id = f"result_{task['task_id']}"
-        vector = get_ada_embedding(
-            enriched_result["data"]
-        )  # get vector of the actual result extracted from the dictionary
-        index.upsert(
-            [(result_id, vector, {"task": task["task_name"], "result": result})]
-        )
+        #vector = get_ada_embedding(
+        #    enriched_result["data"]
+        #)  # get vector of the actual result extracted from the dictionary
+        #index.upsert(
+        #    [(result_id, vector, {"task": task["task_name"], "result": result})]
+        #)
+        index.add_texts([result], metadatas=[{"task":task["task_name"], "result":result}])
 
         # Step 3: Create new tasks and reprioritize task list
         new_tasks = task_creation_agent(
