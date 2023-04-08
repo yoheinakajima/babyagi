@@ -1,52 +1,97 @@
-# babyagi
+#Terminal GPT Task Management System
+This task management system leverages OpenAI's GPT-3 or GPT-4 and Pinecone's vector similarity search to automate task management, including task generation, agent assignment, and task prioritization. Forked from babyagi, the main goal of this repo is to give GPT full access to the terminal.
 
+#Setup
+To set up the system, follow these steps:
 
-# Objective
-This Python script is an example of an AI-powered task management system. The system uses OpenAI and Pinecone APIs to create, prioritize, and execute tasks. The main idea behind this system is that it creates tasks based on the result of previous tasks and a predefined objective. The script then uses OpenAI's natural language processing (NLP) capabilities to create new tasks based on the objective, and Pinecone to store and retrieve task results for context. This is a paired-down version of the original [Task-Driven Autonomous Agent](https://twitter.com/yoheinakajima/status/1640934493489070080?s=20) (Mar 28, 2023).
+Install the required Python libraries by running: 'pip install -r requirements.txt'.
+Create a .env file with the following environment variables:
+'OPENAI_API_KEY': Your OpenAI API key.
+'PINECONE_API_KEY': Your Pinecone API key.
+'PINECONE_ENVIRONMENT': The environment you are using for Pinecone.
+'TABLE_NAME': The name of the Pinecone index for storing task results.
+'SHARED_CONTEXT': The name of the Pinecone index for storing shared context.
+'OBJECTIVE': The objective of your task management system.
+'FIRST_TASK': The name of the first task to be completed by the system.
+Run the Python script by executing: python3 babyagi.py.
 
-This README will cover the following:
+#How it Works
+The task management system operates in the following manner:
 
-* How the script works 
+1. A task is added to the task list.
+2. The system retrieves the first task from the task list and sends it to the main_agent function for processing.
+3. The main_agent function assigns the task to an appropriate agent (based on keywords in the task name) and sends it to that agent for processing.
+4. The agent completes the task and returns a result.
+5. The result is enriched (if necessary) and stored in Pinecone for later retrieval.
+6. The task_creation_agent function generates new tasks based on the completed task and adds them to the task list.
+7. The prioritization_agent function prioritizes the task list based on the objective of the task management system.
 
-* How to use the script 
-* Warning about running the script continuously
-# How It Works
-The script works by running an infinite loop that does the following steps:
+#Task Module
 
-1. Pulls the first task from the task list.
-2. Sends the task to the execution agent, which uses OpenAI's API to complete the task based on the context.
-3. Enriches the result and stores it in Pinecone.
-4. Creates new tasks and reprioritizes the task list based on the objective and the result of the previous task.
-The execution_agent() function is where the OpenAI API is used. It takes two parameters: the objective and the task. It then sends a prompt to OpenAI's API, which returns the result of the task. The prompt consists of a description of the AI system's task, the objective, and the task itself. The result is then returned as a string.
+Task Class
 
-The task_creation_agent() function is where OpenAI's API is used to create new tasks based on the objective and the result of the previous task. The function takes four parameters: the objective, the result of the previous task, the task description, and the current task list. It then sends a prompt to OpenAI's API, which returns a list of new tasks as strings. The function then returns the new tasks as a list of dictionaries, where each dictionary contains the name of the task.
+The Task class represents a single task to be completed.
 
-The prioritization_agent() function is where OpenAI's API is used to reprioritize the task list. The function takes one parameter, the ID of the current task. It sends a prompt to OpenAI's API, which returns the reprioritized task list as a numbered list.
+Attributes
+'task_id (int)': The unique identifier of the task.
+'task_name (str)': A short description of the task.
+'completed (bool)': Whether the task has been completed or not.
+'result (any)': The result of the task, if completed.
 
-Finally, the script uses Pinecone to store and retrieve task results for context. The script creates a Pinecone index based on the table name specified in YOUR_TABLE_NAME variable. Pinecone is then used to store the results of the task in the index, along with the task name and any additional metadata.
+Methods
+complete(result: any): Marks the task as completed and sets its result.
+TaskManager Class
+The TaskManager class manages a list of Task objects.
 
-# How to Use
-To use the script, you will need to follow these steps:
+Attributes
+task_list (List[Task]): A list of Task objects.
+Methods
+add_task(task: Task): Adds a new task to the task list.
+get_next_task() -> Union[Task, None]: Returns the next uncompleted task in the list or None if there are no more tasks.
+has_tasks() -> bool: Returns True if there are any uncompleted tasks in the list, False otherwise.
+get_tasks() -> List[Task]: Returns a list of all tasks, completed or not.
+HELPER.py
+The HELPER.py file contains various helper functions used throughout the project. These functions include:
 
-1. Install the required packages: `pip install -r requirements.txt`
-2. Copy the .env.example file to .env: `cp .env.example .env`. This is where you will set the following variables.
-3. Set your OpenAI and Pinecone API keys in the OPENAI_API_KEY and PINECONE_API_KEY variables.
-4. Set the Pinecone environment in the PINECONE_ENVIRONMENT variable.
-5. Set the name of the table where the task results will be stored in the TABLE_NAME variable.
-6. Set the objective of the task management system in the OBJECTIVE variable. Alternatively you can pass it to the script as a quote argument.
-```
-./babyagi.py ["<objective>"]
-```
-7. Set the first task of the system in the FIRST_TASK variable.
-8. Run the script.
+openai_call: A function for making API calls to OpenAI's GPT-3 and GPT-4 models to generate natural language responses.
+save_script_to_file: A function for saving a string of code to a file in a specified folder.
+execute_terminal_command: A function for executing a command in the terminal.
+openai_call
+`openai_call(prompt: str, use_gpt4: bool = False, temperature : float = 0.5, max_tokens: int = 100) -> str`
 
-# Warning
-This script is designed to be run continuously as part of a task management system. Running this script continuously can result in high API usage, so please use it responsibly. Additionally, the script requires the OpenAI and Pinecone APIs to be set up correctly, so make sure you have set up the APIs before running the script.
+This function makes an API call to either OpenAI's GPT-3 or GPT-4 models, depending on the use_gpt4 parameter, to generate a natural language response to the provided prompt. The temperature and max_tokens parameters can be used to adjust the response's creativity and length, respectively. The function returns the generated response as a string.
 
-# Contribution
-Very appreciative of the PRs, which I've started pulling! I am new to Github and open source, so please be patient as I learn to manage this project properly. I run a VC firm by day, so I will generally be checking PRs and issues at night after I get my kids down - which may not be every night. Open to the idea of bringing in support, will be updating this section soon (expectations, visions, etc). Talking to lots of people and learning - hang tight for updates!
+'save_script_to_file'
+'save_script_to_file(code: str, filename: str, folder: str = "generated_scripts") -> None'
 
-# Backstory
-BabyAGI is a paired-down version of the original [Task-Driven Autonomous Agent](https://twitter.com/yoheinakajima/status/1640934493489070080?s=20) (Mar 28, 2023) shared on Twitter. This version is down to 140 lines: 13 comments, 22 blank, 105 code. The name of the repo came up in the reaction to the original autonomous agent - the author does not mean to imply that this is AGI.
+This function takes a string of code and saves it to a file with the specified filename in the folder directory. If the folder directory does not exist, it will be created.
 
-Made with love by [@yoheinakajima](https://twitter.com/yoheinakajima), who happens to be a VC (would love to see what you're building!)
+'execute_terminal_command'
+'execute_terminal_command(command: str) -> None'
+
+This function takes a command string and executes it in the terminal. Any newlines in the command will be removed before execution.
+
+Validation Module
+The validation module contains functions that validate code snippets or commands in various languages or formats:
+
+is_valid_python_script(code: str) -> bool: Determines if the input string code is a valid Python script.
+is_valid_javascript_script(code: str) -> bool: Determines if the input string code is a valid JavaScript script.
+is_valid_css_script(code: str) -> bool: Determines if the input string code is a valid CSS script.
+is_valid_terminal_command(code: str) -> bool: Determines if the input string code is a valid terminal command.
+Agent Module
+The agent module contains functions and classes that help in generating and managing AI-generated solutions to programming and research tasks.
+
+Agent Functions
+The following functions represent different types of AI agents that can be used to generate solutions to programming and research tasks. Each function takes a task and shared context as input, generates a response using OpenAI's GPT-3 or GPT-4, and returns a string representation of the solution. If the generated solution is a valid script or command, it is saved to a file or executed, respectively.
+
+'create_custom_agent(agent_name: str, role: str, prompt: str)': Creates a custom AI agent with the given agent_name, role, and prompt.
+'create_python_developer_agent()': Creates an AI agent that generates a Python script to solve a programming task.
+'create_javascript_developer_agent()': Creates an AI agent that generates a JavaScript script to solve a programming task.
+'create_css_developer_agent()': Creates an AI agent that generates a CSS script to solve a programming task.
+'create_researcher_agent()': Creates an AI agent that generates a research paper to help solve a research task.
+'create_terminal_agent()': Creates an AI agent that generates a terminal command to solve a programming task.
+'prioritization_agent(this_task_id: int, task_list: deque, OBJECTIVE: str, gpt_version: str = 'gpt-3')': Creates an AI agent that reprioritizes a list of tasks based on a given objective. It returns a string representation of the new task order.
+
+#Conclusion
+
+This task management system exemplifies how AI can be used to automate task management processes. By leveraging OpenAI's GPT-3 or GPT-4 and Pinecone's vector similarity search, the system can automatically generate new tasks, assign them to appropriate agents, and prioritize the task list based on the system's objective.
