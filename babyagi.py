@@ -69,7 +69,8 @@ print("\033[93m\033[1m" + "\nInitial task:" + "\033[0m\033[0m" + f" {INITIAL_TAS
 openai.api_key = OPENAI_API_KEY
 
 # Create FAISS index
-index = FAISS.from_texts(["0"], OpenAIEmbeddings(), metadatas=[{"text":"None"}])
+embeddings_model = OpenAIEmbeddings(model="text-embedding-ada-002")
+index = FAISS.from_texts(["_"], embeddings_model, metadatas=[{"text":"None"}])
 
 # Task list
 task_list = deque([])
@@ -77,14 +78,6 @@ task_list = deque([])
 
 def add_task(task: Dict):
     task_list.append(task)
-
-
-def get_ada_embedding(text):
-    text = text.replace("\n", " ")
-    return openai.Embedding.create(input=[text], model="text-embedding-ada-002")[
-        "data"
-    ][0]["embedding"]
-
 
 def openai_call(
     prompt: str,
