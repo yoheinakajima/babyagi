@@ -38,24 +38,25 @@ The task management system operates in the following manner:
 
 # Task Module
 
-Task Class
+## Task Class
 
 The Task class represents a single task to be completed.
 
-# Attributes
+Attributes
 
 'task_id (int)': The unique identifier of the task.
 'task_name (str)': A short description of the task.
 'completed (bool)': Whether the task has been completed or not.
 'result (any)': The result of the task, if completed.
 
-# Methods
+Methods
 
 complete(result: any): Marks the task as completed and sets its result.
-TaskManager Class
+
+## TaskManager Class
 The TaskManager class manages a list of Task objects.
 
-# Attributes
+Attributes
 
 task_list (List[Task]): A list of Task objects.
 Methods
