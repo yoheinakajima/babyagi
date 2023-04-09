@@ -12,7 +12,7 @@ This README will cover the following:
 
 * [How to use the script](#how-to-use)
 
-* [Suported Models](#supported-models)
+* [Supported Models](#supported-models)
 
 * [Warning about running the script continuously](#continous-script-warning)
 # How It Works<a name="how-it-works"></a>
