@@ -4,6 +4,7 @@ import subprocess
 import time
 from collections import deque
 from typing import Dict, List
+import json
 
 import openai
 import pinecone
