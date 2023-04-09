@@ -205,8 +205,8 @@ def task_creation_agent(
     return [{"task_name": task_name} for task_name in new_tasks]
 
 
-def prioritization_agent(this_task_id: int):
-    tasks_storage.get_task_names()
+def prioritization_agent():
+    task_names = tasks_storage.get_task_names()
     next_task_id = tasks_storage.next_task_id()
     prompt = f"""
     You are an task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}.
