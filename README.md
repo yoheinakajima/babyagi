@@ -37,11 +37,12 @@ To use the script, you will need to follow these steps:
 2. Install the required packages: `pip install -r requirements.txt`
 3. Copy the .env.example file to .env: `cp .env.example .env`. This is where you will set the following variables.
 4. Set your OpenAI and Pinecone API keys in the OPENAI_API_KEY, OPENAPI_API_MODEL, and PINECONE_API_KEY variables.
-5. Set the Pinecone environment in the PINECONE_ENVIRONMENT variable.
-6. Set the name of the table where the task results will be stored in the TABLE_NAME variable.
-7. (Optional) Set the objective of the task management system in the OBJECTIVE variable.
-8. (Optional) Set the first task of the system in the INITIAL_TASK variable.
-9. Run the script.
+5. (Optional) Set OPENAI_PROXY to use proxy, str or dict type.
+6. Set the Pinecone environment in the PINECONE_ENVIRONMENT variable.
+7. Set the name of the table where the task results will be stored in the TABLE_NAME variable.
+8. (Optional) Set the objective of the task management system in the OBJECTIVE variable.
+9. (Optional) Set the first task of the system in the INITIAL_TASK variable.
+10. Run the script.
 
 All optional values above can also be specified on the command line.
 
