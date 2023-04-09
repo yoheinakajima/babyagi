@@ -19,14 +19,6 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env"
 
 OPENAI_API_MODEL = os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo")
-assert OPENAI_API_MODEL, "OPENAI_API_MODEL environment variable is missing from .env"
-
-if "gpt-4" in OPENAI_API_MODEL.lower():
-    print(
-        "\033[91m\033[1m"
-        + "\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"
-        + "\033[0m\033[0m"
-    )
 
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
 assert PINECONE_API_KEY, "PINECONE_API_KEY environment variable is missing from .env"
@@ -214,9 +206,8 @@ def task_creation_agent(
 
 
 def prioritization_agent(this_task_id: int):
-    global task_list
-    task_names = [t["task_name"] for t in task_list]
-    next_task_id = int(this_task_id) + 1
+    tasks_storage.get_task_names()
+    next_task_id = tasks_storage.next_task_id()
     prompt = f"""
     You are an task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}.
     Consider the ultimate objective of your team:{OBJECTIVE}.
@@ -238,7 +229,7 @@ def prioritization_agent(this_task_id: int):
 
 # Execute a task based on the objective and five previous tasks 
 def execution_agent(objective:str, task: str) -> str:
-    context=context_agent(query=objective, n=5)
+    context = context_agent(query=objective, n=5)
     # print("\n*******RELEVANT CONTEXT******\n")
     # print(context)
     prompt = f"""
@@ -265,7 +256,6 @@ if not JOIN_EXISTING_OBJECTIVE:
     tasks_storage.append(initial_task)
 
 # Main loop
-task_id_counter = 1
 while True:
     # As long as there are tasks in the storage...
     if not tasks_storage.is_empty():
@@ -311,4 +301,4 @@ while True:
 
         if not JOIN_EXISTING_OBJECTIVE: prioritization_agent()
 
-    time.sleep(1)  # Sleep before checking the task list again
+    time.sleep(5)  # Sleep before checking the task list again
