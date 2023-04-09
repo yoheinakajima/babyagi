@@ -1,0 +1,4 @@
+dash
+openai
+pinecone-client
+dash-bootstrap-components
