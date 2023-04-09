@@ -36,11 +36,11 @@ class ContextStorage(ABC):
         pass
 
     @abstractmethod
-    def query(self, query: str, fields: list[str] = [], n: int = 1) -> list[ContextResult]:
+    def query(self, query: str, fields: list[str] = [], n: int = 1, namespace: str = 'default') -> list[ContextResult]:
         pass
 
     @abstractmethod
-    def upsert(self, context: ContextData) -> None:
+    def upsert(self, context: ContextData, namespace: str = 'default') -> None:
         pass
 
     @staticmethod

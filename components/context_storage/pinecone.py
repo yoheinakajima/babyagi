@@ -24,12 +24,12 @@ class PineconeTaskStorage(ContextStorage):
         print(f'(pinecone): deleting storage index {self.storage_name}')
         pinecone.delete_index(self.storage_name)
     
-    def query(self, query: str, fields: list[str] = None, n: int = 1) -> list[ContextResult]:
+    def query(self, query: str, fields: list[str] = None, n: int = 1, namespace: str = 'default') -> list[ContextResult]:
         # Generate query embedding
         query_embedding = self.embedding_method(query)
 
         # Perform search and retrieve results
-        results = self.index.query(query_embedding, top_k=n, include_metadata=True)
+        results = self.index.query(query_embedding, top_k=n, namespace=namespace, include_metadata=True)
         sorted_results = sorted(results.get('matches', []), key=lambda x: x.score, reverse=True)
 
         # Transform results into standard format
@@ -46,6 +46,6 @@ class PineconeTaskStorage(ContextStorage):
 
         return transformed_results
     
-    def upsert(self, context: ContextData) -> None:
+    def upsert(self, context: ContextData, namespace: str = 'default') -> None:
         vector = self.embedding_method(context.enriched_data)
-        self.index.upsert([(context.id, vector, context.data)])
+        self.index.upsert([(context.id, vector, context.data)], namespace)

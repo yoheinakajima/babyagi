@@ -28,7 +28,7 @@ class WeaviateTaskStorage(ContextStorage):
         print(f'(weaviate): deleting storage class {self.storage_name}')
         self.client.schema.delete_class(self.storage_name)
     
-    def query(self, query: str, fields: list[str] = [], n: int = 1) -> list[ContextResult]:
+    def query(self, query: str, fields: list[str] = [], n: int = 1, namespace: str = 'default') -> list[ContextResult]:
         # If no fields are provided, retrieve the schema and set fields to be all properties in the schema
         if not fields:
             schema = self.client.schema.get(self.storage_name)
@@ -41,6 +41,12 @@ class WeaviateTaskStorage(ContextStorage):
                 .with_near_text({ 'concepts': query })
                 .with_limit(n)
                 .with_additional(['id', 'certainty'])
+                # Limit search to the namespace provided
+                .with_where({
+                    'path': ['namespace'],
+                    'operator': 'Equal',
+                    'valueText': namespace,
+                })
                 .do()
                 .get('data', {})
                 .get('Get', {})
@@ -60,7 +66,8 @@ class WeaviateTaskStorage(ContextStorage):
 
         return transformed_results
     
-    def upsert(self, context: ContextData) -> None:
+    def upsert(self, context: ContextData, namespace: str = 'default') -> None:
         context.data['enriched_data'] = context.enriched_data
         context.data['id'] = context.id
+        context.data['namespace'] = namespace
         self.client.data_object.create(context.data, self.storage_name)
