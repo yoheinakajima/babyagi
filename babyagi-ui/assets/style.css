@@ -1,0 +1,188 @@
+/* Loading */
+
+._dash-loading {
+  margin: auto;
+  color: transparent;
+  width: 0;
+  height: 0;
+  text-align: center;
+}
+
+._dash-loading::after {
+  content: '';
+  display: inline-block;
+  width: 2rem;
+  height: 2rem;
+  color: #dc3d87;
+  vertical-align: text-bottom;
+  border: 0.25em solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  -webkit-animation: spinner-border 0.75s linear infinite;
+  animation: spinner-border 0.75s linear infinite;
+  margin-top: 12rem;
+}
+
+/* Body */
+
+body { 
+  margin: 0;
+  width: 100%; 
+}
+
+code {
+  font-weight: bold !important;
+}
+
+a:link {
+  color: #dc3d87;
+}
+
+a:visited {
+  color: #dc3d87;
+}
+
+a:hover {
+  color: #dc3d87;
+}
+
+a:active {
+  color: #dc3d87;
+}
+
+/* Pages */
+
+.title-style {
+  display: inline-block;
+  vertical-align: middle;
+  font-weight: bold;
+}
+
+.title-icon-style {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 1rem
+}
+
+.title-div {
+  text-align: center;
+  margin-top: 15px;
+  margin-bottom: 20px;
+}
+
+.modal-body-text-style {
+    text-align: justify;
+    text-justify: inter-word;
+    font-weight: bold;
+}
+
+.page-intro {
+  text-align: center; 
+  font-weight: bold
+}
+
+.page-intro-inner-div {
+  max-width: 1200px;
+}
+
+.page-intro-outer-div {
+  width: 100%; 
+  display: flex; 
+  justify-content: center;
+}
+
+.middle-toggles {
+  text-align: center;
+  margin-top: 10px; 
+  margin-bottom: 10px;
+}
+
+.badges {
+  text-align: center;
+}
+
+.badges-div {
+  width: 100%; 
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+  margin-top: 20px;
+}
+
+.icon-button {
+  border: none;
+  font-weight: bold;
+  margin-left: 5px;
+  margin-top: 20px;
+  width: 100%;
+  text-align: left;
+  text-decoration: none;
+}
+
+.icon-button:hover {
+  color: #f4f5f5;
+  cursor: pointer;
+}
+
+.rc-slider-track {
+  background-color: #dc3d87;
+}
+
+.rc-slider-dot-active {  
+  border-color: #dc3d87;
+  border: solid 2px #dc3d87;
+}
+
+.rc-slider-handle {
+  background-color: #dc3d87;
+  border-color: #dc3d87;
+}
+
+.rc-slider-handle:hover {
+  border-color: #dc3d87;
+}
+
+.rc-slider-handle-active:active {
+  border-color: #dc3d87;
+}
+
+.accordion-button {
+  font-weight: bold;
+}
+
+.accordion-button:not(.collapsed) {
+  background-color: #f4f4f5;
+}
+
+
+/* Graph Control Objects*/
+
+.Select-control, .Select-menu-outer, .Select-multi-value-wrapper, .select-up, .is-open .Select-control {
+  background-color: #e9e9e8;
+  color: #000000;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 10px !important;
+  display: block !important;
+}
+
+/* Scrollbar Track */
+::-webkit-scrollbar-track {
+  background: none !important;  
+  border-radius: 10px !important;
+  display: block !important;
+}
+
+/* Scrollbar Handle */
+::-webkit-scrollbar-thumb {
+  background: none !important; 
+  border-radius: 3px !important; 
+}
+
+/* Scrollbar Handle Hover */
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(220,61,135, 0.5) !important; 
+  border-radius: 3px !important; 
+}
