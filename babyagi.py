@@ -21,6 +21,9 @@ assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env
 OPENAI_API_MODEL = os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo")
 assert OPENAI_API_MODEL, "OPENAI_API_MODEL environment variable is missing from .env"
 
+# API Proxy
+OPENAI_API_PROXY = os.getenv("OPENAI_API_PROXY")
+
 if "gpt-4" in OPENAI_API_MODEL.lower():
     print(
         "\033[91m\033[1m"
@@ -81,7 +84,10 @@ print("\033[93m\033[1m" + "\nInitial task:" + "\033[0m\033[0m" + f" {INITIAL_TAS
 
 # Configure OpenAI and Pinecone
 openai.api_key = OPENAI_API_KEY
-openai.proxy = os.getenv("OPENAI_PROXY", "")
+try:
+    openai.proxy = json.loads(OPENAI_API_PROXY)
+except ValueError:
+    openai.proxy = OPENAI_API_PROXY
 pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_ENVIRONMENT)
 
 # Create Pinecone index
