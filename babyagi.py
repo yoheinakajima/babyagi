@@ -3,10 +3,40 @@ import os
 import time
 from collections import deque
 from typing import Dict, List
+import logging
 
 import openai
 import pinecone
 from dotenv import load_dotenv
+
+# Set up the logger, handlers, and formatter
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+
+with open("babyagi.log", "w") as f:
+    pass
+file_handler = logging.FileHandler("babyagi.log")
+file_handler.setLevel(logging.INFO)
+
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(logging.INFO)
+
+formatter = logging.Formatter(
+    "%(asctime)s %(message)s", datefmt="%Y-%m-%d %H:%M:%S\n"
+)
+file_handler.setFormatter(formatter)
+stream_handler.setFormatter(formatter)
+
+logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
+
+# Create a new file handler for task output
+with open("task_output.log", "w") as f:
+    pass
+task_output_handler = logging.FileHandler("task_output.log")
+task_output_handler.setLevel(logging.INFO)
+task_output_handler.setFormatter(formatter)
 
 # Load default environment variables (.env)
 load_dotenv()
@@ -19,7 +49,7 @@ OPENAI_API_MODEL = os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo")
 assert OPENAI_API_MODEL, "OPENAI_API_MODEL environment variable is missing from .env"
 
 if "gpt-4" in OPENAI_API_MODEL.lower():
-    print(
+    logger.warning(
         "\033[91m\033[1m"
         + "\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"
         + "\033[0m\033[0m"
@@ -64,17 +94,17 @@ if DOTENV_EXTENSIONS:
 # arguments to override them
 
 if "gpt-4" in OPENAI_API_MODEL.lower():
-    print(
+    logger.warning(
         "\033[91m\033[1m"
         + "\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"
         + "\033[0m\033[0m"
     )
 
 # Print OBJECTIVE
-print("\033[94m\033[1m" + "\n*****OBJECTIVE*****\n" + "\033[0m\033[0m")
-print(f"{OBJECTIVE}")
+logger.warning("\033[94m\033[1m" + "\n*****OBJECTIVE*****\n" + "\033[0m\033[0m")
+logger.warning(f"{OBJECTIVE}")
 
-print("\033[93m\033[1m" + "\nInitial task:" + "\033[0m\033[0m" + f" {INITIAL_TASK}")
+logger.warning("\033[93m\033[1m" + "\nInitial task:" + "\033[0m\033[0m" + f" {INITIAL_TASK}")
 
 # Configure OpenAI and Pinecone
 openai.api_key = OPENAI_API_KEY
@@ -141,7 +171,7 @@ def openai_call(
                 )
                 return response.choices[0].message.content.strip()
         except openai.error.RateLimitError:
-            print(
+            logger.warning(
                 "The OpenAI API rate limit has been exceeded. Waiting 10 seconds and trying again."
             )
             time.sleep(10)  # Wait 10 seconds and try again
@@ -187,20 +217,24 @@ def prioritization_agent(this_task_id: int):
 
 def execution_agent(objective: str, task: str) -> str:
     context = context_agent(query=objective, n=5)
-    # print("\n*******RELEVANT CONTEXT******\n")
-    # print(context)
+    # logger.warning("\n*******RELEVANT CONTEXT******\n")
+    # logger.warning(context)
     prompt = f"""
     You are an AI who performs one task based on the following objective: {objective}\n.
     Take into account these previously completed tasks: {context}\n.
     Your task: {task}\nResponse:"""
-    return openai_call(prompt, temperature=0.7, max_tokens=2000)
+    result = openai_call(prompt, temperature=0.7, max_tokens=2000)
+    # Log the result to the task output file handler
+    task_output_handler.emit(logging.makeLogRecord({"msg": result}))
+
+    return result
 
 
 def context_agent(query: str, n: int):
     query_embedding = get_ada_embedding(query)
     results = index.query(query_embedding, top_k=n, include_metadata=True)
-    # print("***** RESULTS *****")
-    # print(results)
+    # logger.warning("***** RESULTS *****")
+    # logger.warning(results)
     sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)
     return [(str(item.metadata["task"])) for item in sorted_results]
 
@@ -214,20 +248,20 @@ task_id_counter = 1
 while True:
     if task_list:
         # Print the task list
-        print("\033[95m\033[1m" + "\n*****TASK LIST*****\n" + "\033[0m\033[0m")
+        logger.warning("\033[95m\033[1m" + "\n*****TASK LIST*****\n" + "\033[0m\033[0m")
         for t in task_list:
-            print(str(t["task_id"]) + ": " + t["task_name"])
+            logger.warning(str(t["task_id"]) + ": " + t["task_name"])
 
         # Step 1: Pull the first task
         task = task_list.popleft()
-        print("\033[92m\033[1m" + "\n*****NEXT TASK*****\n" + "\033[0m\033[0m")
-        print(str(task["task_id"]) + ": " + task["task_name"])
+        logger.warning("\033[92m\033[1m" + "\n*****NEXT TASK*****\n" + "\033[0m\033[0m")
+        logger.warning(str(task["task_id"]) + ": " + task["task_name"])
 
         # Send to execution function to complete the task based on the context
         result = execution_agent(OBJECTIVE, task["task_name"])
         this_task_id = int(task["task_id"])
-        print("\033[93m\033[1m" + "\n*****TASK RESULT*****\n" + "\033[0m\033[0m")
-        print(result)
+        logger.warning("\033[93m\033[1m" + "\n*****TASK RESULT*****\n" + "\033[0m\033[0m")
+        logger.warning(result)
 
         # Step 2: Enrich result and store in Pinecone
         enriched_result = {
