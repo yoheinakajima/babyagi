@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import subprocess
 import time
 from collections import deque
 from typing import Dict, List
@@ -11,7 +12,9 @@ from dotenv import load_dotenv
 # Load default environment variables (.env)
 load_dotenv()
 
-# Set API Keys
+# Engine configuration
+
+# API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env"
 
@@ -112,7 +115,12 @@ def openai_call(
 ):
     while True:
         try:
-            if not model.startswith("gpt-"):
+            if model.startswith("llama"):
+                # Spawn a subprocess to run llama.cpp
+                cmd = cmd = ["llama/main", "-p", prompt]
+                result = subprocess.run(cmd, shell=True, stderr=subprocess.DEVNULL, stdout=subprocess.PIPE, text=True)
+                return result.stdout.strip()
+            elif not model.startswith("gpt-"):
                 # Use completion API
                 response = openai.Completion.create(
                     engine=model,
