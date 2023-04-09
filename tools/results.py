@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 import os
+import sys
+
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(project_root)
+
 import argparse
 import openai
 import pinecone
 from dotenv import load_dotenv
-from ..components.context_storage.IContextStorage import ContextStorage
+from components.context_storage.IContextStorage import ContextStorage
 
 load_dotenv()
 

@@ -1,35 +1,54 @@
 #!/usr/bin/env python3
 import os
+import sys
+
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(project_root)
+
 import curses
 import argparse
 import openai
 import pinecone
 from dotenv import load_dotenv
 import textwrap
+from components.context_storage.IContextStorage import ContextStorage
 
 load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env"
 
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
-assert PINECONE_API_KEY, "PINECONE_API_KEY environment variable is missing from .env"
+# Context Storage config
+TASK_STORAGE_NAME = os.getenv("TASK_STORAGE_NAME", os.getenv("TABLE_NAME", "tasks"))
+CONTEXT_STORAGE_TYPE = os.getenv("CONTEXT_STORAGE_TYPE", "pinecone").lower()
+context_storage_options = {}
+# pinecone config
+if CONTEXT_STORAGE_TYPE == "pinecone":
+    PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
+    assert PINECONE_API_KEY, "PINECONE_API_KEY environment variable is missing from .env"
+    PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "")
+    assert PINECONE_ENVIRONMENT, "PINECONE_ENVIRONMENT environment variable is missing from .env"
 
-PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "us-east1-gcp")
-assert PINECONE_ENVIRONMENT, "PINECONE_ENVIRONMENT environment variable is missing from .env"
+    def get_ada_embedding(text):
+        return openai.Embedding.create(input=[text], model="text-embedding-ada-002")["data"][0]["embedding"]
 
-# Table config
-PINECONE_TABLE_NAME = os.getenv("TABLE_NAME", "")
-assert PINECONE_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
+    from components.context_storage.IContextStorage import PineconeOptions
+    context_storage_options = PineconeOptions(PINECONE_API_KEY, PINECONE_ENVIRONMENT, get_ada_embedding, TASK_STORAGE_NAME)
+# weaviate config
+elif CONTEXT_STORAGE_TYPE == "weaviate":
+    WEAVIATE_HOST = os.getenv("WEAVIATE_HOST", "")
+    assert WEAVIATE_HOST, "WEAVIATE_HOST environment variable is missing from .env"
+    WEAVIATE_VECTORIZER = os.getenv("WEAVIATE_VECTORIZER", "")
+    assert WEAVIATE_VECTORIZER, "WEAVIATE_VECTORIZER environment variable is missing from .env"
+    from components.context_storage.IContextStorage import WeaviateOptions
+    context_storage_options = WeaviateOptions(WEAVIATE_HOST, WEAVIATE_VECTORIZER, TASK_STORAGE_NAME)
+else:
+    raise Exception("CONTEXT_STORAGE_TYPE must be a valid option (pinecone | weaviate)")
 
 # Function to query records from the Pinecone index
-def query_records(index, query, top_k=1000):
-    results = index.query(query, top_k=top_k, include_metadata=True)
-    return [{"name": f"{task.metadata['task']}", "result": f"{task.metadata['result']}"} for task in results.matches]
-
-# Get embedding for the text
-def get_ada_embedding(text):
-    return openai.Embedding.create(input=[text], model="text-embedding-ada-002")["data"][0]["embedding"]
+def query_records(index: ContextStorage, query, top_k=1000):
+    results = index.query(query, n=top_k)
+    return [{"name": f"{task.data['task']}", "result": f"{task.data['result']}"} for task in results]
 
 def draw_tasks(stdscr, tasks, scroll_pos, selected):
     y = 0
@@ -66,10 +85,7 @@ def draw_summary(stdscr, objective, tasks, start, num):
 
 def main(stdscr):
     # Initialize Pinecone
-    pinecone.init(api_key=PINECONE_API_KEY)
-
-    # Connect to the objective index
-    index = pinecone.Index(PINECONE_TABLE_NAME)
+    index = ContextStorage.factory(CONTEXT_STORAGE_TYPE, context_storage_options)
 
     curses.curs_set(0)
     stdscr.timeout(1000)
@@ -91,7 +107,7 @@ def main(stdscr):
 
     # Query records from the index
     objective = ' '.join(args.objective).strip().replace("\n", " ")
-    retrieved_tasks = query_records(index, get_ada_embedding(objective))
+    retrieved_tasks = query_records(index, objective)
 
     while True:
         stdscr.clear()
