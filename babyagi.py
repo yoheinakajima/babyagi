@@ -81,6 +81,7 @@ print("\033[93m\033[1m" + "\nInitial task:" + "\033[0m\033[0m" + f" {INITIAL_TAS
 
 # Configure OpenAI and Pinecone
 openai.api_key = OPENAI_API_KEY
+OPENAI_API_KEY = os.getenv("OPENAI_PROXY", "")
 pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_ENVIRONMENT)
 
 # Create Pinecone index
