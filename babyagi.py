@@ -5,9 +5,11 @@ import time
 from collections import deque
 from typing import Dict, List
 import json
+from urllib3.util import make_headers
 
 import openai
 import pinecone
+from pinecone.core.client.configuration import Configuration as OpenApiConfiguration
 from dotenv import load_dotenv
 
 # Load default environment variables (.env)
@@ -39,6 +41,12 @@ PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "")
 assert (
     PINECONE_ENVIRONMENT
 ), "PINECONE_ENVIRONMENT environment variable is missing from .env"
+
+# Pinecone Proxy
+PINECONE_API_PROXY = os.getenv("PINECONE_API_PROXY")
+
+PINECONE_API_PROXY_HEADERS = os.getenv("PINECONE_API_PROXY_HEADERS")
+PINECONE_API_PROXY_HEADERS = make_headers(proxy_basic_auth=PINECONE_API_PROXY_HEADERS)
 
 # Table config
 YOUR_TABLE_NAME = os.getenv("TABLE_NAME", "")
@@ -89,7 +97,10 @@ try:
     openai.proxy = json.loads(OPENAI_API_PROXY)
 except ValueError:
     openai.proxy = OPENAI_API_PROXY
-pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_ENVIRONMENT)
+openapi_config = OpenApiConfiguration()
+openapi_config.proxy = PINECONE_API_PROXY
+openapi_config.proxy_headers = PINECONE_API_PROXY_HEADERS
+pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_ENVIRONMENT, openapi_config=openapi_config)
 
 # Create Pinecone index
 table_name = YOUR_TABLE_NAME
