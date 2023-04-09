@@ -45,7 +45,7 @@ if CONTEXT_STORAGE_TYPE == "pinecone":
 
     from components.context_storage.IContextStorage import PineconeOptions
     context_storage_options = PineconeOptions(PINECONE_API_KEY, PINECONE_ENVIRONMENT, get_ada_embedding, CONTEXT_STORAGE_NAME)
-# weaviateconfig
+# weaviate config
 elif CONTEXT_STORAGE_TYPE == "weaviate":
     WEAVIATE_HOST = os.getenv("WEAVIATE_HOST", "")
     assert WEAVIATE_HOST, "WEAVIATE_HOST environment variable is missing from .env"
@@ -201,7 +201,7 @@ def execution_agent(objective: str, task: str) -> str:
 
 
 def context_agent(query: str, n: int):
-    results = context_storage.query(query, ['task'], n)
+    results = context_storage.query(query, ['task'], n, OBJECTIVE)
     # print("***** RESULTS *****")
     # print(results)
     return [(str(item.data['task'])) for item in results]
@@ -237,7 +237,8 @@ while True:
         }  # This is where you should enrich the result if needed
         result_id = f"result_{task['task_id']}"
         data = { "task": task["task_name"], "result": result }
-        context = ContextData(result_id, data, enriched_result)
+        context = ContextData(result_id, data, enriched_result['data'])
+        context_storage.upsert(context, OBJECTIVE)
 
         # Step 3: Create new tasks and reprioritize task list
         new_tasks = task_creation_agent(
