@@ -29,7 +29,7 @@ if "gpt-4" in OPENAI_API_MODEL.lower():
     )
 
 # Context Storage config
-CONTEXT_STORAGE_NAME = os.getenv("CONTEXT_STORAGE_NAME", os.getenv("TABLE_NAME", "tasks"))
+TASK_STORAGE_NAME = os.getenv("TASK_STORAGE_NAME", os.getenv("TABLE_NAME", "tasks"))
 CONTEXT_STORAGE_TYPE = os.getenv("CONTEXT_STORAGE_TYPE", "pinecone").lower()
 context_storage_options = {}
 # pinecone config
@@ -44,7 +44,7 @@ if CONTEXT_STORAGE_TYPE == "pinecone":
         return openai.Embedding.create(input=[text], model="text-embedding-ada-002")["data"][0]["embedding"]
 
     from components.context_storage.IContextStorage import PineconeOptions
-    context_storage_options = PineconeOptions(PINECONE_API_KEY, PINECONE_ENVIRONMENT, get_ada_embedding, CONTEXT_STORAGE_NAME)
+    context_storage_options = PineconeOptions(PINECONE_API_KEY, PINECONE_ENVIRONMENT, get_ada_embedding, TASK_STORAGE_NAME)
 # weaviate config
 elif CONTEXT_STORAGE_TYPE == "weaviate":
     WEAVIATE_HOST = os.getenv("WEAVIATE_HOST", "")
@@ -52,7 +52,7 @@ elif CONTEXT_STORAGE_TYPE == "weaviate":
     WEAVIATE_VECTORIZER = os.getenv("WEAVIATE_VECTORIZER", "")
     assert WEAVIATE_VECTORIZER, "WEAVIATE_VECTORIZER environment variable is missing from .env"
     from components.context_storage.IContextStorage import WeaviateOptions
-    context_storage_options = WeaviateOptions(WEAVIATE_HOST, WEAVIATE_VECTORIZER, CONTEXT_STORAGE_NAME)
+    context_storage_options = WeaviateOptions(WEAVIATE_HOST, WEAVIATE_VECTORIZER, TASK_STORAGE_NAME)
 else:
     raise Exception("CONTEXT_STORAGE_TYPE must be a valid option (pinecone | weaviate)")
 
