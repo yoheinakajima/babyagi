@@ -206,7 +206,7 @@ def execution_agent(objective: str, task: str) -> str:
 
 def context_agent(query: str, n: int):
     query_embedding = get_ada_embedding(query)
-    results = index.query(query_embedding, top_k=n, include_metadata=True)
+    results = index.query(query_embedding, top_k=n, include_metadata=True, namespace=OBJECTIVE)
     # print("***** RESULTS *****")
     # print(results)
     sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)
@@ -246,7 +246,8 @@ while True:
             enriched_result["data"]
         )  # get vector of the actual result extracted from the dictionary
         index.upsert(
-            [(result_id, vector, {"task": task["task_name"], "result": result})]
+            [(result_id, vector, {"task": task["task_name"], "result": result})],
+	    namespace=OBJECTIVE
         )
 
         # Step 3: Create new tasks and reprioritize task list
