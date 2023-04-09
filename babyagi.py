@@ -32,12 +32,14 @@ if "gpt-4" in OPENAI_API_MODEL.lower():
 TASK_STORAGE_NAME = os.getenv("TASK_STORAGE_NAME", os.getenv("TABLE_NAME", "tasks"))
 CONTEXT_STORAGE_TYPE = os.getenv("CONTEXT_STORAGE_TYPE", "pinecone").lower()
 context_storage_options = {}
-# pinecone config
+
+# Pinecone config
 if CONTEXT_STORAGE_TYPE == "pinecone":
     PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
-    assert PINECONE_API_KEY, "PINECONE_API_KEY environment variable is missing from .env"
     PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "")
-    assert PINECONE_ENVIRONMENT, "PINECONE_ENVIRONMENT environment variable is missing from .env"
+
+    assert PINECONE_API_KEY, "PINECONE_API_KEY is missing from .env"
+    assert PINECONE_ENVIRONMENT, "PINECONE_ENVIRONMENT is missing from .env"
 
     def get_ada_embedding(text):
         text = text.replace("\n", " ")
@@ -45,14 +47,18 @@ if CONTEXT_STORAGE_TYPE == "pinecone":
 
     from components.context_storage.IContextStorage import PineconeOptions
     context_storage_options = PineconeOptions(PINECONE_API_KEY, PINECONE_ENVIRONMENT, get_ada_embedding, TASK_STORAGE_NAME)
-# weaviate config
+
+# Weaviate config
 elif CONTEXT_STORAGE_TYPE == "weaviate":
     WEAVIATE_HOST = os.getenv("WEAVIATE_HOST", "")
-    assert WEAVIATE_HOST, "WEAVIATE_HOST environment variable is missing from .env"
     WEAVIATE_VECTORIZER = os.getenv("WEAVIATE_VECTORIZER", "")
-    assert WEAVIATE_VECTORIZER, "WEAVIATE_VECTORIZER environment variable is missing from .env"
+
+    assert WEAVIATE_HOST, "WEAVIATE_HOST is missing from .env"
+    assert WEAVIATE_VECTORIZER, "WEAVIATE_VECTORIZER is missing from .env"
+
     from components.context_storage.IContextStorage import WeaviateOptions
     context_storage_options = WeaviateOptions(WEAVIATE_HOST, WEAVIATE_VECTORIZER, TASK_STORAGE_NAME)
+
 else:
     raise Exception("CONTEXT_STORAGE_TYPE must be a valid option (pinecone | weaviate)")
 
