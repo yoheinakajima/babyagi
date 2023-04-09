@@ -55,19 +55,21 @@ class WeaviateTaskStorage(ContextStorage):
 
         # Transform results into standard format
         transformed_results = []
-        for result in results:
-            item = dict(result)
+        if results:
+            for result in results:
+                item = dict(result)
 
-            # Extract additional metadata
-            metadata = item.pop('_additional', {})
-            
-            # Append transformed result to list
-            transformed_results.append(ContextResult(metadata['id'], metadata['certainty'], item))
+                # Extract additional metadata
+                metadata = item.pop('_additional', {})
+                id = item.get('context-id', metadata.get('id', 'not-set'))
+                
+                # Append transformed result to list
+                transformed_results.append(ContextResult(id, metadata['certainty'], item))
 
         return transformed_results
     
     def upsert(self, context: ContextData, namespace: str = 'default') -> None:
         context.data['enriched_data'] = context.enriched_data
-        context.data['id'] = context.id
+        context.data['context_id'] = context.id
         context.data['namespace'] = namespace
         self.client.data_object.create(context.data, self.storage_name)
