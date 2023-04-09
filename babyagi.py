@@ -5,7 +5,7 @@ from collections import deque
 from typing import Dict, List
 
 import openai
-import pinecone
+from components.context_storage.IContextStorage import ContextStorage, ContextData
 from dotenv import load_dotenv
 
 # Load default environment variables (.env)
@@ -25,17 +25,33 @@ if "gpt-4" in OPENAI_API_MODEL.lower():
         + "\033[0m\033[0m"
     )
 
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
-assert PINECONE_API_KEY, "PINECONE_API_KEY environment variable is missing from .env"
+# Context Storage config
+CONTEXT_STORAGE_NAME = os.getenv("CONTEXT_STORAGE_NAME", os.getenv("TABLE_NAME", "tasks"))
+CONTEXT_STORAGE_TYPE = os.getenv("CONTEXT_STORAGE_TYPE", "pinecone").lower()
+context_storage_options = {}
+# pinecone config
+if CONTEXT_STORAGE_TYPE == "pinecone":
+    PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
+    assert PINECONE_API_KEY, "PINECONE_API_KEY environment variable is missing from .env"
+    PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "")
+    assert PINECONE_ENVIRONMENT, "PINECONE_ENVIRONMENT environment variable is missing from .env"
 
-PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "")
-assert (
-    PINECONE_ENVIRONMENT
-), "PINECONE_ENVIRONMENT environment variable is missing from .env"
+    def get_ada_embedding(text):
+        text = text.replace("\n", " ")
+        return openai.Embedding.create(input=[text], model="text-embedding-ada-002")["data"][0]["embedding"]
 
-# Table config
-YOUR_TABLE_NAME = os.getenv("TABLE_NAME", "")
-assert YOUR_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
+    from components.context_storage.IContextStorage import PineconeOptions
+    context_storage_options = PineconeOptions(PINECONE_API_KEY, PINECONE_ENVIRONMENT, get_ada_embedding, CONTEXT_STORAGE_NAME)
+# weaviateconfig
+elif CONTEXT_STORAGE_TYPE == "weaviate":
+    WEAVIATE_HOST = os.getenv("WEAVIATE_HOST", "")
+    assert WEAVIATE_HOST, "WEAVIATE_HOST environment variable is missing from .env"
+    WEAVIATE_VECTORIZER = os.getenv("WEAVIATE_VECTORIZER", "")
+    assert WEAVIATE_VECTORIZER, "WEAVIATE_VECTORIZER environment variable is missing from .env"
+    from components.context_storage.IContextStorage import WeaviateOptions
+    context_storage_options = WeaviateOptions(WEAVIATE_HOST, WEAVIATE_VECTORIZER, CONTEXT_STORAGE_NAME)
+else:
+    raise Exception("CONTEXT_STORAGE_TYPE must be a valid option (pinecone | weaviate)")
 
 # Goal configuation
 OBJECTIVE = os.getenv("OBJECTIVE", "")
@@ -76,22 +92,9 @@ print(f"{OBJECTIVE}")
 
 print("\033[93m\033[1m" + "\nInitial task:" + "\033[0m\033[0m" + f" {INITIAL_TASK}")
 
-# Configure OpenAI and Pinecone
+# Configure OpenAI and Context Storage
 openai.api_key = OPENAI_API_KEY
-pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_ENVIRONMENT)
-
-# Create Pinecone index
-table_name = YOUR_TABLE_NAME
-dimension = 1536
-metric = "cosine"
-pod_type = "p1"
-if table_name not in pinecone.list_indexes():
-    pinecone.create_index(
-        table_name, dimension=dimension, metric=metric, pod_type=pod_type
-    )
-
-# Connect to the index
-index = pinecone.Index(table_name)
+context_storage = ContextStorage.factory(CONTEXT_STORAGE_TYPE, context_storage_options)
 
 # Task list
 task_list = deque([])
@@ -99,13 +102,6 @@ task_list = deque([])
 
 def add_task(task: Dict):
     task_list.append(task)
-
-
-def get_ada_embedding(text):
-    text = text.replace("\n", " ")
-    return openai.Embedding.create(input=[text], model="text-embedding-ada-002")[
-        "data"
-    ][0]["embedding"]
 
 
 def openai_call(
@@ -197,12 +193,10 @@ def execution_agent(objective: str, task: str) -> str:
 
 
 def context_agent(query: str, n: int):
-    query_embedding = get_ada_embedding(query)
-    results = index.query(query_embedding, top_k=n, include_metadata=True)
+    results = context_storage.query(query, ['task'], n)
     # print("***** RESULTS *****")
     # print(results)
-    sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)
-    return [(str(item.metadata["task"])) for item in sorted_results]
+    return [(str(item.data['task'])) for item in results]
 
 
 # Add the first task
@@ -234,12 +228,8 @@ while True:
             "data": result
         }  # This is where you should enrich the result if needed
         result_id = f"result_{task['task_id']}"
-        vector = get_ada_embedding(
-            enriched_result["data"]
-        )  # get vector of the actual result extracted from the dictionary
-        index.upsert(
-            [(result_id, vector, {"task": task["task_name"], "result": result})]
-        )
+        data = { "task": task["task_name"], "result": result }
+        context = ContextData(result_id, data, enriched_result)
 
         # Step 3: Create new tasks and reprioritize task list
         new_tasks = task_creation_agent(
