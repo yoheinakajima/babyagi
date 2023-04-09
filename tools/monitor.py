@@ -2,6 +2,7 @@
 import sys
 import time
 import curses
+import argparse
 
 from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
@@ -17,7 +18,7 @@ def print_buffer(stdscr, lines):
         y += 1
     stdscr.refresh()
 
-def main(stdscr):
+def main(stdscr, refresh_interval):
     objectives = CooperativeObjectivesListStorage()
     while True:
         objectives_list = objectives.get_objective_names()
@@ -35,6 +36,11 @@ def main(stdscr):
                 buffer.append(f" * {t}")
             buffer.append("-----------------")
         print_buffer(stdscr, buffer)
-        time.sleep(30)
+        time.sleep(refresh_interval)
 
-curses.wrapper(main)
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Monitor objectives and tasks.')
+    parser.add_argument('-i', '--interval', type=int, default=30, help='Refresh interval in seconds (default: 30)')
+    args = parser.parse_args()
+    refresh_interval = args.interval
+    curses.wrapper(main, refresh_interval)
