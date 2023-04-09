@@ -28,25 +28,27 @@ class WeaviateTaskStorage(ContextStorage):
         print(f'(weaviate): deleting storage class {self.storage_name}')
         self.client.schema.delete_class(self.storage_name)
     
-    def query(self, query: str, fields: list[str] = [], n: int = 1, namespace: str = 'default') -> list[ContextResult]:
+    def query(self, query: str, fields: list[str] = [], n: int = 1, namespace: str = None) -> list[ContextResult]:
         # If no fields are provided, retrieve the schema and set fields to be all properties in the schema
         if not fields:
             schema = self.client.schema.get(self.storage_name)
             fields = [prop['name'] for prop in schema['properties']]
-        
-        # Perform search and retrieve results
-        results = (
+
+        # Create query builder with parameters
+        query_builder = (
             self.client.query
                 .get(self.storage_name, fields)
                 .with_near_text({ 'concepts': query })
                 .with_limit(n)
                 .with_additional(['id', 'certainty'])
-                # Limit search to the namespace provided
-                .with_where({
-                    'path': ['namespace'],
-                    'operator': 'Equal',
-                    'valueText': namespace,
-                })
+        )
+
+        # Limit search by namespace if provided
+        if namespace:
+            query_builder = query_builder.with_where({ 'path': ['namespace'], 'operator': 'Equal', 'valueText': namespace })
+
+        results = (
+            query_builder
                 .do()
                 .get('data', {})
                 .get('Get', {})
