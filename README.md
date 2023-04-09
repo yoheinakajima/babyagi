@@ -12,6 +12,8 @@ This README will cover the following:
 
 * [How to use the script](#how-to-use)
 
+* [Supported Models](#supported-models)
+
 * [Warning about running the script continuously](#continous-script-warning)
 # How It Works<a name="how-it-works"></a>
 The script works by running an infinite loop that does the following steps:
@@ -41,6 +43,18 @@ To use the script, you will need to follow these steps:
 8. Run the script.
 
 All optional values above can also be specified on the command line.
+
+# Supported Models<a name="supported-models"></a>
+
+This script works with all OpenAI models, as well as Llama through Llama.cpp. Default model is **gpt-3.5-turbo**. To use a different model, specify it through OPENAI_API_MODEL or use the command line.
+
+## Llama
+
+Download the latest version of [Llama.cpp](https://github.com/ggerganov/llama.cpp) and follow instructions to make it. You will also need the Llama model weights.
+
+ - **Under no circumstances share IPFS, magnet links, or any other links to model downloads anywhere in this repository, including in issues, discussions or pull requests. They will be immediately deleted.**
+
+After that link `llama/main` to llama.cpp/main and `models` to the folder where you have the Llama model weights. Then run the script with `OPENAI_API_MODEL=llama` or `-l` argument.
 
 # Warning<a name="continous-script-warning"></a>
 This script is designed to be run continuously as part of a task management system. Running this script continuously can result in high API usage, so please use it responsibly. Additionally, the script requires the OpenAI and Pinecone APIs to be set up correctly, so make sure you have set up the APIs before running the script.
