@@ -158,7 +158,7 @@ def openai_call(
                 return response.choices[0].text.strip()
             else:
                 # Use chat completion API
-                messages = [{"role": "user", "content": prompt}]
+                messages = [{"role": "system", "content": prompt}]
                 response = openai.ChatCompletion.create(
                     model=model,
                     messages=messages,
