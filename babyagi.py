@@ -4,6 +4,7 @@ import subprocess
 import time
 from collections import deque
 from typing import Dict, List
+import importlib
 
 import openai
 import pinecone
@@ -44,6 +45,17 @@ assert YOUR_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
 OBJECTIVE = os.getenv("OBJECTIVE", "")
 INITIAL_TASK = os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", ""))
 
+
+# Extensions support begin
+
+def can_import(module_name):
+    try:
+        importlib.import_module(module_name)
+        return True
+    except ImportError:
+        return False
+
+
 DOTENV_EXTENSIONS = os.getenv("DOTENV_EXTENSIONS", "").split(" ")
 
 # Command line arguments extension
@@ -52,19 +64,27 @@ ENABLE_COMMAND_LINE_ARGS = (
     os.getenv("ENABLE_COMMAND_LINE_ARGS", "false").lower() == "true"
 )
 if ENABLE_COMMAND_LINE_ARGS:
-    from extensions.argparseext import parse_arguments
+    if can_import("extensions.argparseext"):
+        from extensions.argparseext import parse_arguments
 
-    OBJECTIVE, INITIAL_TASK, OPENAI_API_MODEL, DOTENV_EXTENSIONS = parse_arguments()
+        OBJECTIVE, INITIAL_TASK, OPENAI_API_MODEL, DOTENV_EXTENSIONS = parse_arguments()
 
 # Load additional environment variables for enabled extensions
 if DOTENV_EXTENSIONS:
-    from extensions.dotenvext import load_dotenv_extensions
+    if can_import("extensions.dotenvext"):
+        from extensions.dotenvext import load_dotenv_extensions
 
-    load_dotenv_extensions(DOTENV_EXTENSIONS)
+        load_dotenv_extensions(DOTENV_EXTENSIONS)
 
 # TODO: There's still work to be done here to enable people to get
 # defaults from dotenv extensions # but also provide command line
 # arguments to override them
+
+# Extensions support end
+
+# Check if we know what we are doing
+assert OBJECTIVE, "OBJECTIVE environment variable is missing from .env"
+assert INITIAL_TASK, "INITIAL_TASK environment variable is missing from .env"
 
 if "gpt-4" in OPENAI_API_MODEL.lower():
     print(
