@@ -84,14 +84,17 @@ openai.api_key = OPENAI_API_KEY
 pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_ENVIRONMENT)
 
 # Create Pinecone index
-table_name = YOUR_TABLE_NAME
-dimension = 1536
-metric = "cosine"
-pod_type = "p1"
-if table_name not in pinecone.list_indexes():
-    pinecone.create_index(
-        table_name, dimension=dimension, metric=metric, pod_type=pod_type
-    )
+try:
+    table_name = YOUR_TABLE_NAME
+    dimension = 1536
+    metric = "cosine"
+    pod_type = "p1"
+    if table_name not in pinecone.list_indexes():
+        pinecone.create_index(
+            table_name, dimension=dimension, metric=metric, pod_type=pod_type
+        )
+except Exception as e:
+    print("Error occurred: You already have a pinecone index on a free account, please remove it first")
 
 # Connect to the index
 index = pinecone.Index(table_name)
