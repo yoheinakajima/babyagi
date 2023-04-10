@@ -87,18 +87,45 @@ def get_ada_embedding(text):
 
 def task_creation_agent(objective: str, result: Dict, task_description: str, task_list: List[str], gpt_version: str = 'gpt-3'):
     required_keywords = {
-        "python": ["python"],
-        "javascript": ["javascript"],
-        "terminal": ["terminal"],
-        "research": ["research", "study"],
+        "PythonDeveloper": ["python"],
+        "JavaScriptDeveloper": ["javascript"],
+        "TerminalUser": ["terminal"],
+        "Researcher": ["research", "study"],
     }
+
+    agent_roles = {
+    "PythonDeveloper": "expert python developer, use when you need to create a python script",
+    "JavaScriptDeveloper":  "expert javascript developer, use when you need to create a javascript script",
+    "TerminalUser": "master at creating terminal commands, use when you need to do anything that involves the terminal, has access to read and write files",
+    "Researcher": "phd researcher that is able to get information on anything you need"
+    }
+
+
     keywords = []
+    agent_types = []
+    roles = []
+
     for agent_type, agent_keywords in required_keywords.items():
         keywords += agent_keywords
+        agent_types += agent_type
+
+    for agent_type, agent_role in agent_roles:
+        roles += agent_type + agent_role
+
+    roles_str = ", ".join(roles)
+    agents_str = ", ".join(agent_types)    
     keyword_str = ", ".join(keywords)
     
-    prompt = f"You are an task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective}, The last completed task has the result: {result}. This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}. Based on the result and using the keywords {keyword_str}, create new tasks to be completed by the AI system that do not overlap with incomplete tasks. Only use the keywords if nessesary. The keywords are there to help trigger certain functions, only use them if the task actually requires one of the keywords. Return the tasks as an array."
+    prompt = f"You are a task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective}, The last completed task has the result: {result}. This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}. Based on the result and using the keywords {keyword_str}, create new tasks to be completed by the AI system that do not overlap with incomplete tasks. Only use the keywords if nessesary. The keywords are there to help trigger certain functions, only use them if the task actually requires one of the keywords. Return the tasks as an array."
     
+    prompt = (f"You are a task creation AI and project manager that uses the result of an execution agent to create new tasks and assign them to agents with the following objective: {objective}"
+            f"The last completed task has the result: {result}. This result was based on this task description: {task_description}."
+            f"These are incomplete tasks: {', '.join(task_list)}."
+            f"These are your available agents' key: {agents_str}"
+            f"These are the agents' roles: {roles_str}"
+            f"To assign a task to an agent use their key in the task, only assign an agent if nessesary for the task"
+            f"Here's your response:\n")
+
     response = openai_call(prompt, USE_GPT4)
     new_tasks = response.split('\n')
     return [{"task_name": task_name} for task_name in new_tasks]
@@ -121,19 +148,19 @@ def main_agent(task: Dict):
     agent_key = None
     shared_context = get_shared_context(task_name)
 
-    if "python" in task_name:
+    if "PythonDeveloper" in task_name:
         agent_key = "PythonDeveloper"
         if agent_key not in agents:
             agents[agent_key] = create_python_developer_agent()
-    elif "javascript" in task_name:
+    elif "JavaScriptDeveloper" in task_name:
         agent_key = "JavaScriptDeveloper"
         if agent_key not in agents:
             agents[agent_key] = create_javascript_developer_agent()
-    elif "terminal" in task_name:
+    elif "TerminalUser" in task_name:
         agent_key = "TerminalUser"
         if agent_key not in agents:
             agents[agent_key] = create_terminal_agent()
-    elif "research" in task_name:
+    elif "Researcher" in task_name:
         agent_key = "Researcher"
         if agent_key not in agents:
             agents[agent_key] = create_researcher_agent()

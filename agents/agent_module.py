@@ -1,12 +1,8 @@
-import json
 from helper import openai_call, save_script_to_file, execute_terminal_command
 from validation.validation_module import is_valid_python_script, is_valid_javascript_script, is_valid_css_script, is_valid_terminal_command
 from collections import deque
 from typing import Dict, List
 import re
-import os
-import sys
-
 
 USE_GPT4 = False
 
@@ -36,6 +32,7 @@ def prompt_generator(task, shared_context):
         return response
     else:
         return "No prompt generated."
+
 
 def create_python_developer_agent():
     def python_developer(task, shared_context):
