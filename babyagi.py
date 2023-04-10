@@ -145,7 +145,6 @@ def context_agent(query: str, n: int):
     sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)
     return [(str(item.metadata['task'])) for item in sorted_results]
 
-# OannesGPT Additions - Function to write result to file and append on top of existing file  
 def write_result_to_file(filename, result):
     # Try to open the output file for reading
     try:
@@ -155,13 +154,12 @@ def write_result_to_file(filename, result):
         existing_data = ''
 
     # Combine the existing data and the new variable
-    new_data = result + '\n\n' + existing_data
+    new_data = existing_data + '\n\n' + result
 
     # Write the new data to the output file
     with open(filename, 'w') as f:
         f.write(new_data)
 
-# End of: Oannes Additions
 
 # Add the first task
 first_task = {
@@ -190,7 +188,7 @@ while True:
         print("\033[93m\033[1m"+"\n*****TASK RESULT*****\n"+"\033[0m\033[0m")
         print(result)
         
-        # Step OannesGPT Addition  - Attempt to write output to .txt file
+        # write and append output to .txt file
         write_result_to_file("output_trail.txt", result)
 
         # Step 2: Enrich result and store in Pinecone
