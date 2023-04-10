@@ -119,6 +119,9 @@ index = pinecone.Index(table_name)
 # Task list
 task_list = deque([])
 
+# Keyword that agi can invoke to stop the loop
+STOP_KEYWORD = "STOP_PROGRAM"
+
 
 def add_task(task: Dict):
     task_list.append(task)
@@ -185,10 +188,13 @@ def task_creation_agent(
     The last completed task has the result: {result}.
     This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}.
     Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks.
-    Return the tasks as an array."""
+    Return the tasks as an array or if you think all tasks have been completed return {STOP_KEYWORD}"""
     response = openai_call(prompt)
     new_tasks = response.split("\n") if "\n" in response else [response]
-    return [{"task_name": task_name} for task_name in new_tasks]
+    if any(STOP_KEYWORD in task_name for task_name in new_tasks):
+        return [{"task_name": STOP_KEYWORD}]
+    else:
+        return [{"task_name": task_name} for task_name in new_tasks]
 
 
 def prioritization_agent(this_task_id: int):
@@ -260,26 +266,15 @@ def context_agent(query: str, n: int):
 first_task = {"task_id": 1, "task_name": INITIAL_TASK}
 
 add_task(first_task)
+
 # Main loop
-task_id_counter = 1
-while True:
-    if task_list:
-        # Print the task list
-        print("\033[95m\033[1m" + "\n*****TASK LIST*****\n" + "\033[0m\033[0m")
-        for t in task_list:
-            print(str(t["task_id"]) + ": " + t["task_name"])
+def run_program(return_results=False):
 
-        # Step 1: Pull the first task
-        task = task_list.popleft()
-        print("\033[92m\033[1m" + "\n*****NEXT TASK*****\n" + "\033[0m\033[0m")
-        print(str(task["task_id"]) + ": " + task["task_name"])
+    completed_tasks = {} # We'll keep track of completed tasks so as to allow babyagi to stop and return something
 
-        # Send to execution function to complete the task based on the context
-        result = execution_agent(OBJECTIVE, task["task_name"])
-        this_task_id = int(task["task_id"])
-        print("\033[93m\033[1m" + "\n*****TASK RESULT*****\n" + "\033[0m\033[0m")
-        print(result)
+    task_id_counter = 1
 
+<<<<<<< Updated upstream
         # Step 2: Enrich result and store in Pinecone
         enriched_result = {
             "data": result
@@ -292,19 +287,65 @@ while True:
             [(result_id, vector, {"task": task["task_name"], "result": result})],
 	    namespace=OBJECTIVE
         )
+=======
+    while True:
+        if task_list:
+            # Print the task list
+            print("\033[95m\033[1m" + "\n*****TASK LIST*****\n" + "\033[0m\033[0m")
+            for t in task_list:
+                print(str(t["task_id"]) + ": " + t["task_name"])
+>>>>>>> Stashed changes
 
-        # Step 3: Create new tasks and reprioritize task list
-        new_tasks = task_creation_agent(
-            OBJECTIVE,
-            enriched_result,
-            task["task_name"],
-            [t["task_name"] for t in task_list],
-        )
+            # Step 1: Pull the first task
+            task = task_list.popleft()
+            print("\033[92m\033[1m" + "\n*****NEXT TASK*****\n" + "\033[0m\033[0m")
+            print(str(task["task_id"]) + ": " + task["task_name"])
 
-        for new_task in new_tasks:
-            task_id_counter += 1
-            new_task.update({"task_id": task_id_counter})
-            add_task(new_task)
-        prioritization_agent(this_task_id)
+            # Check for the STOP_KEYWORD
+            if task["task_name"] == STOP_KEYWORD:
+                print("All tasks completed. Exiting program!")
+                break            
 
-    time.sleep(1)  # Sleep before checking the task list again
+            # Send to execution function to complete the task based on the context
+            result = execution_agent(OBJECTIVE, task["task_name"])
+            this_task_id = int(task["task_id"])
+            print("\033[93m\033[1m" + "\n*****TASK RESULT*****\n" + "\033[0m\033[0m")
+            print(result)
+
+            # Step 2: Enrich result and store in Pinecone
+            enriched_result = {
+                "data": result
+            }  # This is where you should enrich the result if needed
+            result_id = f"result_{task['task_id']}"
+            vector = get_ada_embedding(
+                enriched_result["data"]
+            )  # get vector of the actual result extracted from the dictionary
+            index.upsert(
+                [(result_id, vector, {"task": task["task_name"], "result": result})],
+            namespace=OBJECTIVE
+            )
+
+            #update the completed tasks 
+            completed_tasks[this_task_id] = {
+                "task_id": this_task_id,
+                "task_name": task["task_name"],
+                "result": result,
+            }
+
+            # Step 3: Create new tasks and reprioritize task list
+            new_tasks = task_creation_agent(
+                OBJECTIVE,
+                enriched_result,
+                task["task_name"],
+                [t["task_name"] for t in task_list],
+            )
+
+            for new_task in new_tasks:
+                task_id_counter += 1
+                new_task.update({"task_id": task_id_counter})
+                add_task(new_task)
+            prioritization_agent(this_task_id)
+
+        time.sleep(1)  # Sleep before checking the task list again
+
+    return completed_tasks
