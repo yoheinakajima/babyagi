@@ -239,7 +239,6 @@ first_task = {"task_id": 1, "task_name": INITIAL_TASK}
 add_task(first_task)
 # Main loop
 task_id_counter = 1
-<<<<<<< HEAD
 try:
     while True:
         if task_list:
@@ -267,7 +266,6 @@ try:
 
         # Step 3: Create new tasks and reprioritize task list
         new_tasks = task_creation_agent(OBJECTIVE,enriched_result, task["task_name"], [t["task_name"] for t in task_list])
-=======
 while True:
     if task_list:
         # Print the task list
@@ -306,17 +304,12 @@ while True:
             task["task_name"],
             [t["task_name"] for t in task_list],
         )
->>>>>>> upstream/main
 
         for new_task in new_tasks:
             task_id_counter += 1
             new_task.update({"task_id": task_id_counter})
             add_task(new_task)
         prioritization_agent(this_task_id)
-<<<<<<< HEAD
+    time.sleep(1)  # Sleep before checking the task list again
 except KeyboardInterrupt:
     print("\nLoop interrupted by user. Exiting.")
-=======
->>>>>>> upstream/main
-
-    time.sleep(1)  # Sleep before checking the task list again
