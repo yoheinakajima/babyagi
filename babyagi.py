@@ -203,7 +203,7 @@ def prioritization_agent(this_task_id: int):
     #. Second task
     Start the task list with number {next_task_id}."""
     response = openai_call(prompt)
-    new_tasks = response.split("\n")
+    new_tasks = response.split("\n") if "\n" in response else [response]
     task_list = deque()
     for task_string in new_tasks:
         task_parts = task_string.strip().split(".", 1)
