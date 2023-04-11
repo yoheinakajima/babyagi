@@ -25,7 +25,7 @@ class ContextStorage(ABC):
         pass
 
     @abstractmethod
-    def query(self, query: str, fields: list[str] = [], n: int = 1) -> list[ContextResult]:
+    def query(self, query: str, fields: list[str] = [], n: int = 1, namespace: str = None) -> list[ContextResult]:
         pass
 
     @abstractmethod
