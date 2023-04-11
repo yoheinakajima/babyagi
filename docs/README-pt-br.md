@@ -12,7 +12,7 @@ Este README abordará os seguintes tópicos:
 
 * [Como usar o script](#como-usar)
 
-* [Modelos suportados](modelos-suportados)
+* [Modelos suportados](#modelos-suportados)
 
 * [Aviso sobre a execução contínua do script](#aviso-execucao-continua)
 
