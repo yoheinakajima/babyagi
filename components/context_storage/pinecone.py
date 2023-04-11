@@ -1,8 +1,50 @@
-from .IContextStorage import ContextStorage, PineconeOptions, ContextResult, ContextData
+import os
+from typing import Callable, Optional
+
+import openai
+from .IContextStorage import ContextStorage, StorageOptions, ContextResult, ContextData
 import pinecone
 
+class PineconeOptions(StorageOptions):
+    api_key: str
+    environment: str
+    embedding_method: Callable[[str], list[float]]
+    storage_name: str
+    clean_storage: bool
+    
+    @staticmethod
+    def _get_ada_embedding(text):
+        text = text.replace("\n", " ")
+        return openai.Embedding.create(input=[text], model="text-embedding-ada-002")["data"][0]["embedding"]
+
+    def __init__(
+            self,
+            embedding_method: Optional[Callable[[str], list[float]]] = None, 
+            api_key: Optional[str] = None,
+            environment: Optional[str] = None,
+            storage_name: Optional[str] = None,
+            clean_storage: bool = False
+        ):
+        
+        if api_key is None:
+            api_key = os.getenv("PINECONE_API_KEY", "")
+            if not api_key:
+                raise ValueError("PINECONE_API_KEY is missing from .env")
+            
+        if environment is None:
+            environment = os.getenv("PINECONE_ENVIRONMENT", "")
+            if not environment:
+                raise ValueError("PINECONE_ENVIRONMENT is missing from .env")
+
+        self.api_key = api_key
+        self.environment = environment
+        self.storage_name = os.getenv("PINECONE_STORAGE_NAME", "tasks") if storage_name is None else storage_name
+        self.embedding_method = PineconeOptions._get_ada_embedding if embedding_method is None else embedding_method
+        self.clean_storage = clean_storage
+
+
 class PineconeTaskStorage(ContextStorage):
-    def __init__(self, options: PineconeOptions):
+    def __init__(self, options: PineconeOptions = PineconeOptions()):
         pinecone.init(api_key=options.api_key, environment=options.environment)
         self.storage_name = options.storage_name
         self._create_storage(options.clean_storage)
