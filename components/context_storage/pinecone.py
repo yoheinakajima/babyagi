@@ -3,7 +3,6 @@ from typing import Callable, Optional
 
 import openai
 from .IContextStorage import ContextStorage, StorageOptions, ContextResult, ContextData
-import pinecone
 
 class PineconeOptions(StorageOptions):
     api_key: str
@@ -14,6 +13,10 @@ class PineconeOptions(StorageOptions):
     
     @staticmethod
     def _get_ada_embedding(text):
+        if not openai.api_key:
+            openai.api_key = os.getenv("OPENAI_API_KEY", "")
+            if not openai.api_key:
+                raise ValueError("OPENAI_API_KEY is missing from .env")
         text = text.replace("\n", " ")
         return openai.Embedding.create(input=[text], model="text-embedding-ada-002")["data"][0]["embedding"]
 
@@ -24,7 +27,7 @@ class PineconeOptions(StorageOptions):
             environment: Optional[str] = None,
             storage_name: Optional[str] = None,
             clean_storage: bool = False
-        ):
+        ) -> None:
         
         if api_key is None:
             api_key = os.getenv("PINECONE_API_KEY", "")
@@ -42,9 +45,14 @@ class PineconeOptions(StorageOptions):
         self.embedding_method = PineconeOptions._get_ada_embedding if embedding_method is None else embedding_method
         self.clean_storage = clean_storage
 
-
 class PineconeTaskStorage(ContextStorage):
     def __init__(self, options: PineconeOptions = PineconeOptions()):
+        try:
+            import pinecone
+            self.pinecone = pinecone
+        except ImportError:
+            raise ImportError("Please install pinecone python client: pip install pinecone-client")
+
         pinecone.init(api_key=options.api_key, environment=options.environment)
         self.storage_name = options.storage_name
         self._create_storage(options.clean_storage)
@@ -57,14 +65,14 @@ class PineconeTaskStorage(ContextStorage):
                 return
             self.delete_storage()
         print(f'(pinecone): creating storage index {self.storage_name}')
-        pinecone.create_index(self.storage_name, 1536)
+        self.pinecone.create_index(self.storage_name, 1536)
         
     def _has_storage(self) -> bool:
-        return self.storage_name in pinecone.list_indexes()
+        return self.storage_name in self.pinecone.list_indexes()
     
     def delete_storage(self) -> None:
         print(f'(pinecone): deleting storage index {self.storage_name}')
-        pinecone.delete_index(self.storage_name)
+        self.pinecone.delete_index(self.storage_name)
     
     def query(self, query: str, fields: list[str] = None, n: int = 1, namespace: str = 'default') -> list[ContextResult]:
         # Generate query embedding
