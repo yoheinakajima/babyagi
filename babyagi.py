@@ -7,7 +7,7 @@ from typing import Dict, List
 import importlib
 
 import openai
-from components.context_storage.IContextStorage import ContextStorage, ContextData
+from components.context_storage.IContextStorage import ContextData, get_storage
 from dotenv import load_dotenv
 
 # Load default environment variables (.env)
@@ -31,38 +31,7 @@ if "gpt-4" in OPENAI_API_MODEL.lower():
 
 # Context Storage config
 TASK_STORAGE_NAME = os.getenv("TASK_STORAGE_NAME", os.getenv("TABLE_NAME", "tasks"))
-CONTEXT_STORAGE_TYPE = os.getenv("CONTEXT_STORAGE_TYPE", "pinecone").lower()
-context_storage_options = {}
-
-# Pinecone config
-if CONTEXT_STORAGE_TYPE == "pinecone":
-    PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
-    PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "")
-
-    assert PINECONE_API_KEY, "PINECONE_API_KEY is missing from .env"
-    assert PINECONE_ENVIRONMENT, "PINECONE_ENVIRONMENT is missing from .env"
-
-    def get_ada_embedding(text):
-        text = text.replace("\n", " ")
-        return openai.Embedding.create(input=[text], model="text-embedding-ada-002")["data"][0]["embedding"]
-
-    from components.context_storage.IContextStorage import PineconeOptions
-    context_storage_options = PineconeOptions(PINECONE_API_KEY, PINECONE_ENVIRONMENT, get_ada_embedding, TASK_STORAGE_NAME)
-
-# Weaviate config
-elif CONTEXT_STORAGE_TYPE == "weaviate":
-    WEAVIATE_HOST = os.getenv("WEAVIATE_HOST", "")
-    WEAVIATE_VECTORIZER = os.getenv("WEAVIATE_VECTORIZER", "")
-
-    assert WEAVIATE_HOST, "WEAVIATE_HOST is missing from .env"
-    assert WEAVIATE_VECTORIZER, "WEAVIATE_VECTORIZER is missing from .env"
-
-    from components.context_storage.IContextStorage import WeaviateOptions
-    context_storage_options = WeaviateOptions(WEAVIATE_HOST, WEAVIATE_VECTORIZER, TASK_STORAGE_NAME)
-
-else:
-    raise Exception("CONTEXT_STORAGE_TYPE must be a valid option (pinecone | weaviate)")
-
+CONTEXT_STORAGE_TYPE = os.getenv("CONTEXT_STORAGE_TYPE", "pinecone")
 # Goal configuation
 OBJECTIVE = os.getenv("OBJECTIVE", "")
 INITIAL_TASK = os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", ""))
@@ -123,8 +92,7 @@ print("\033[93m\033[1m" + "\nInitial task:" + "\033[0m\033[0m" + f" {INITIAL_TAS
 
 # Configure OpenAI and Context Storage
 openai.api_key = OPENAI_API_KEY
-context_storage = ContextStorage.factory(CONTEXT_STORAGE_TYPE, context_storage_options)
-
+context_storage = get_storage(CONTEXT_STORAGE_TYPE, TASK_STORAGE_NAME)
 # Task list
 task_list = deque([])
 

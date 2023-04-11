@@ -2,32 +2,34 @@ import os
 from typing import Optional
 from .IContextStorage import ContextStorage, ContextResult, ContextData, StorageOptions
 
-class WeaviateOptions(StorageOptions):
-    host: str
-    vectorizer: str
-    storage_name: str
-    clean_storage: bool 
-    def __init__(
-            self, 
-            host: Optional[str] = None, 
-            vectorizer: Optional[str] = None,
-            storage_name: Optional[str] = None,
-            clean_storage: bool = False
-        ) -> None:
+class Weaviate(ContextStorage):
+    
+    class WeaviateOptions(StorageOptions):
+        host: str
+        vectorizer: str
+        storage_name: str
+        clean_storage: bool 
+        def __init__(
+                self, 
+                host: Optional[str] = None, 
+                vectorizer: Optional[str] = None,
+                storage_name: Optional[str] = None,
+                clean_storage: bool = False
+            ) -> None:
 
-        self.host = os.getenv("WEAVIATE_HOST", "http://localhost:8080") if host is None else host
-        self.vectorizer = os.getenv("WEAVIATE_VECTORIZER", "text2vec-transformers") if vectorizer is None else vectorizer
-        self.storage_name = os.getenv("WEAVIATE_STORAGE_NAME", "tasks") if storage_name is None else storage_name
-        self.clean_storage = clean_storage
+            self.host = os.getenv("WEAVIATE_HOST", "http://localhost:8080") if host is None else host
+            self.vectorizer = os.getenv("WEAVIATE_VECTORIZER", "text2vec-transformers") if vectorizer is None else vectorizer
+            self.storage_name = os.getenv("WEAVIATE_STORAGE_NAME", "tasks") if storage_name is None else storage_name
+            self.clean_storage = clean_storage
 
-
-class WeaviateTaskStorage(ContextStorage):
-    def __init__(self, options: WeaviateOptions = WeaviateOptions()):
+    OptionsClass = WeaviateOptions
+    
+    def __init__(self, options: Optional[WeaviateOptions] = None):
         try:
             import weaviate
         except ImportError:
             raise ImportError("Please install weaviate python client: pip install weaviate-client")
-
+        
         self.client = weaviate.Client(options.host)
         self._create_storage(options.storage_name, options.vectorizer, options.clean_storage)
         self.storage_name = self.client.schema.get(options.storage_name)['class']
