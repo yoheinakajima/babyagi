@@ -2,3 +2,6 @@ faiss-cpu
 python-dotenv
 pydantic
 langchain
+openai
+google-search-results
+tiktoken
