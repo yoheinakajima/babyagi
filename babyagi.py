@@ -296,7 +296,7 @@ while True:
         # Step 3: Create new tasks and reprioritize task list
         new_tasks = task_creation_agent(
             OBJECTIVE,
-            enriched_result,
+            result,
             task["task_name"],
             [t["task_name"] for t in task_list],
         )
