@@ -5,9 +5,10 @@ import time
 from collections import deque
 from typing import Dict, List
 import importlib
-
-import openai
 import pinecone
+import openai
+
+from pinecone import PineconeProtocolError
 from dotenv import load_dotenv
 
 # Load default environment variables (.env)
@@ -109,12 +110,22 @@ try:
     dimension = 1536
     metric = "cosine"
     pod_type = "p1"
-    if table_name not in pinecone.list_indexes():
+
+    existing_indexes = pinecone.list_indexes()
+    
+    if table_name in existing_indexes or len(existing_indexes) < 0:
+        raise ValueError(f"Index '{table_name}' already exists or you have too many pods on a free account.")
+    else:
         pinecone.create_index(
             table_name, dimension=dimension, metric=metric, pod_type=pod_type
         )
+except PineconeProtocolError as e:
+    print(f"Error occurred: {e}")
+except ValueError as e:
+    print(e)
 except Exception as e:
-    print("Error occurred: You already have a pinecone index on a free account, please remove it first")
+    print(e)
+    print("An unexpected error occurred.")
 
 # Connect to the index
 index = pinecone.Index(table_name)

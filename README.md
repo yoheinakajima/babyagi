@@ -39,10 +39,10 @@ To use the script, you will need to follow these steps:
 4. Set your OpenAI and Pinecone API keys in the OPENAI_API_KEY, OPENAPI_API_MODEL, and PINECONE_API_KEY variables.
 5. Set the Pinecone environment in the PINECONE_ENVIRONMENT variable.
 6. Ensure you do not create a pinecone index, the application will do this automatically.
-6. Set the name of the table where the task results will be stored in the TABLE_NAME variable.
-7. (Optional) Set the objective of the task management system in the OBJECTIVE variable.
-8. (Optional) Set the first task of the system in the INITIAL_TASK variable.
-9. Run the script.
+7. Set the name of the table where the task results will be stored in the TABLE_NAME variable.
+8. (Optional) Set the objective of the task management system in the OBJECTIVE variable.
+9. (Optional) Set the first task of the system in the INITIAL_TASK variable.
+10. Run the script.
 
 All optional values above can also be specified on the command line.
 
