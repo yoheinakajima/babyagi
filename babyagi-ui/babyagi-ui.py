@@ -34,9 +34,6 @@ app.layout = dbc.Container(
                     ], className='page-intro-inner-div'),
                 ], className='page-intro-outer-div'),
                 html.Div([tdaa_modal], className='middle-toggles'),
-                dcc.Loading(id='loading_0', type='circle',
-                            color="#dc3d87",
-                            children=[conversation]),
                 html.Div([controls], style={'margin-bottom': '5px'}),
                 dbc.Button(
                     [html.I(className="bi bi-send")], size='lg', id='submit',
@@ -46,6 +43,9 @@ app.layout = dbc.Container(
                         'width': '100%',
                         'max-width': '100vw',
                         'background-color': 'none'}),
+                dcc.Loading(id='loading_0', type='circle',
+                            color="#dc3d87",
+                            children=[conversation]),
                 html.Div([
                     html.Div([badges], className='badges'),
                 ], className='badges-div'),
@@ -106,16 +106,13 @@ def run_chatbot(n_clicks, objective, task, rounds, chat_history):
     """
     chat_history = chat_history or []
     if n_clicks == 0:
-        chat_history.insert(0, "`Missing objective or first task.`")
-        return chat_history, ''
+        raise dash.exceptions.PreventUpdate
 
     if objective is None or objective == '' or task is None or task == '':
-        chat_history.insert(0, "`Missing objective or first task.`")
-        return chat_history, ''
+        raise dash.exceptions.PreventUpdate
 
     if objective is None or objective.isspace() is True or task is None or task.isspace() is True:
-        chat_history.insert(0, "`Missing objective or first task.`")
-        return chat_history, ''
+        raise dash.exceptions.PreventUpdate
 
     else:
         chat_history.insert(0, f'`Objective:` {objective}')
