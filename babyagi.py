@@ -134,7 +134,7 @@ def get_ada_embedding(text):
 def openai_call(
     prompt: str,
     model: str = OPENAI_API_MODEL,
-    temperature: float = 0.5,
+    temperature: float = 0.0,
     max_tokens: int = 100,
 ):
     while True:
@@ -233,7 +233,7 @@ def execution_agent(objective: str, task: str) -> str:
     You are an AI who performs one task based on the following objective: {objective}\n.
     Take into account these previously completed tasks: {context}\n.
     Your task: {task}\nResponse:"""
-    return openai_call(prompt, temperature=0.7, max_tokens=2000)
+    return openai_call(prompt, temperature=0.0, max_tokens=2000)
 
 
 def context_agent(query: str, n: int):
