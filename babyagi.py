@@ -226,7 +226,7 @@ def execution_agent(objective: str, task: str) -> str:
 
     """
     
-    context = context_agent(query=objective, n=5)
+    context = context_agent(query=objective, top_results_num=5)
     # print("\n*******RELEVANT CONTEXT******\n")
     # print(context)
     prompt = f"""
@@ -236,20 +236,20 @@ def execution_agent(objective: str, task: str) -> str:
     return openai_call(prompt, temperature=0.0, max_tokens=2000)
 
 
-def context_agent(query: str, n: int):
+def context_agent(query: str, top_results_num: int):
     """
     Retrieves context for a given query from an index of tasks.
 
     Args:
         query (str): The query or objective for retrieving context.
-        n (int): The number of top results to retrieve.
+        top_results_num (int): The number of top results to retrieve.
 
     Returns:
         list: A list of tasks as context for the given query, sorted by relevance.
 
     """
     query_embedding = get_ada_embedding(query)
-    results = index.query(query_embedding, top_k=n, include_metadata=True, namespace=OBJECTIVE)
+    results = index.query(query_embedding, top_k=top_results_num, include_metadata=True, namespace=OBJECTIVE)
     # print("***** RESULTS *****")
     # print(results)
     sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)
