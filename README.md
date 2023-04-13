@@ -11,13 +11,15 @@ This Python script is an example of an AI-powered task management system. The sy
 
 This README will cover the following:
 
-* [How the script works](#how-it-works)
-
-* [How to use the script](#how-to-use)
-
-* [Supported Models](#supported-models)
-
-* [Warning about running the script continuously](#continous-script-warning)
+- [Readme translations:](#readme-translations)
+- [Objective](#objective)
+- [How It Works](#how-it-works)
+- [How to Use](#how-to-use)
+- [Supported Models](#supported-models)
+  - [Llama](#llama)
+- [Warning](#warning)
+- [Contribution](#contribution)
+- [Backstory](#backstory)
 # How It Works<a name="how-it-works"></a>
 The script works by running an infinite loop that does the following steps:
 
@@ -40,11 +42,15 @@ To use the script, you will need to follow these steps:
 2. Install the required packages: `pip install -r requirements.txt`
 3. Copy the .env.example file to .env: `cp .env.example .env`. This is where you will set the following variables.
 4. Set your OpenAI and Pinecone API keys in the OPENAI_API_KEY, OPENAPI_API_MODEL, and PINECONE_API_KEY variables.
+   - If running locally, use `babyagi-local.py` instead of `babyagi.py`
+   - Set the `OOBA_SERVER` environment variable to `localhost` unless running on a different machine. Local uses [Oobabooga Text Generation Web UI](https://github.com/oobabooga/text-generation-webui) and is set up to be used with the [Vicuna 13B Model](https://github.com/lm-sys/FastChat/#vicuna-weights).
 5. Set the Pinecone environment in the PINECONE_ENVIRONMENT variable.
+    - Not needed if running `babyagi-local.py`
 6. Set the name of the table where the task results will be stored in the TABLE_NAME variable.
+    - Not needed if running `babyagi-local.py`
 7. (Optional) Set the objective of the task management system in the OBJECTIVE variable.
 8. (Optional) Set the first task of the system in the INITIAL_TASK variable.
-9. Run the script.
+9.  Run the script.
 
 All optional values above can also be specified on the command line.
 
