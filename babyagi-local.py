@@ -6,7 +6,6 @@ from typing import Dict, List
 import importlib
 from sentence_transformers import SentenceTransformer
 from langchain.vectorstores import FAISS
-from langchain.embeddings.openai import OpenAIEmbeddings
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -29,7 +28,6 @@ def can_import(module_name):
         return True
     except ImportError:
         return False
-
 
 DOTENV_EXTENSIONS = os.getenv("DOTENV_EXTENSIONS", "").split(" ")
 
