@@ -45,6 +45,9 @@ assert YOUR_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
 OBJECTIVE = os.getenv("OBJECTIVE", "")
 INITIAL_TASK = os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", ""))
 
+# Model configuration
+OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", 0.0))
+
 
 # Extensions support begin
 
@@ -134,7 +137,7 @@ def get_ada_embedding(text):
 def openai_call(
     prompt: str,
     model: str = OPENAI_API_MODEL,
-    temperature: float = 0.0,
+    temperature: float = OPENAI_TEMPERATURE,
     max_tokens: int = 100,
 ):
     while True:
@@ -233,7 +236,7 @@ def execution_agent(objective: str, task: str) -> str:
     You are an AI who performs one task based on the following objective: {objective}\n.
     Take into account these previously completed tasks: {context}\n.
     Your task: {task}\nResponse:"""
-    return openai_call(prompt, temperature=0.0, max_tokens=2000)
+    return openai_call(prompt, max_tokens=2000)
 
 
 def context_agent(query: str, top_results_num: int):
