@@ -83,7 +83,7 @@ if DOTENV_EXTENSIONS:
 
 def generate_text(prompt):
     params = {
-        'max_new_tokens': 200,
+        'max_new_tokens': 400,
         'do_sample': True,
         'temperature': 0.72,
         'top_p': 0.73,
@@ -109,7 +109,8 @@ def generate_text(prompt):
             payload
         ]
     }).json()
-    return response['data'][0]
+    data = response['data'][0]
+    return data.replace("\\n", "\n")
 
 # Check if we know what we are doing
 assert OBJECTIVE, "OBJECTIVE environment variable is missing from .env"
@@ -146,7 +147,6 @@ def task_creation_agent(objective: str, result: Dict, task_description: str, tas
 def prioritization_agent(this_task_id: int):
     global task_list
     task_names = [t["task_name"] for t in task_list]
-    print(f"TASKID: {this_task_id}")
     next_task_id = this_task_id + 1
     prompt = f"""
     You are a task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}.
@@ -161,12 +161,11 @@ def prioritization_agent(this_task_id: int):
         task_parts = task_string.strip().split(".", 1)
         if len(task_parts) == 2:
             task_id = task_parts[0].strip()
+            try:
+                task_id = int(task_id)
+            except:
+                continue
             task_name = task_parts[1].strip()
-            if not isinstance(task_id, int):
-                try:
-                    task_id = int(task_id)
-                except:
-                    task_id = 1
             task_list.append({"task_id": task_id, "task_name": task_name})
 
 def execution_agent(objective: str, task: str) -> str:
@@ -187,7 +186,7 @@ def execution_agent(objective: str, task: str) -> str:
     You are an AI who performs one task based on the following objective: {objective}\n.
     Take into account these previously completed tasks: {context}\n.
     Your task: {task}\nResponse:"""
-    return generate_text(prompt)
+    return generate_text(prompt).strip()
 
 def context_agent(query: str, index: FAISS, n: int):
     """
