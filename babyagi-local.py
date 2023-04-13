@@ -35,6 +35,8 @@ class CustomEmbeddingWrapper:
         self.model = model
 
     def embed_documents(self, texts):
+        if isinstance(texts, str):
+            texts = [texts]
         inputs = bert_tokenizer(texts, return_tensors='pt', padding=True, truncation=True, max_length=512)
         with torch.no_grad():
             outputs = self.model(**inputs)
@@ -107,7 +109,7 @@ def generate_text(prompt):
             payload
         ]
     }).json()
-    return response
+    return response['data'][0]
 
 # Check if we know what we are doing
 assert OBJECTIVE, "OBJECTIVE environment variable is missing from .env"
@@ -181,7 +183,7 @@ def execution_agent(objective: str, task: str) -> str:
     Your task: {task}\nResponse:"""
     return generate_text(prompt)
 
-def context_agent(query: str, index: str, n: int):
+def context_agent(query: str, index: FAISS, n: int):
     """
     Retrieves context for a given query from an index of tasks.
 
