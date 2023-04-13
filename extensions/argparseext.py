@@ -43,9 +43,13 @@ def parse_arguments():
     initial task description. must be quoted.
     if not specified, get initial_task from environment.
     ''', default=os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", "")))
-    parser.add_argument('-4', '--gpt-4', dest='openai_api_model', action='store_const', const="gpt-4", help='''
-    use GPT-4 instead of the default GPT-3 model.
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-4', '--gpt-4', dest='openai_api_model', action='store_const', const="gpt-4", help='''
+    use GPT-4 instead of the default model.
     ''', default=os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo"))
+    group.add_argument('-l', '--llama', dest='openai_api_model', action='store_const', const="llama", help='''
+    use LLaMa instead of the default model. Requires llama.cpp.
+    ''')
     # This will parse -e again, which we want, because we need
     # to load those in the main file later as well
     parser.add_argument('-e', '--env', nargs='+', help='''

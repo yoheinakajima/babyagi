@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 import os
+import subprocess
 import time
 from collections import deque
 from typing import Dict, List
+import importlib
 
 import openai
 from dotenv import load_dotenv
@@ -12,7 +14,9 @@ from langchain.embeddings.openai import OpenAIEmbeddings
 # Load default environment variables (.env)
 load_dotenv()
 
-# Set API Keys
+# Engine configuration
+
+# API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env"
 
@@ -30,6 +34,17 @@ if "gpt-4" in OPENAI_API_MODEL.lower():
 OBJECTIVE = os.getenv("OBJECTIVE", "")
 INITIAL_TASK = os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", ""))
 
+
+# Extensions support begin
+
+def can_import(module_name):
+    try:
+        importlib.import_module(module_name)
+        return True
+    except ImportError:
+        return False
+
+
 DOTENV_EXTENSIONS = os.getenv("DOTENV_EXTENSIONS", "").split(" ")
 
 # Command line arguments extension
@@ -38,19 +53,27 @@ ENABLE_COMMAND_LINE_ARGS = (
     os.getenv("ENABLE_COMMAND_LINE_ARGS", "false").lower() == "true"
 )
 if ENABLE_COMMAND_LINE_ARGS:
-    from extensions.argparseext import parse_arguments
+    if can_import("extensions.argparseext"):
+        from extensions.argparseext import parse_arguments
 
-    OBJECTIVE, INITIAL_TASK, OPENAI_API_MODEL, DOTENV_EXTENSIONS = parse_arguments()
+        OBJECTIVE, INITIAL_TASK, OPENAI_API_MODEL, DOTENV_EXTENSIONS = parse_arguments()
 
 # Load additional environment variables for enabled extensions
 if DOTENV_EXTENSIONS:
-    from extensions.dotenvext import load_dotenv_extensions
+    if can_import("extensions.dotenvext"):
+        from extensions.dotenvext import load_dotenv_extensions
 
-    load_dotenv_extensions(DOTENV_EXTENSIONS)
+        load_dotenv_extensions(DOTENV_EXTENSIONS)
 
 # TODO: There's still work to be done here to enable people to get
 # defaults from dotenv extensions # but also provide command line
 # arguments to override them
+
+# Extensions support end
+
+# Check if we know what we are doing
+assert OBJECTIVE, "OBJECTIVE environment variable is missing from .env"
+assert INITIAL_TASK, "INITIAL_TASK environment variable is missing from .env"
 
 if "gpt-4" in OPENAI_API_MODEL.lower():
     print(
@@ -87,7 +110,12 @@ def openai_call(
 ):
     while True:
         try:
-            if not model.startswith("gpt-"):
+            if model.startswith("llama"):
+                # Spawn a subprocess to run llama.cpp
+                cmd = ["llama/main", "-p", prompt]
+                result = subprocess.run(cmd, shell=True, stderr=subprocess.DEVNULL, stdout=subprocess.PIPE, text=True)
+                return result.stdout.strip()
+            elif not model.startswith("gpt-"):
                 # Use completion API
                 response = openai.Completion.create(
                     engine=model,
@@ -101,7 +129,7 @@ def openai_call(
                 return response.choices[0].text.strip()
             else:
                 # Use chat completion API
-                messages = [{"role": "user", "content": prompt}]
+                messages = [{"role": "system", "content": prompt}]
                 response = openai.ChatCompletion.create(
                     model=model,
                     messages=messages,
@@ -124,7 +152,7 @@ def task_creation_agent(
     objective: str, result: Dict, task_description: str, task_list: List[str]
 ):
     prompt = f"""
-    You are an task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective},
+    You are a task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective},
     The last completed task has the result: {result}.
     This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}.
     Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks.
@@ -139,14 +167,14 @@ def prioritization_agent(this_task_id: int):
     task_names = [t["task_name"] for t in task_list]
     next_task_id = int(this_task_id) + 1
     prompt = f"""
-    You are an task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}.
+    You are a task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}.
     Consider the ultimate objective of your team:{OBJECTIVE}.
     Do not remove any tasks. Return the result as a numbered list, like:
     #. First task
     #. Second task
     Start the task list with number {next_task_id}."""
     response = openai_call(prompt)
-    new_tasks = response.split("\n")
+    new_tasks = response.split("\n") if "\n" in response else [response]
     task_list = deque()
     for task_string in new_tasks:
         task_parts = task_string.strip().split(".", 1)
@@ -157,6 +185,18 @@ def prioritization_agent(this_task_id: int):
 
 
 def execution_agent(objective: str, task: str) -> str:
+    """
+    Executes a task based on the given objective and previous context.
+
+    Args:
+        objective (str): The objective or goal for the AI to perform the task.
+        task (str): The task to be executed by the AI.
+
+    Returns:
+        str: The response generated by the AI for the given task.
+
+    """
+    
     context = context_agent(query=objective, n=5)
     # print("\n*******RELEVANT CONTEXT******\n")
     # print(context)
@@ -168,7 +208,20 @@ def execution_agent(objective: str, task: str) -> str:
 
 
 def context_agent(query: str, n: int):
+    """
+    Retrieves context for a given query from an index of tasks.
+
+    Args:
+        query (str): The query or objective for retrieving context.
+        n (int): The number of top results to retrieve.
+
+    Returns:
+        list: A list of tasks as context for the given query, sorted by relevance.
+
+    """
+    
     results = index.similarity_search_with_score(query, k=n)
+
     # print("***** RESULTS *****")
     # print(results)
     sorted_results = sorted(results, key=lambda x: x[1], reverse=True)
@@ -205,6 +258,7 @@ while True:
         }  # This is where you should enrich the result if needed
         result_id = f"result_{task['task_id']}"
         index.add_texts([result], metadatas=[{"task":task["task_name"]}])
+
 
         # Step 3: Create new tasks and reprioritize task list
         new_tasks = task_creation_agent(
