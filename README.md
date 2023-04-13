@@ -45,6 +45,8 @@ To use the script, you will need to follow these steps:
 7. (Optional) Set the objective of the task management system in the OBJECTIVE variable.
 8. (Optional) Set the first task of the system in the INITIAL_TASK variable.
 9. Run the script.
+10. Start [Aim](https://github.com/aimhubio/aim) web UI srver with `aim up` command.
+11. Open http://127.0.0.1:43800 to explore all your tracked metadata.
 
 All optional values above can also be specified on the command line.
 

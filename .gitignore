@@ -13,3 +13,5 @@ venv/
 
 models
 llama/
+
+.aim/
