@@ -15,7 +15,7 @@ OBJECTIVE = "Solve world hunger"
 INITIAL_TASK = "Develop a task list."
 
 def generate_text(prompt):
-    params = {
+    response = requests.post(f"http://{OOBA_SERVER}:7860/run/textgen", json={
         'prompt': prompt,
         'max_new_tokens': 200,
         'temperature': 0.5,
@@ -42,10 +42,8 @@ def generate_text(prompt):
         'num_return_sequences': 1,  # Number of sequences to return for each input
         'bad_words_ids': None,  # List of token IDs that should not appear in the generated text
         'seed': -1,
-    }
-    response = requests.post(f"http://{OOBA_SERVER}:7860/run/textgen", json=params).json()
-    reply = response["data"][0]
-    return reply
+    }).json()
+    return response["data"][0]
 
 # Print OBJECTIVE
 print("\033[96m\033[1m" + "\n*****OBJECTIVE*****\n" + "\033[0m\033[0m")
