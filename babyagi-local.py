@@ -1,9 +1,13 @@
 import os
 import requests
 import time
+import json
 from collections import deque
 from typing import Dict, List
 import importlib
+import torch
+from transformers import AutoTokenizer, AutoModel
+import numpy as np
 from sentence_transformers import SentenceTransformer
 from langchain.vectorstores import FAISS
 from dotenv import load_dotenv
@@ -14,14 +18,33 @@ load_dotenv()
 ## Follow the instructions here to set up the server:
 ## https://github.com/oobabooga/text-generation-webui
 ## Search Huggingface for vicuna13b-1.1 to find the model for your server.
-OOBA_SERVER = os.getenv("OOBA_SERVER", "localhost")
+OOBA_SERVER = os.getenv("OOBA_SERVER", "127.0.0.1")
 
 # Goal configuation
 OBJECTIVE = os.getenv("OBJECTIVE", "Solve world hunger")
 INITIAL_TASK = os.getenv("INITIAL_TASK", "Develop a task list.")
 
 # Extensions support begin
+bert_model_name = 'bert-base-uncased'
+bert_tokenizer = AutoTokenizer.from_pretrained(bert_model_name)
+bert_model = AutoModel.from_pretrained(bert_model_name)
 
+# Define a function to get BERT embeddings
+class CustomEmbeddingWrapper:
+    def __init__(self, model):
+        self.model = model
+
+    def embed_documents(self, texts):
+        inputs = bert_tokenizer(texts, return_tensors='pt', padding=True, truncation=True, max_length=512)
+        with torch.no_grad():
+            outputs = self.model(**inputs)
+        embeddings = outputs.last_hidden_state.mean(dim=1).numpy()
+        return embeddings
+
+    def embed_query(self, text):
+        return self.embed_documents([text])[0]
+
+custom_embedding = CustomEmbeddingWrapper(bert_model)
 def can_import(module_name):
     try:
         importlib.import_module(module_name)
@@ -57,35 +80,34 @@ if DOTENV_EXTENSIONS:
 # Extensions support end
 
 def generate_text(prompt):
-    response = requests.post(f"http://{OOBA_SERVER}:7860/run/textgen", json={
-        'prompt': prompt,
+    params = {
         'max_new_tokens': 200,
-        'temperature': 0.5,
-        'top_p': 0.9,
-        'typical_p': 1,
-        'n': 1,
-        'stop': None,
         'do_sample': True,
-        'return_prompt': False,
-        'return_metadata': False,
-        'typical_p': 0.95,
-        'repetition_penalty': 1.05,
+        'temperature': 0.72,
+        'top_p': 0.73,
+        'typical_p': 1,
+        'repetition_penalty': 1.1,
         'encoder_repetition_penalty': 1.0,
         'top_k': 0,
         'min_length': 0,
-        'no_repeat_ngram_size': 2,
+        'no_repeat_ngram_size': 0,
         'num_beams': 1,
         'penalty_alpha': 0,
-        'length_penalty': 1.0,
+        'length_penalty': 1,
         'early_stopping': False,
-        'pad_token_id': None,  # Padding token ID, if required
-        'eos_token_id': None,  # End-of-sentence token ID, if required
-        'use_cache': True,     # Whether to use caching
-        'num_return_sequences': 1,  # Number of sequences to return for each input
-        'bad_words_ids': None,  # List of token IDs that should not appear in the generated text
         'seed': -1,
+        'add_bos_token': True,
+        'custom_stopping_strings': [],
+        'truncation_length': 2048,
+        'ban_eos_token': False,
+    }
+    payload = json.dumps([prompt, params])
+    response = requests.post(f"http://{OOBA_SERVER}:7860/run/textgen", json={
+        "data": [
+            payload
+        ]
     }).json()
-    return response["data"][0]
+    return response
 
 # Check if we know what we are doing
 assert OBJECTIVE, "OBJECTIVE environment variable is missing from .env"
@@ -97,10 +119,14 @@ print(OBJECTIVE)
 
 # Task list
 task_list = deque([])
-model = SentenceTransformer('sentence-transformers/LaBSE')
+model = bert_model
 
 # Create FAISS index
-index = FAISS.from_texts(["_"], model, metadatas=[{"task":INITIAL_TASK}])
+index = FAISS.from_texts(
+    texts=["_"],
+    embedding=custom_embedding,
+    metadatas=[{"task": INITIAL_TASK}]
+)
 
 def add_task(task: Dict):
     task_list.append(task)
@@ -148,7 +174,7 @@ def execution_agent(objective: str, task: str) -> str:
 
     """
 
-    context = context_agent(query=objective, n=5)
+    context = context_agent(query=objective, index=index, n=5)
     prompt = f"""
     You are an AI who performs one task based on the following objective: {objective}\n.
     Take into account these previously completed tasks: {context}\n.
