@@ -96,13 +96,18 @@ assert INITIAL_TASK, "INITIAL_TASK environment variable is missing from .env"
 print("\033[96m\033[1m" + "\n*****OBJECTIVE*****\n" + "\033[0m\033[0m")
 print(OBJECTIVE)
 
-# Create FAISS index
-embeddings_model = OpenAIEmbeddings(model="text-embedding-ada-002")
-index = FAISS.from_texts(["_"], embeddings_model, metadatas=[{"task":INITIAL_TASK}])
-
 # Task list
 task_list = deque([])
 model = SentenceTransformer('sentence-transformers/LaBSE')
+
+# Create FAISS index
+def create_faiss_index(model, texts, metadatas):
+    embeddings = model.encode(texts)
+    index = FAISS(len(embeddings[0]))
+    index.add(embeddings, metadatas)
+    return index
+
+index = create_faiss_index(model, [""], [{"task": INITIAL_TASK}])
 
 def add_task(task: Dict):
     task_list.append(task)
