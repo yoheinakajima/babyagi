@@ -146,7 +146,8 @@ def task_creation_agent(objective: str, result: Dict, task_description: str, tas
 def prioritization_agent(this_task_id: int):
     global task_list
     task_names = [t["task_name"] for t in task_list]
-    next_task_id = int(this_task_id) + 1
+    print(f"TASKID: {this_task_id}")
+    next_task_id = this_task_id + 1
     prompt = f"""
     You are a task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}.
     Consider the ultimate objective of your team:{OBJECTIVE}.
@@ -161,6 +162,11 @@ def prioritization_agent(this_task_id: int):
         if len(task_parts) == 2:
             task_id = task_parts[0].strip()
             task_name = task_parts[1].strip()
+            if not isinstance(task_id, int):
+                try:
+                    task_id = int(task_id)
+                except:
+                    task_id = 1
             task_list.append({"task_id": task_id, "task_name": task_name})
 
 def execution_agent(objective: str, task: str) -> str:
@@ -223,7 +229,9 @@ while True:
 
         # Send to execution function to complete the task based on the context
         result = execution_agent(OBJECTIVE, task["task_name"])
+        print("Task ID before casting:", task["task_id"])
         this_task_id = int(task["task_id"])
+
         print(
             "\033[93m\033[1m" + "\n*****TASK RESULT*****\n" + "\033[0m\033[0m"
         )
