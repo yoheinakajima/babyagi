@@ -179,7 +179,7 @@ def execution_agent(objective: str, task: str) -> str:
     You are an AI who performs one task based on the following objective: {objective}\n.
     Take into account these previously completed tasks: {context}\n.
     Your task: {task}\nResponse:"""
-    return generate_text(prompt).strip()
+    return generate_text(prompt)
 
 def context_agent(query: str, index: str, n: int):
     """
