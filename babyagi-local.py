@@ -29,6 +29,7 @@ def can_import(module_name):
     except ImportError:
         return False
 
+
 DOTENV_EXTENSIONS = os.getenv("DOTENV_EXTENSIONS", "").split(" ")
 
 # Command line arguments extension
@@ -99,13 +100,7 @@ task_list = deque([])
 model = SentenceTransformer('sentence-transformers/LaBSE')
 
 # Create FAISS index
-def create_faiss_index(model, texts, metadatas):
-    embeddings = model.encode(texts)
-    index = FAISS(len(embeddings[0]))
-    index.add(embeddings, metadatas)
-    return index
-
-index = create_faiss_index(model, [""], [{"task": INITIAL_TASK}])
+index = FAISS.from_texts(["_"], model, metadatas=[{"task":INITIAL_TASK}])
 
 def add_task(task: Dict):
     task_list.append(task)
