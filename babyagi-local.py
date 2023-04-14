@@ -242,7 +242,7 @@ while True:
         print(
             "\033[93m\033[1m" + "\n*****TASK RESULT*****\n" + "\033[0m\033[0m"
         )
-        print(f"Response: {result}")
+        print(f"{result}")
 
         # Step 2: Enrich result and store in index
         enriched_result = {"data": result}
