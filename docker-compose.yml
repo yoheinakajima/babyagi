@@ -1,0 +1,9 @@
+version: "3.9"
+
+services:
+  babyagi:
+    build: ./
+    volumes:
+      - "./:/app"
+    stdin_open: true
+    tty: true

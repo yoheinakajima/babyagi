@@ -61,6 +61,15 @@ To use the script, you will need to follow these steps:
 
 All optional values above can also be specified on the command line.
 
+# Running inside a docker container
+As a prerequisite, you will need docker and docker-compose installed. Docker desktop is the simplest option https://www.docker.com/products/docker-desktop/
+
+To run the system inside a docker container, setup your .env file as per steps above and then run the following:
+
+```
+docker-compose up
+```
+
 # Supported Models<a name="supported-models"></a>
 
 This script works with all OpenAI models, as well as Llama through Llama.cpp. Default model is **gpt-3.5-turbo**. To use a different model, specify it through OPENAI_API_MODEL or use the command line.
