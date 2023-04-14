@@ -37,7 +37,7 @@ class CustomEmbeddingWrapper:
     def embed_documents(self, texts):
         if isinstance(texts, str):
             texts = [texts]
-        inputs = bert_tokenizer(texts, return_tensors='pt', padding=True)
+        inputs = bert_tokenizer(texts, return_tensors='pt', padding=True, truncation=True, max_length=512)
         with torch.no_grad():
             outputs = self.model(**inputs)
         embeddings = outputs.last_hidden_state.mean(dim=1).numpy()
