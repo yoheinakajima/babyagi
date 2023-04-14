@@ -11,6 +11,7 @@
 <kbd>[<img title="Spanish" alt="Spanish" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/es.svg" width="22">](docs/README-es.md)</kbd>
 <kbd>[<img title="Turkish" alt="Turkish" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/tr.svg" width="22">](docs/README-tr.md)</kbd>
 <kbd>[<img title="Ukrainian" alt="Ukrainian" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/ua.svg" width="22">](docs/README-ua.md)</kbd>
+<kbd>[<img title="简体中文" alt="Simplified Chinese" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/cn.svg" width="22">](docs/README-cn.md)</kbd>
 <kbd>[<img title="繁體中文 (Traditional Chinese)" alt="繁體中文 (Traditional Chinese)" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/tw.svg" width="22">](docs/README-zh-tw.md)</kbd>
 
 # Objective
@@ -35,7 +36,7 @@ The script works by running an infinite loop that does the following steps:
 2. Sends the task to the execution agent, which uses OpenAI's API to complete the task based on the context.
 3. Enriches the result and stores it in Pinecone.
 4. Creates new tasks and reprioritizes the task list based on the objective and the result of the previous task.
-</br>
+   </br>
 
 The execution_agent() function is where the OpenAI API is used. It takes two parameters: the objective and the task. It then sends a prompt to OpenAI's API, which returns the result of the task. The prompt consists of a description of the AI system's task, the objective, and the task itself. The result is then returned as a string.
 </br>
@@ -62,6 +63,7 @@ To use the script, you will need to follow these steps:
 All optional values above can also be specified on the command line.
 
 # Running inside a docker container
+
 As a prerequisite, you will need docker and docker-compose installed. Docker desktop is the simplest option https://www.docker.com/products/docker-desktop/
 
 To run the system inside a docker container, setup your .env file as per steps above and then run the following:
