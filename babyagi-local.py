@@ -37,7 +37,7 @@ class CustomEmbeddingWrapper:
     def embed_documents(self, texts):
         if isinstance(texts, str):
             texts = [texts]
-        inputs = bert_tokenizer(texts, return_tensors='pt', padding=True, truncation=True, max_length=512)
+        inputs = bert_tokenizer(texts, return_tensors='pt', padding=True)
         with torch.no_grad():
             outputs = self.model(**inputs)
         embeddings = outputs.last_hidden_state.mean(dim=1).numpy()
@@ -137,10 +137,13 @@ def add_task(task: Dict):
 def task_creation_agent(objective: str, result: Dict, task_description: str, task_list: List[str]):
     prompt = f"""
     You are a task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective},
+    This is not a conversation, perform the task and return the result.
     The last completed task has the result: {result}.
     This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}.
     Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks.
-    Return the tasks as an array."""
+    Return the tasks as an array.
+    This is not a conversation, perform the task and return the results.
+    Results:"""
     new_tasks = generate_text(prompt).strip().split("\n")
     return [{"task_name": task_name} for task_name in new_tasks]
 
@@ -154,7 +157,9 @@ def prioritization_agent(this_task_id: int):
     Do not remove any tasks. Return the result as a numbered list, like:
     #. First task
     #. Second task
-    Start the task list with number {next_task_id}."""
+    Start the task list with number {next_task_id}.
+    This is not a conversation, perform the task and return the results.
+    Results:"""
     new_tasks = generate_text(prompt).strip().split("\n")
     task_list = deque()
     for task_string in new_tasks:
@@ -184,11 +189,11 @@ def execution_agent(objective: str, task: str) -> str:
     context = context_agent(query=objective, index=index, n=5)
     prompt = f"""
     You are an AI who confidently performs one task based on the following objective: {objective}.
-    This is not a conversation, perform the task and return the result.
     Take into account these previously completed tasks: {context}.
-    Your task to perform confidently: {task}."""
+    Your task to perform confidently: {task}.
+    This is not a conversation, perform the task and return the results.
+    Results:"""
     response = generate_text(prompt)
-    print(f"Response: {response}")
     return response
 
 def context_agent(query: str, index: FAISS, n: int):
@@ -237,7 +242,7 @@ while True:
         print(
             "\033[93m\033[1m" + "\n*****TASK RESULT*****\n" + "\033[0m\033[0m"
         )
-        print(result)
+        print(f"Response: {result}")
 
         # Step 2: Enrich result and store in index
         enriched_result = {"data": result}
