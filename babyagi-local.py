@@ -83,7 +83,7 @@ if DOTENV_EXTENSIONS:
 
 def generate_text(prompt):
     params = {
-        'max_new_tokens': 400,
+        'max_new_tokens': 500,
         'do_sample': True,
         'temperature': 0.72,
         'top_p': 0.73,
@@ -183,9 +183,10 @@ def execution_agent(objective: str, task: str) -> str:
 
     context = context_agent(query=objective, index=index, n=5)
     prompt = f"""
-    You are an AI who performs one task based on the following objective: {objective}\n.
-    Take into account these previously completed tasks: {context}\n.
-    Your task: {task}\nResponse:"""
+    You are an AI who confidently performs one task based on the following objective: {objective}.
+    This is not a conversation, perform the task and return the result.
+    Take into account these previously completed tasks: {context}.
+    Your task to perform confidently: {task}."""
     return generate_text(prompt).strip()
 
 def context_agent(query: str, index: FAISS, n: int):
@@ -228,7 +229,7 @@ while True:
 
         # Send to execution function to complete the task based on the context
         result = execution_agent(OBJECTIVE, task["task_name"])
-        print("Task ID before casting:", task["task_id"])
+
         this_task_id = int(task["task_id"])
 
         print(
