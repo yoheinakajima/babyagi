@@ -47,6 +47,9 @@ assert YOUR_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
 OBJECTIVE = os.getenv("OBJECTIVE", "")
 INITIAL_TASK = os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", ""))
 
+# Model configuration
+OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", 0.0))
+
 
 # Extensions support begin
 
@@ -163,7 +166,7 @@ def get_ada_embedding(text):
 def openai_call(
     prompt: str,
     model: str = OPENAI_API_MODEL,
-    temperature: float = 0.5,
+    temperature: float = OPENAI_TEMPERATURE,
     max_tokens: int = 100,
 ):
     while True:
@@ -278,7 +281,7 @@ def execution_agent(objective: str, task: str) -> str:
 
     """
 
-    context = context_agent(query=objective, n=5)
+    context = context_agent(query=objective, top_results_num=5)
     # print("\n*******RELEVANT CONTEXT******\n")
     # print(context)
     prompt = f"""
@@ -286,7 +289,7 @@ def execution_agent(objective: str, task: str) -> str:
     Take into account these previously completed tasks: {context}\n.
     Your task: {task}\nResponse:"""
 
-    response = openai_call(prompt, temperature=0.7, max_tokens=2000)
+    response = openai_call(prompt, max_tokens=2000)
 
     aim_run.track(aim.Text(prompt), name="exec_task",
                   context={"type": "input"})
@@ -301,20 +304,20 @@ def execution_agent(objective: str, task: str) -> str:
     return response
 
 
-def context_agent(query: str, n: int):
+def context_agent(query: str, top_results_num: int):
     """
     Retrieves context for a given query from an index of tasks.
 
     Args:
         query (str): The query or objective for retrieving context.
-        n (int): The number of top results to retrieve.
+        top_results_num (int): The number of top results to retrieve.
 
     Returns:
         list: A list of tasks as context for the given query, sorted by relevance.
 
     """
     query_embedding = get_ada_embedding(query)
-    results = index.query(query_embedding, top_k=n,
+    results = index.query(query_embedding, top_k=top_results_num,
                           include_metadata=True, namespace=OBJECTIVE)
     # print("***** RESULTS *****")
     # print(results)
