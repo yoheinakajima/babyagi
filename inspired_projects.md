@@ -63,3 +63,7 @@ This document highlights a curated selection of remarkable projects inspired by 
     - Description: The Do Anything Machine helps you keep track of your tasks, prioritize them, and allows you to deploy AI agents to get your work done for you.
     - Author: Garrett Scott
     - Twitter: https://twitter.com/thegarrettscott
+16. [Babyagi-as-a-service](https://github.com/jina-ai/langchain-serve#-babyagi-as-a-service)
+    - Description: Integrate babyagi with your own applications - thanks to langchain-serve with one simple command - 𝐥𝐜-𝐬𝐞𝐫𝐯𝐞 𝐝𝐞𝐩𝐥𝐨𝐲 𝐛𝐚𝐛𝐲𝐚𝐠𝐢
+    - Author: [Deepankar Mahapatro](https://github.com/deepankarm)
+    - Twitter: https://twitter.com/_deepankarm_
