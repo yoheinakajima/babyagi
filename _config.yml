@@ -8,5 +8,6 @@ twitter_username: yoheinakajima
 github_username:  yoheinakajima
 show_downloads: false
 remote_theme: pages-themes/minimal@v0.2.0
+include: [docs]
 plugins:
 - jekyll-remote-theme
