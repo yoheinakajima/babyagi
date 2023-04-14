@@ -111,6 +111,7 @@ print(f"{OBJECTIVE}")
 
 aim_run.set("objective", OBJECTIVE)
 aim_run.set("model", OPENAI_API_MODEL)
+aim_run.set("temperature", OPENAI_TEMPERATURE)
 aim_run.set("pinecone_environment", PINECONE_ENVIRONMENT)
 aim_run.set("table_name", YOUR_TABLE_NAME)
 aim_run.set("dotenv_extensions", DOTENV_EXTENSIONS)
