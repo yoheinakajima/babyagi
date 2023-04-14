@@ -187,7 +187,9 @@ def execution_agent(objective: str, task: str) -> str:
     This is not a conversation, perform the task and return the result.
     Take into account these previously completed tasks: {context}.
     Your task to perform confidently: {task}."""
-    return generate_text(prompt).strip()
+    response = generate_text(prompt)
+    print(f"Response: {response}")
+    return response
 
 def context_agent(query: str, index: FAISS, n: int):
     """
