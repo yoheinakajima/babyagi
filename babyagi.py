@@ -44,8 +44,12 @@ YOUR_TABLE_NAME = os.getenv("TABLE_NAME", "")
 assert YOUR_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
 
 # Starting configuation
-# OBJECTIVE = os.getenv("OBJECTIVE", "")
-OBJECTIVE = input("Give the AI an objective: ")
+DEFAULT_OBJECTIVE = os.getenv("OBJECTIVE", "")
+
+OBJECTIVE = input(f"Give the AI an objective (default: {DEFAULT_OBJECTIVE}): \n\t").strip()
+if OBJECTIVE=='':
+    OBJECTIVE=DEFAULT_OBJECTIVE
+
 DEBUG_MODE = os.getenv("DEBUG_MODE")=='TRUE'
 INITIAL_TASK = os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", ""))
 
@@ -241,14 +245,16 @@ def prioritization_agent(completed_tasks, incomplete_tasks, debug=False):
     {
         prioritized_tasks: ['priority 1 task', 'priority 2 task']
     }'''
-    Your response should only contain the JSON object and be parsable by json.loads().
-    Reponse:"""
+    Do not include anything but the JSON object in your response.
+    Response:"""
 
+    response = openai_call(prompt).strip()
     try:
-        response_json = json.loads(openai_call(prompt).strip())
+        response_json = json.loads()
         new_tasks = json.loads(response_json)['prioritized_tasks']
     except json.decoder.JSONDecodeError:
         print("JSON load fail! Trying again with more tokens")
+        print(f"Received text: \n{response}")
         response_json = json.loads(openai_call(prompt, max_tokens=300).strip())
     
     new_tasks = json.loads(response_json)['prioritized_tasks']
@@ -317,7 +323,8 @@ def feedback_agent(task_result, debug=False):
     You are an AI who manages other AI agents in completing tasks with the ultimate objective: {OBJECTIVE}
     Take into account these previously completed tasks: {task_result['context']}
     Your subordinate's result for the task: {task_result['task_name']}
-    '''{task_result}'''
+    '''Result:
+    {task_result}'''
     If the task has been completed satisfactorily answer 'TASK_COMPLETED' followed by a brief explanation of why. Otherwise answer with feedback for your agent to help them complete the task properly.
     Response:"""
     
