@@ -245,7 +245,7 @@ def context_agent(query: str, top_results_num: int):
     if count == 0:
         return []
     results = collection.query(
-        query_texts=query, n_results=min(n, count), include=["metadatas"]
+        query_texts=query, n_results=min(top_results_num, count), include=["metadatas"]
     )
     # print("***** RESULTS *****")
     # print(results)
