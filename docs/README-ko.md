@@ -11,7 +11,7 @@
 [<img title="简体中文" alt="Simplified Chinese" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/cn.svg" width="22">](docs/README-cn.md)
 [<img title="繁體中文 (Traditional Chinese)" alt="繁體中文 (Traditional Chinese)" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/tw.svg" width="22">](docs/README-zh-tw.md)
 [<img title="日本語" alt="日本語" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/jp.svg" width="22">](docs/README-ja.md)
-[<img title="한국어" alt="한국어" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/kr.svg" width="22">](docs/README-kr.md)
+[<img title="한국어" alt="한국어" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/kr.svg" width="22">](docs/README-ko.md)
 
 # 목표
 이 Python 스크립트는 AI 기반 작업 관리 시스템의 예시입니다. 이 시스템은 OpenAI 및 Pinecone API를 사용하여 작업을 생성하고, 우선순위를 지정하고, 실행합니다. 이 시스템의 기본 아이디어는 이전 작업의 결과와 미리 정의된 목표를 기반으로 작업을 생성한다는 것입니다. 그런 다음 스크립트는 OpenAI의 자연어 처리(NLP) 기능을 사용하여 목표에 따라 새 작업을 생성하고 Pinecone은 컨텍스트에 맞게 작업 결과를 저장 및 검색합니다. 이것은 원래의 [작업 기반 자율 에이전트](https://twitter.com/yoheinakajima/status/1640934493489070080?s=20) (2023년 3월 28일)를 축소한 버전입니다.
