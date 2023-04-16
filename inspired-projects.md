@@ -67,3 +67,15 @@ This document highlights a curated selection of remarkable projects inspired by 
     - Description: Integrate babyagi with your own applications - thanks to langchain-serve with one simple command - 𝐥𝐜-𝐬𝐞𝐫𝐯𝐞 𝐝𝐞𝐩𝐥𝐨𝐲 𝐛𝐚𝐛𝐲𝐚𝐠𝐢
     - Author: [Deepankar Mahapatro](https://github.com/deepankarm)
     - Twitter: https://twitter.com/_deepankarm_
+17. [gptrpg](https://github.com/dzoba/gptrpg)
+    - Description: A simple RPG-like environment for an LLM-enabled AI Agent to exist in
+    - Author: [Chris Dzoba](https://github.com/dzoba)
+    - Twitter: https://twitter.com/ChrisDzoba_
+18. [BabyAGI-ts](https://github.com/context-labs/babyagi-ts)
+    - Description: Port BabyAGI from Python to TypeScript and provide a friendly CLI tool that can be installed as a global NPM module
+    - Author: [Sam Hogan](https://github.com/samheutmaker)
+    - Twitter: https://twitter.com/0xSamHogan
+19. [LLMitlessAPI](https://github.com/adamcohenhillel/LLMitlessAPI)
+    - Description: API with one endpoint that does everything.
+    - Author: [Adam Cohen Hillel](https://github.com/adamcohenhillel)
+    - Twitter: https://twitter.com/adamcohenhillel
