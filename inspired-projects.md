@@ -79,3 +79,7 @@ This document highlights a curated selection of remarkable projects inspired by 
     - Description: API with one endpoint that does everything.
     - Author: [Adam Cohen Hillel](https://github.com/adamcohenhillel)
     - Twitter: https://twitter.com/adamcohenhillel
+20. [Chippr-AGI](https://github.com/chippr-robotics/chippr-agi)
+    - Description: Chippr-AGI is an open-source framework that uses AI models to automate task creation and prioritization. NodeJS, Redis, OpenAI/LLAMA
+    - Author: [Cody Burns](https://github.com/realcodywburns)
+    - Twitter: https://twitter.com/DontPanicBurns
