@@ -4,11 +4,10 @@ import time
 from collections import deque
 from typing import Dict, List
 import importlib
-import numpy as np
-from scipy.spatial.distance import cdist
 from local_memory import LocalMemory
-
+import json
 import openai
+from colorama import Fore
 import pinecone
 from dotenv import load_dotenv
 
@@ -44,10 +43,14 @@ assert (
 YOUR_TABLE_NAME = os.getenv("TABLE_NAME", "")
 assert YOUR_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
 
-# Goal configuation
+# Starting configuation
 # OBJECTIVE = os.getenv("OBJECTIVE", "")
 OBJECTIVE = input("Give the AI an objective: ")
+DEBUG_MODE = os.getenv("DEBUG_MODE")=='TRUE'
 INITIAL_TASK = os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", ""))
+
+if DEBUG_MODE:
+    print(Fore.YELLOW + 'Using DEBUG mode, will show debugging output and pause at end of each loop.' + Fore.RESET)
 
 # Model configuration
 OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", 0.0))
@@ -156,7 +159,7 @@ def openai_call(
     prompt: str,
     model: str = OPENAI_API_MODEL,
     temperature: float = OPENAI_TEMPERATURE,
-    max_tokens: int = 100,
+    max_tokens: int = 200,
 ):
     while True:
         try:
@@ -198,62 +201,63 @@ def openai_call(
             break
 
 
-def task_curation_agent(objective: str, last_task: Dict, finished_tasks: str, to_do_tasks: str, mgr_advice, debug=False):
-    prompt = f"""
-    You are a task management AI that curates a given list of tasks with the overall aim to achieve the following objective: {objective}.
-    The completed tasks are: {finished_tasks}
-    The unfinished tasks are: {to_do_tasks}
-    Tasks are completed individually by AI execution agents. The last completed task was: {last_task['task_name']}. The result of the task was:
-    '''{last_task['task_result']}'''
-    
-    You also have a product manager who gave this advice for the remaining tasks:
-    '''{mgr_advice}'''
-    Only return a curated list of tasks, as an array."""
-    if debug:
-        print(f'CURATION_AGENT:\n{prompt}')
-    response = openai_call(prompt)
-    new_tasks = response.split("\n") if "\n" in response else [response]
-    return [{"task_name": task_name} for task_name in new_tasks]
-
-
 def project_complete_agent(objective: str, finished_list, to_do_list: List[str], debug=False):
     prompt = f"""
-    You are a project overseer AI that uses the results of several execution agents completing different tasks to determine if the following objective has been successfully reached: {objective},
-    There are the completed tasks: {', '.join(finished_list)}.
-    These are incomplete tasks: {', '.join(to_do_list)}.
-    It is possible that the remaining tasks are unnecessary. If you feel the project is finished, answer with 'PROJECT_COMPLETED' followed by a brief explanation of why. Otherwise, very briefly suggest which, if any, tasks should be added or removed to the task list.
+    You are a project overseer AI that determins if the following objective has been successfully reached: {objective}
+    Several AI execution agents have been working on tasks to complete the objective.
+    Completed tasks: {', '.join(finished_list)}
+    Incomplete tasks: {', '.join(to_do_list)}
+    Respond with a JSON object that can be parsed by json.loads() and is structured:"""+"""'''
+    {
+        project_status: '<complete|incomplete>', 
+        incomplete_tasks: ['Do this thing', 'Do other thing']
+    }'''
+    Do not include anything but the JSON object in your response.
     Response:"""
     if debug:
         print(f'Project Complete Agent Prompt:\n{prompt}')
-        
-    response = openai_call(prompt)
-    return response
-
-
-def prioritization_agent(this_task_id: int):
-    global task_list
-    task_names = [t["task_name"] for t in task_list]
-    next_task_id = int(this_task_id) + 1
-    prompt = f"""
-    You are a task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}.
-    Consider the ultimate objective of your team:{OBJECTIVE}.
-    Do not remove any tasks. Start the task list with number {next_task_id} and return the result as a numbered list, like:
-    {next_task_id}. Next task
-    {next_task_id+1}. Task after next task
-    And so on.
+    try:
+        response_json = json.loads(openai_call(prompt))
+    except json.decoder.JSONDecodeError:
+        print("JSON parse failed! Trying again with more tokens allowed.")
+        response_json = json.loads(openai_call(prompt, max_tokens=300))
+    if debug:
+        print(f'Project agent response:\n{response_json}')
     
-    List of remaining tasks:"""
-    response = openai_call(prompt)
-    new_tasks = response.split("\n") if "\n" in response else [response]
-    task_list = deque()
-    for task_string in new_tasks:
-        task_parts = task_string.strip().split(".", 1)
-        if not task_parts[0].isdigit():
-            continue
-        if len(task_parts) == 2:
-            task_id = task_parts[0].strip()
-            task_name = task_parts[1].strip()
-            task_list.append({"task_id": task_id, "task_name": task_name})
+    if response_json['project_status'] == 'complete':
+        return 'PROJECT_COMPLETE'
+    else:
+        return response_json['incomplete_tasks']
+
+
+def prioritization_agent(completed_tasks, incomplete_tasks, debug=False):
+    global task_list
+    prompt = f"""
+    You are a task prioritization AI tasked with prioritizing the following list of tasks: {incomplete_tasks}.
+    Consider the ultimate objective of your team:{OBJECTIVE}.
+    Also consider the already-completed tasks: {completed_tasks}.
+    Remove any duplicate tasks from the incomplete task list. Do not remove any other tasks or add new tasks.
+    Return a JSON object of the prioritized incomplete tasks with the following format:"""+"""'''
+    {
+        prioritized_tasks: ['priority 1 task', 'priority 2 task']
+    }'''
+    Your response should only contain the JSON object and be parsable by json.loads().
+    Reponse:"""
+
+    try:
+        response_json = json.loads(openai_call(prompt).strip())
+        new_tasks = json.loads(response_json)['prioritized_tasks']
+    except json.decoder.JSONDecodeError:
+        print("JSON load fail! Trying again with more tokens")
+        response_json = json.loads(openai_call(prompt, max_tokens=300).strip())
+    
+    new_tasks = json.loads(response_json)['prioritized_tasks']
+    
+    if debug:
+        print(f'Prioritization Resopnse:\n{response_json}')
+
+    
+    return new_tasks
 
 
 def execution_agent(objective: str, task: str, debug=False) -> str:
@@ -331,12 +335,13 @@ first_task = {"task_id": 1, "task_name": INITIAL_TASK}
 
 add_task(first_task)
 # Main loop
-task_id_counter = 1
+task_id_counter = 0
 mask_task_counter = 30
-debugging = False
+project_status = 'STARTED'
+debugging = DEBUG_MODE
 while True:
-    mask_task_counter -= 1
-    if mask_task_counter == 0:
+    task_id_counter += 1
+    if task_id_counter == mask_task_counter:
         print("Task limit reached.")
         quit()
         
@@ -385,7 +390,7 @@ while True:
                     )
                 break
             else:
-                print(f'FEEDBACK:\n{mgmt_feedback}')
+                print(Fore.MAGENTA + f'FEEDBACK:\n{mgmt_feedback}' + Fore.RESET)
                 enriched_result['feedback'] = mgmt_feedback
         
         # store the data in memory
@@ -400,38 +405,36 @@ while True:
         
         completed_task_names = [str(x['task_id']) + '. ' + x['task_name'] for x in completed_tasks]
         to_do_task_names = [str(x['task_id']) + '. ' + x['task_name'] for x in task_list]
-        project_status = 'STARTED'
-        # determine if project is completed or not
+
+        # send list of completed/unfinished tasks to overseer for feedback
         if task_id_counter>1:
-            project_status = project_complete_agent(
+            overseer_feedback = project_complete_agent(
                 OBJECTIVE, 
                 completed_task_names, 
                 to_do_task_names,
                 debug=debugging
             )
-            print(f'\n>>> Project status update: {project_status}')
-            if 'PROJECT_COMPLETE' in project_status:
-                print("Finished with the project!")
-                quit()
-        else:
-            project_status = ''
-        
-        # Step 3: Create new tasks and reprioritize task list
-        new_tasks = task_curation_agent(
-            OBJECTIVE,
-            enriched_result,
-            ', '.join(completed_task_names),
-            ', '.join(to_do_task_names),
-            project_status, 
-            debug=debugging
-        )
+            print(Fore.LIGHTRED_EX + f'\n>>> Project status: {project_status}\n' + Fore.RESET)
 
-        task_list = deque([])
-        for new_task in new_tasks:
-            task_id_counter += 1
-            new_task.update({"task_id": task_id_counter})
-            add_task(new_task)
+            if overseer_feedback == 'PROJECT_COMPLETE':
+                print("Finished with the project!")
+                break
+            else:
+                to_do_task_names = overseer_feedback
+
         
-        prioritization_agent(this_task_id)
+        prioritized_tasks = prioritization_agent(completed_tasks, to_do_task_names, debugging)
+        task_list = deque([])
+        next_task_id = this_task_id 
+        for to_do_task in prioritized_tasks:
+            next_task_id += 1
+            add_task({
+                'task_id': next_task_id, 
+                'task_name': to_do_task
+            })
+    
+    if debugging:
+        input('\n>>> DEBUG MODE: Press any key to continue ')
+        print()
 
     time.sleep(1)  # Sleep before checking the task list again
