@@ -99,7 +99,7 @@ print("\033[93m\033[1m" + "\nInitial task:" + "\033[0m\033[0m" + f" {INITIAL_TAS
 openai.api_key = OPENAI_API_KEY
 
 # Create Chroma collection
-chroma_persist_dir = "babyagi"
+chroma_persist_dir = "babyagi_storage"
 chroma_client = chromadb.Client(
     settings=chromadb.config.Settings(
         chroma_db_impl="duckdb+parquet",
