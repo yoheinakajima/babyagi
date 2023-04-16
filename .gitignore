@@ -1,7 +1,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
+saved_results/*txt
+memory/*json
 .env
 .env.*
 env/
