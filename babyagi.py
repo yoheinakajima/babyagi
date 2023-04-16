@@ -1,4 +1,3 @@
-
 import os
 import subprocess
 import time
@@ -118,7 +117,8 @@ metric = "cosine"
 pod_type = "p1"
 
 try:
-    raise Exception
+    if os.getenv('USE_MEMORY')=='local':
+        raise Exception('Using local storage for memory...')
     if table_name not in pinecone.list_indexes():
         pinecone.create_index(
             table_name, dimension=dimension, metric=metric, pod_type=pod_type
@@ -127,6 +127,7 @@ try:
     # Connect to the index
     index = pinecone.Index(table_name)
 except:
+    print('Setting up local memory store. This is a test feature and may not produce the same results.')
     index = LocalMemory(BABY_NAME, resume=False)
 
 
