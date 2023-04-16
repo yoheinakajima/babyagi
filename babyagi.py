@@ -1,10 +1,13 @@
-#!/usr/bin/env python3
+
 import os
 import subprocess
 import time
 from collections import deque
 from typing import Dict, List
 import importlib
+import numpy as np
+from scipy.spatial.distance import cdist
+from local_memory import LocalMemory
 
 import openai
 import pinecone
@@ -13,7 +16,8 @@ from dotenv import load_dotenv
 # Load default environment variables (.env)
 load_dotenv()
 
-# Engine configuration
+# Other configs
+BABY_NAME = os.getenv('BABY_NAME')
 
 # API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
@@ -42,7 +46,8 @@ YOUR_TABLE_NAME = os.getenv("TABLE_NAME", "")
 assert YOUR_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
 
 # Goal configuation
-OBJECTIVE = os.getenv("OBJECTIVE", "")
+# OBJECTIVE = os.getenv("OBJECTIVE", "")
+OBJECTIVE = input("Give the AI an objective: ")
 INITIAL_TASK = os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", ""))
 
 # Model configuration
@@ -111,13 +116,27 @@ table_name = YOUR_TABLE_NAME
 dimension = 1536
 metric = "cosine"
 pod_type = "p1"
-if table_name not in pinecone.list_indexes():
-    pinecone.create_index(
-        table_name, dimension=dimension, metric=metric, pod_type=pod_type
-    )
 
-# Connect to the index
-index = pinecone.Index(table_name)
+try:
+    raise Exception
+    if table_name not in pinecone.list_indexes():
+        pinecone.create_index(
+            table_name, dimension=dimension, metric=metric, pod_type=pod_type
+        )
+
+    # Connect to the index
+    index = pinecone.Index(table_name)
+except:
+    index = LocalMemory(BABY_NAME, resume=False)
+
+
+# Identify/Create file for saving results
+saved_results_file = f'saved_results/{BABY_NAME}_results.txt'
+with open(saved_results_file, 'w') as f:
+    f.write(
+        f"""AGI Name: {BABY_NAME}
+        OBJECTIVE: {OBJECTIVE}\n\n"""
+    )
 
 # Task list
 task_list = deque([])
@@ -129,9 +148,7 @@ def add_task(task: Dict):
 
 def get_ada_embedding(text):
     text = text.replace("\n", " ")
-    return openai.Embedding.create(input=[text], model="text-embedding-ada-002")[
-        "data"
-    ][0]["embedding"]
+    return openai.Embedding.create(input=[text], model="text-embedding-ada-002")["data"][0]["embedding"]
 
 
 def openai_call(
@@ -180,18 +197,36 @@ def openai_call(
             break
 
 
-def task_creation_agent(
-    objective: str, result: Dict, task_description: str, task_list: List[str]
-):
+def task_curation_agent(objective: str, last_task: Dict, finished_tasks: str, to_do_tasks: str, mgr_advice, debug=False):
     prompt = f"""
-    You are a task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective},
-    The last completed task has the result: {result}.
-    This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}.
-    Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks.
-    Return the tasks as an array."""
+    You are a task management AI that curates a given list of tasks with the overall aim to achieve the following objective: {objective}.
+    The completed tasks are: {finished_tasks}
+    The unfinished tasks are: {to_do_tasks}
+    Tasks are completed individually by AI execution agents. The last completed task was: {last_task['task_name']}. The result of the task was:
+    '''{last_task['task_result']}'''
+    
+    You also have a product manager who gave this advice for the remaining tasks:
+    '''{mgr_advice}'''
+    Only return a curated list of tasks, as an array."""
+    if debug:
+        print(f'CURATION_AGENT:\n{prompt}')
     response = openai_call(prompt)
     new_tasks = response.split("\n") if "\n" in response else [response]
     return [{"task_name": task_name} for task_name in new_tasks]
+
+
+def project_complete_agent(objective: str, finished_list, to_do_list: List[str], debug=False):
+    prompt = f"""
+    You are a project overseer AI that uses the results of several execution agents completing different tasks to determine if the following objective has been successfully reached: {objective},
+    There are the completed tasks: {', '.join(finished_list)}.
+    These are incomplete tasks: {', '.join(to_do_list)}.
+    It is possible that the remaining tasks are unnecessary. If you feel the project is finished, answer with 'PROJECT_COMPLETED' followed by a brief explanation of why. Otherwise, very briefly suggest which, if any, tasks should be added or removed to the task list.
+    Response:"""
+    if debug:
+        print(f'Project Complete Agent Prompt:\n{prompt}')
+        
+    response = openai_call(prompt)
+    return response
 
 
 def prioritization_agent(this_task_id: int):
@@ -201,22 +236,26 @@ def prioritization_agent(this_task_id: int):
     prompt = f"""
     You are a task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}.
     Consider the ultimate objective of your team:{OBJECTIVE}.
-    Do not remove any tasks. Return the result as a numbered list, like:
-    #. First task
-    #. Second task
-    Start the task list with number {next_task_id}."""
+    Do not remove any tasks. Start the task list with number {next_task_id} and return the result as a numbered list, like:
+    {next_task_id}. Next task
+    {next_task_id+1}. Task after next task
+    And so on.
+    
+    List of remaining tasks:"""
     response = openai_call(prompt)
     new_tasks = response.split("\n") if "\n" in response else [response]
     task_list = deque()
     for task_string in new_tasks:
         task_parts = task_string.strip().split(".", 1)
+        if not task_parts[0].isdigit():
+            continue
         if len(task_parts) == 2:
             task_id = task_parts[0].strip()
             task_name = task_parts[1].strip()
             task_list.append({"task_id": task_id, "task_name": task_name})
 
 
-def execution_agent(objective: str, task: str) -> str:
+def execution_agent(objective: str, task: str, debug=False) -> str:
     """
     Executes a task based on the given objective and previous context.
 
@@ -228,15 +267,23 @@ def execution_agent(objective: str, task: str) -> str:
         str: The response generated by the AI for the given task.
 
     """
-    
-    context = context_agent(query=objective, top_results_num=5)
+    context = task['context']
     # print("\n*******RELEVANT CONTEXT******\n")
     # print(context)
     prompt = f"""
     You are an AI who performs one task based on the following objective: {objective}\n.
     Take into account these previously completed tasks: {context}\n.
-    Your task: {task}\nResponse:"""
-    return openai_call(prompt, max_tokens=2000)
+    Your task: {task}\n"""
+    if task['feedback']:
+        last_attempt = task['task_result']
+        last_feedback = task['feedback']
+        prompt += f"Your previous attempt: {last_attempt}\nYour manager's feedback on your previous attempt: {last_feedback}\n"
+    
+    prompt += 'Response:'
+    if debug:
+        print(f'EXECUTION AGENT PROMPT:\n{prompt}')
+    task_result = openai_call(prompt, max_tokens=2000)
+    return {'task_context': context, 'task_result': task_result}
 
 
 def context_agent(query: str, top_results_num: int):
@@ -259,13 +306,39 @@ def context_agent(query: str, top_results_num: int):
     return [(str(item.metadata["task"])) for item in sorted_results]
 
 
+def feedback_agent(task_result, debug=False):
+    # determines if the task has been satisfactorily completed, or if the objective has been reached
+    prompt = f"""
+    You are an AI who manages other AI agents in completing tasks with the ultimate objective: {OBJECTIVE}
+    Take into account these previously completed tasks: {task_result['context']}
+    Your subordinate's result for the task: {task_result['task_name']}
+    '''{task_result}'''
+    If the task has been completed satisfactorily answer 'TASK_COMPLETED' followed by a brief explanation of why. Otherwise answer with feedback for your agent to help them complete the task properly.
+    Response:"""
+    
+    if debug:
+        print(f'FEEDBACK:\n{prompt}')
+        
+    result = openai_call(prompt, max_tokens=2000)
+    
+    return(result)
+
+completed_tasks = []
+
 # Add the first task
 first_task = {"task_id": 1, "task_name": INITIAL_TASK}
 
 add_task(first_task)
 # Main loop
 task_id_counter = 1
+mask_task_counter = 30
+debugging = False
 while True:
+    mask_task_counter -= 1
+    if mask_task_counter == 0:
+        print("Task limit reached.")
+        quit()
+        
     if task_list:
         # Print the task list
         print("\033[95m\033[1m" + "\n*****TASK LIST*****\n" + "\033[0m\033[0m")
@@ -277,37 +350,87 @@ while True:
         print("\033[92m\033[1m" + "\n*****NEXT TASK*****\n" + "\033[0m\033[0m")
         print(str(task["task_id"]) + ": " + task["task_name"])
 
-        # Send to execution function to complete the task based on the context
-        result = execution_agent(OBJECTIVE, task["task_name"])
-        this_task_id = int(task["task_id"])
-        print("\033[93m\033[1m" + "\n*****TASK RESULT*****\n" + "\033[0m\033[0m")
-        print(result)
-
-        # Step 2: Enrich result and store in Pinecone
         enriched_result = {
-            "data": result
-        }  # This is where you should enrich the result if needed
+            "task_id": task['task_id'], 
+            "task_name": task['task_name'], 
+            "context":  context_agent(query=task["task_name"], top_results_num=5), 
+            "feedback": None
+        }  
+        
+        for exec_try in range(5):
+            # Send to execution function to complete the task based on the context
+            result = execution_agent(OBJECTIVE, enriched_result, debugging)
+            result_text = result['task_result']
+            this_task_id = int(enriched_result["task_id"])
+            print("\033[93m\033[1m" + "\n*****TASK RESULT*****\n" + "\033[0m\033[0m")
+            print(result['task_result'])
+
+            # Step 2: Enrich result and store in Pinecone/Memory
+            enriched_result["task_result"] = result_text
+            
+            # ask managing agent if task was completed properly or not
+            mgmt_feedback = feedback_agent(enriched_result, debugging)
+            if 'TASK_COMPLETED' in mgmt_feedback:
+                print("\033[92m\033[1m" + f"\n{mgmt_feedback}\n" + "\033[0m\033[0m")
+                enriched_result['approval_note'] = mgmt_feedback
+                enriched_result['feedback'] = None
+                completed_tasks.append(enriched_result)
+                with open(saved_results_file, 'a') as f:
+                    f.write(
+                        f"""
+                        Task: {enriched_result['task_id']}. {enriched_result['task_name']}
+                        Result: {enriched_result['task_result']}
+                        """
+                    )
+                break
+            else:
+                print(f'FEEDBACK:\n{mgmt_feedback}')
+                enriched_result['feedback'] = mgmt_feedback
+        
+        # store the data in memory
         result_id = f"result_{task['task_id']}"
         vector = get_ada_embedding(
-            enriched_result["data"]
+            enriched_result["task_result"]
         )  # get vector of the actual result extracted from the dictionary
         index.upsert(
-            [(result_id, vector, {"task": task["task_name"], "result": result})],
+            [(result_id, vector, {"task": enriched_result["task_name"], "result": enriched_result['task_result']})],
 	    namespace=OBJECTIVE
         )
-
+        
+        completed_task_names = [str(x['task_id']) + '. ' + x['task_name'] for x in completed_tasks]
+        to_do_task_names = [str(x['task_id']) + '. ' + x['task_name'] for x in task_list]
+        project_status = 'STARTED'
+        # determine if project is completed or not
+        if task_id_counter>1:
+            project_status = project_complete_agent(
+                OBJECTIVE, 
+                completed_task_names, 
+                to_do_task_names,
+                debug=debugging
+            )
+            print(f'\n>>> Project status update: {project_status}')
+            if 'PROJECT_COMPLETE' in project_status:
+                print("Finished with the project!")
+                quit()
+        else:
+            project_status = ''
+        
         # Step 3: Create new tasks and reprioritize task list
-        new_tasks = task_creation_agent(
+        new_tasks = task_curation_agent(
             OBJECTIVE,
             enriched_result,
-            task["task_name"],
-            [t["task_name"] for t in task_list],
+            ', '.join(completed_task_names),
+            ', '.join(to_do_task_names),
+            project_status, 
+            debug=debugging
         )
 
+        task_list = deque([])
         for new_task in new_tasks:
             task_id_counter += 1
             new_task.update({"task_id": task_id_counter})
             add_task(new_task)
+        
         prioritization_agent(this_task_id)
 
     time.sleep(1)  # Sleep before checking the task list again
