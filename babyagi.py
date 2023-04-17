@@ -145,6 +145,9 @@ except:
 saved_results_folder = f'saved_results/{BABY_NAME}'
 if not os.path.exists(saved_results_folder):
     os.mkdir(saved_results_folder)
+else:
+    for file in os.listdir(saved_results_folder):
+        os.unlink(os.path.join(saved_results_folder, file))
 
 # Task list
 task_list = deque([])
