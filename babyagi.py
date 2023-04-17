@@ -92,7 +92,7 @@ assert INITIAL_TASK, "INITIAL_TASK environment variable is missing from .env"
 if "gpt-4" in OPENAI_API_MODEL.lower():
     print(
         "\033[91m\033[1m"
-        + "\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"
+        + "\n*****USING GPT-4 IS POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS!*****"
         + "\033[0m\033[0m"
     )
 
@@ -263,51 +263,56 @@ def context_agent(query: str, top_results_num: int):
 first_task = {"task_id": 1, "task_name": INITIAL_TASK}
 
 add_task(first_task)
-# Main loop
-task_id_counter = 1
-while True:
-    if task_list:
-        # Print the task list
-        print("\033[95m\033[1m" + "\n*****TASK LIST*****\n" + "\033[0m\033[0m")
-        for t in task_list:
-            print(str(t["task_id"]) + ": " + t["task_name"])
 
-        # Step 1: Pull the first task
-        task = task_list.popleft()
-        print("\033[92m\033[1m" + "\n*****NEXT TASK*****\n" + "\033[0m\033[0m")
-        print(str(task["task_id"]) + ": " + task["task_name"])
 
-        # Send to execution function to complete the task based on the context
-        result = execution_agent(OBJECTIVE, task["task_name"])
-        this_task_id = int(task["task_id"])
-        print("\033[93m\033[1m" + "\n*****TASK RESULT*****\n" + "\033[0m\033[0m")
-        print(result)
+def main():
+    task_id_counter = 1
+    while True:
+        if task_list:
+            # Print the task list
+            print("\033[95m\033[1m" + "\n*****TASK LIST*****\n" + "\033[0m\033[0m")
+            for t in task_list:
+                print(str(t["task_id"]) + ": " + t["task_name"])
 
-        # Step 2: Enrich result and store in Pinecone
-        enriched_result = {
-            "data": result
-        }  # This is where you should enrich the result if needed
-        result_id = f"result_{task['task_id']}"
-        vector = get_ada_embedding(
-            enriched_result["data"]
-        )  # get vector of the actual result extracted from the dictionary
-        index.upsert(
-            [(result_id, vector, {"task": task["task_name"], "result": result})],
-	    namespace=OBJECTIVE
-        )
+            # Step 1: Pull the first task
+            task = task_list.popleft()
+            print("\033[92m\033[1m" + "\n*****NEXT TASK*****\n" + "\033[0m\033[0m")
+            print(str(task["task_id"]) + ": " + task["task_name"])
 
-        # Step 3: Create new tasks and reprioritize task list
-        new_tasks = task_creation_agent(
-            OBJECTIVE,
-            enriched_result,
-            task["task_name"],
-            [t["task_name"] for t in task_list],
-        )
+            # Send to execution function to complete the task based on the context
+            result = execution_agent(OBJECTIVE, task["task_name"])
+            this_task_id = int(task["task_id"])
+            print("\033[93m\033[1m" + "\n*****TASK RESULT*****\n" + "\033[0m\033[0m")
+            print(result)
 
-        for new_task in new_tasks:
-            task_id_counter += 1
-            new_task.update({"task_id": task_id_counter})
-            add_task(new_task)
-        prioritization_agent(this_task_id)
+            # Step 2: Enrich result and store in Pinecone
+            enriched_result = {
+                "data": result
+            }  # This is where you should enrich the result if needed
+            result_id = f"result_{task['task_id']}"
+            vector = get_ada_embedding(
+                enriched_result["data"]
+            )  # get vector of the actual result extracted from the dictionary
+            index.upsert(
+                [(result_id, vector, {"task": task["task_name"], "result": result})],
+    	    namespace=OBJECTIVE
+            )
 
-    time.sleep(1)  # Sleep before checking the task list again
+            # Step 3: Create new tasks and reprioritize task list
+            new_tasks = task_creation_agent(
+                OBJECTIVE,
+                enriched_result,
+                task["task_name"],
+                [t["task_name"] for t in task_list],
+            )
+
+            for new_task in new_tasks:
+                task_id_counter += 1
+                new_task.update({"task_id": task_id_counter})
+                add_task(new_task)
+            prioritization_agent(this_task_id)
+
+        time.sleep(1)  # Sleep before checking the task list again
+
+if __name__ == "__main__":
+    main()
