@@ -56,7 +56,7 @@ To use the script, you will need to follow these steps:
 6. Set the name of the table where the task results will be stored in the TABLE_NAME variable.
 7. (Optional) Set the objective of the task management system in the OBJECTIVE variable.
 8. (Optional) Set the first task of the system in the INITIAL_TASK variable.
-9. Run the script.
+9. Run the script: `python babyagi.py`
 
 All optional values above can also be specified on the command line.
 
