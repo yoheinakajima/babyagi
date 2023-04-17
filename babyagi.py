@@ -98,15 +98,15 @@ openai.api_key = OPENAI_API_KEY
 task_list = deque([])
 
 # Memory for tasks
-#index = NumpyMemory()
+index = NumpyMemory()
 
 # For Pinecone use the following:
 # from memories.pinecone_memory import PineconeMemory
 # index = PineconeMemory()
 
 # For vecto use the following:
-from memories.vecto_memory import VectoMemory
-index = VectoMemory()
+#from memories.vecto_memory import VectoMemory
+#index = VectoMemory()
 
 def add_task(task: Dict):
     task_list.append(task)
