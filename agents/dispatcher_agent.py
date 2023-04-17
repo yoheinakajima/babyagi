@@ -11,7 +11,6 @@ class DispatcherAgent:
         self.hugging_dispatcher = None
         self.openai = None
         self.browser = None
-        self.scraper = None
 
         if name in ["wikipedia", "yelp", "arxiv", "nhanes", 'openweather', "jsonplaceholder", "pubmed", "newsapi", "clinicaltrials"]:
             self.api_dispatcher = APIDispatcher(name)
@@ -19,10 +18,8 @@ class DispatcherAgent:
             self.hugging_dispatcher = HuggingDispatcher(name)
         elif name in ["openai"]:
             self.openai = agent_data.open_ai
-        elif name in ["browse"]:
+        elif name in ["browse", "scrape", "browse_ddg"]:
             self.browser = agent_data.browser
-        elif name in ["scrape"]:
-            self.scraper = "foo"
         else:
             raise ValueError(f"Invalid dispatcher name: {name}")
     
@@ -34,12 +31,17 @@ class DispatcherAgent:
         elif self.hugging_dispatcher:
             return self.hugging_dispatcher.generate(params)
         elif self.openai:
-            return self.openai.generate_text(*params, 0.3)
-        elif self.browser:
-            r = self.browser.scrape(params)
-            self.browser = None
+            r = self.openai.generate_text(*params, 0.3)
+            self.openai = None
             return r
-        elif self.scraper:
-            r = ScrapperAgent(params).scrape()
-            self.scraper = None
+        elif self.browser:
+            browser_api = self.browser
+            if self.name == "browse":
+                r = browser_api.search(*params)
+            elif self.name == "browse_ddg":
+                r = browser_api.searchDDG(*params)
+            elif self.name == "scrape":
+                r = browser_api.scrape(*params)
+
+            self.browser = None
             return r

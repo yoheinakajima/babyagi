@@ -1,23 +1,4 @@
 
-AVAILABLE_AGENTS = [
-    {
-      "api_name": "google-place",
-      "description": "Find nearby places, using google place api",
-      "request_format": "api_name(https://maps.googleapis.com/maps/api/place/{endpoint}, params?)"
-    },
-    {
-      "api_name": "jsonplaceholder",
-      "description": "A fake API for testing and prototyping",
-      "request_format": "api_name(endpoint, params)"
-    },
-    {
-      "api_name": "openweather",
-      "description": "Get weather data",
-      "request_format": "api_name(endpoint, params)"
-    },
-  ]
-
-
 PROMPT = f"""You are an API provider agent.
 Please provide a maximum of 3 requests in a list using any of the following APIs and note that you should be using the following syntax (do not return [description] in output, but take it into account):
 

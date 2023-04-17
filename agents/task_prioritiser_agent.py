@@ -6,7 +6,7 @@ class ObjectiveCompletionAgent:
         pass
         
     def conclude(self,  agent: AgentData):
-        description_string = ",AND ".join(task.description for task in agent.active_tasks)
+        description_string = " AND ".join(task.description for task in agent.active_tasks)
 
         agent.logger.log(f"""List of tasks remaining: {description_string}""")
 

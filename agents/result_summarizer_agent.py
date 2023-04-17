@@ -57,13 +57,13 @@ class ResultSummarizerAgent:
         result = self.summarize_text(task.result, 10)
 
         prompt = f"""Please rewrite this base text: {result} so that it is cleaner and easier to understand.
-            First start by judging the relevance of the BASE TEXT (return "Grade: ?/10", 0 would be an error in the data), please be strict while assessing the quality of the base text in relation to the task.
-            
             Include relevant information, interesting URL (https:... etc) and examples that support the following task at hand: {task.description}.
             Provide extensive information, and feel free to include as many particulars as possible.
+
+            Note: judge the relevance of the BASE TEXT (return "Grade: ?/10", 0 would be an error in the data), please be strict while assessing the quality of the base text in relation to the task.
             """
 
-        response = agent.open_ai.generate_text(prompt, 0.2)
+        response = agent.open_ai.generate_text(prompt, 0.1)
 
         agent.logger.log(f"Task Summary: {response}")
         return response
