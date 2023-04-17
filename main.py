@@ -17,10 +17,13 @@ load_dotenv()
 # API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env"
+BROWSER_API_KEY = os.getenv("BROWSER_API_KEY", "")
+BROWSER_API_ENGINE = os.getenv("BROWSER_API_ENGINE", "")
+assert BROWSER_API_KEY, "BROWSER_API_KEY environment variable is missing from .env"
 
 #options = Weaviate.WeaviateOptions(host='http://localhost:8080')
 #vector_client = Weaviate(options)
-browser_agent = BrowserAgent()
+browser_agent = BrowserAgent(BROWSER_API_KEY, BROWSER_API_ENGINE)
 openai_provider = OpenAiProvider(OPENAI_API_KEY)
 logger = LoggerAgent()
 task_processor = TaskProcessor()

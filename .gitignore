@@ -13,3 +13,4 @@ venv/
 
 models
 llama/
+output/

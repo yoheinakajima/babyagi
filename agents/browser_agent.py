@@ -3,6 +3,7 @@ from googleapiclient.errors import HttpError
 from duckduckgo_search import ddg
 from agents.scrapper_agent import ScrapperAgent
 
+
 class BrowserAgent:
     def __init__(self, api_key, engine_id):
         self.api_key = api_key

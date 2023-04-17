@@ -3,6 +3,7 @@ from agents.scrapper_agent import ScrapperAgent
 from apis.api_dispatcher import APIDispatcher
 from hugging.hugging_dipatcher import HuggingDispatcher
 
+
 class DispatcherAgent:
     def __init__(self, name, agent_data: AgentData):
         self.name = name

@@ -3,6 +3,7 @@ import string
 from docx import Document
 import os
 
+
 class LoggerAgent:
     def __init__(self):
         self.document = Document()

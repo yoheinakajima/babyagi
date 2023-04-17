@@ -1,5 +1,5 @@
-
 from agents.IAgent import AgentData
+
 
 class ObjectiveCompletionAgent:
     def __init__(self):
