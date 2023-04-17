@@ -175,9 +175,27 @@ def openai_call(
             print(
                 "The OpenAI API rate limit has been exceeded. Waiting 10 seconds and trying again."
             )
+        except openai.error.Timeout:
+            print(
+                "An OpenAI API timeout has occured. Waiting 10 seconds and trying again."
+            )
+        except openai.error.APIError:
+            print(
+                "An OpenAI API error occured. Waiting 10 seconds and trying again."
+            )
+        except openai.error.APIConnectionError:
+            print(
+                "   *** OpenAI API connection error occured. Check your network settings, proxy configuration, SSL certificates, or firewall rules. Waiting 10 seconds and trying again. ***"
+            )
+        except openai.error.InvalidRequestError:
+            print(
+                "   *** OpenAI API invalid request. Check the documentation for the specific API method you are calling and make sure you are sending valid and complete parameters. Waiting 10 seconds and trying again. ***"
+            )
+        except openai.error.ServiceUnavailableError:
+            print(
+                "   *** OpenAI API service unavailable. Waiting 10 seconds and trying again. ***"
+            )
             time.sleep(10)  # Wait 10 seconds and try again
-        else:
-            break
 
 
 def task_creation_agent(
