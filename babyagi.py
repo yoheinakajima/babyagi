@@ -185,15 +185,15 @@ def openai_call(
             )
         except openai.error.APIConnectionError:
             print(
-                "   *** OpenAI API connection error occured. Check your network settings, proxy configuration, SSL certificates, or firewall rules. Waiting 10 seconds and trying again. ***"
+                "An OpenAI API connection error occured. Check your network settings, proxy configuration, SSL certificates, or firewall rules. Waiting 10 seconds and trying again."
             )
         except openai.error.InvalidRequestError:
             print(
-                "   *** OpenAI API invalid request. Check the documentation for the specific API method you are calling and make sure you are sending valid and complete parameters. Waiting 10 seconds and trying again. ***"
+                "There was an OpenAI API invalid request. Check the documentation for the specific API method you are calling and make sure you are sending valid and complete parameters. Waiting 10 seconds and trying again."
             )
         except openai.error.ServiceUnavailableError:
             print(
-                "   *** OpenAI API service unavailable. Waiting 10 seconds and trying again. ***"
+                "The OpenAI API service is currently unavailable. Waiting 10 seconds and trying again."
             )
             time.sleep(10)  # Wait 10 seconds and try again
 
