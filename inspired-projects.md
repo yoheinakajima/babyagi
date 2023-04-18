@@ -63,3 +63,27 @@ This document highlights a curated selection of remarkable projects inspired by 
     - Description: The Do Anything Machine helps you keep track of your tasks, prioritize them, and allows you to deploy AI agents to get your work done for you.
     - Author: Garrett Scott
     - Twitter: https://twitter.com/thegarrettscott
+16. [Babyagi-as-a-service](https://github.com/jina-ai/langchain-serve#-babyagi-as-a-service)
+    - Description: Integrate babyagi with your own applications - thanks to langchain-serve with one simple command - 𝐥𝐜-𝐬𝐞𝐫𝐯𝐞 𝐝𝐞𝐩𝐥𝐨𝐲 𝐛𝐚𝐛𝐲𝐚𝐠𝐢
+    - Author: [Deepankar Mahapatro](https://github.com/deepankarm)
+    - Twitter: https://twitter.com/_deepankarm_
+17. [gptrpg](https://github.com/dzoba/gptrpg)
+    - Description: A simple RPG-like environment for an LLM-enabled AI Agent to exist in
+    - Author: [Chris Dzoba](https://github.com/dzoba)
+    - Twitter: https://twitter.com/ChrisDzoba_
+18. [BabyAGI-ts](https://github.com/context-labs/babyagi-ts)
+    - Description: Port BabyAGI from Python to TypeScript and provide a friendly CLI tool that can be installed as a global NPM module
+    - Author: [Sam Hogan](https://github.com/samheutmaker)
+    - Twitter: https://twitter.com/0xSamHogan
+19. [LLMitlessAPI](https://github.com/adamcohenhillel/LLMitlessAPI)
+    - Description: API with one endpoint that does everything.
+    - Author: [Adam Cohen Hillel](https://github.com/adamcohenhillel)
+    - Twitter: https://twitter.com/adamcohenhillel
+20. [PuttyGPT](https://github.com/webgrip/PuttyGPT)
+    - Description: Wiring all this good stuff together. Weaviate, langchain, the ideas I see popping up everywhere, new concepts AI thinks off. Agents deploying other agents, concurrent requests, continuously training new finetuned models on data that's being gathered from its activities. It's FAR from a working prototype, but 100% worth a look.
+    - Author: [Ryan William Grippeling](https://github.com/ryangr0)
+    - Twitter: https://twitter.com/ryangrippeling
+21. [Chippr-AGI](https://github.com/chippr-robotics/chippr-agi)
+    - Description: Chippr-AGI is an open-source framework that uses AI models to automate task creation and prioritization. NodeJS, Redis, OpenAI/LLAMA
+    - Author: [Cody Burns](https://github.com/realcodywburns)
+    - Twitter: https://twitter.com/DontPanicBurns
