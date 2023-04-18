@@ -8,3 +8,4 @@ RUN pip install -r requirements.txt
 WORKDIR /app
 COPY . /app
 ENTRYPOINT ["./babyagi.py"]
+EXPOSE 8080
