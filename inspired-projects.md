@@ -79,7 +79,7 @@ This document highlights a curated selection of remarkable projects inspired by 
     - Description: API with one endpoint that does everything.
     - Author: [Adam Cohen Hillel](https://github.com/adamcohenhillel)
     - Twitter: https://twitter.com/adamcohenhillel
-20. [LLMitlessAPI](https://github.com/webgrip/PuttyGPT)
+20. [PuttyGPT](https://github.com/webgrip/PuttyGPT)
     - Description: Wiring all this good stuff together. Weaviate, langchain, the ideas I see popping up everywhere, new concepts AI thinks off. Agents deploying other agents, concurrent requests, continuously training new finetuned models on data that's being gathered from its activities. It's FAR from a working prototype, but 100% worth a look.
     - Author: [Ryan William Grippeling](https://github.com/ryangr0)
     - Twitter: https://twitter.com/ryangrippeling
