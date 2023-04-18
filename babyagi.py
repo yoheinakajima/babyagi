@@ -5,7 +5,7 @@ import time
 from collections import deque
 from typing import Dict, List
 import importlib
-
+import re
 import openai
 import pinecone
 from dotenv import load_dotenv
@@ -40,6 +40,10 @@ JOIN_EXISTING_OBJECTIVE = False
 
 # Goal configuation
 OBJECTIVE = os.getenv("OBJECTIVE", "")
+# Pinecone namespaces are only compatible with ascii characters (used in query and upsert)
+ASCII_ONLY = re.compile('[^\x00-\x7F]+')
+OBJECTIVE_PINECONE_COMPAT = re.sub(ASCII_ONLY, '', OBJECTIVE)
+
 INITIAL_TASK = os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", ""))
 
 # Model configuration
@@ -313,7 +317,7 @@ def context_agent(query: str, top_results_num: int):
 
     """
     query_embedding = get_ada_embedding(query)
-    results = index.query(query_embedding, top_k=top_results_num, include_metadata=True, namespace=OBJECTIVE)
+    results = index.query(query_embedding, top_k=top_results_num, include_metadata=True, namespace=OBJECTIVE_PINECONE_COMPAT)
     # print("***** RESULTS *****")
     # print(results)
     sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)
@@ -356,7 +360,7 @@ while True:
         )  # get vector of the actual result extracted from the dictionary
         index.upsert(
             [(result_id, vector, {"task": task["task_name"], "result": result})],
-	    namespace=OBJECTIVE
+      namespace=OBJECTIVE_PINECONE_COMPAT
         )
 
         # Step 3: Create new tasks and reprioritize task list
