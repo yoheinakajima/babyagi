@@ -29,6 +29,15 @@ if "gpt-4" in OPENAI_API_MODEL.lower():
         + "\033[0m\033[0m"
     )
 
+LLAMA_MODEL_PATH = os.getenv("LLAMA_MODEL_PATH", "")
+if "lama" in OPENAI_API_MODEL.lower():
+    from llama_cpp import Llama
+
+    CTX_MAX = 2048
+    llm = Llama(
+        model_path=LLAMA_MODEL_PATH,
+        use_mlock=True, n_ctx=CTX_MAX, n_threads=4)
+
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
 assert PINECONE_API_KEY, "PINECONE_API_KEY environment variable is missing from .env"
 
@@ -144,9 +153,8 @@ def openai_call(
         try:
             if model.startswith("llama"):
                 # Spawn a subprocess to run llama.cpp
-                cmd = ["llama/main", "-p", prompt]
-                result = subprocess.run(cmd, shell=True, stderr=subprocess.DEVNULL, stdout=subprocess.PIPE, text=True)
-                return result.stdout.strip()
+                result = llm(prompt[:CTX_MAX], stop=["### Human"], echo=True, temperature=0.2)
+                return result['choices'][0]['text'].strip()
             elif not model.startswith("gpt-"):
                 # Use completion API
                 response = openai.Completion.create(
@@ -172,7 +180,7 @@ def openai_call(
                 )
                 return response.choices[0].message.content.strip()
         except openai.error.RateLimitError:
-            print(
+            print_orig(
                 "The OpenAI API rate limit has been exceeded. Waiting 10 seconds and trying again."
             )
             time.sleep(10)  # Wait 10 seconds and try again
