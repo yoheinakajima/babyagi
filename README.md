@@ -39,7 +39,7 @@ The script works by running an infinite loop that does the following steps:
 4. Creates new tasks and reprioritizes the task list based on the objective and the result of the previous task.
    </br>
 
-![graph created by GPT4 reading the codebase](https://user-images.githubusercontent.com/6764957/232960281-3978d2af-6b5a-47f4-ba7f-a76a312f6ac1.png)
+![image](https://user-images.githubusercontent.com/6764957/232961802-e4c4c17d-b520-4db1-827c-a218a1647c73.png)
 
 The execution_agent() function is where the OpenAI API is used. It takes two parameters: the objective and the task. It then sends a prompt to OpenAI's API, which returns the result of the task. The prompt consists of a description of the AI system's task, the objective, and the task itself. The result is then returned as a string.
 </br>
