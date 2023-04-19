@@ -22,7 +22,7 @@ assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env
 OPENAI_API_MODEL = os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo")
 
 LLAMA_MODEL_PATH = os.getenv("LLAMA_MODEL_PATH", "")
-if "lama" in OPENAI_API_MODEL.lower():
+if "llama" in OPENAI_API_MODEL.lower():
     from llama_cpp import Llama
 
     CTX_MAX = 2048
@@ -336,7 +336,7 @@ def context_agent(query: str, top_results_num: int):
         list: A list of tasks as context for the given query, sorted by relevance.
 
     """
-    query_embedding = get_embedding(query, )
+    query_embedding = get_embedding(query)
     results = index.query(query_embedding, top_k=top_results_num, include_metadata=True, namespace=OBJECTIVE_PINECONE_COMPAT)
     # print("***** RESULTS *****")
     # print(results)
