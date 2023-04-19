@@ -28,7 +28,14 @@ if "lama" in OPENAI_API_MODEL.lower():
     CTX_MAX = 2048
     llm = Llama(
         model_path=LLAMA_MODEL_PATH,
-        use_mlock=True, n_ctx=CTX_MAX, n_threads=4)
+        n_ctx=CTX_MAX, n_threads=4,
+        use_mlock=True,
+    )
+    llm_embed = Llama(
+        model_path=LLAMA_MODEL_PATH,
+        n_ctx=CTX_MAX, n_threads=4,
+        embedding=True, use_mlock=True,
+    )
 
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
 assert PINECONE_API_KEY, "PINECONE_API_KEY environment variable is missing from .env"
@@ -124,7 +131,10 @@ pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_ENVIRONMENT)
 
 # Create Pinecone index
 table_name = YOUR_TABLE_NAME
-dimension = 1536
+if OPENAI_API_MODEL.startswith('llama'):
+    dimension = 5120
+else:
+    dimension = 1536
 metric = "cosine"
 pod_type = "p1"
 if table_name not in pinecone.list_indexes():
@@ -174,11 +184,14 @@ elif COOPERATIVE_MODE in ['d', 'distributed']:
 
 
 # Get embedding for the text
-def get_ada_embedding(text):
+def get_embedding(text, model: str = OPENAI_API_MODEL):
     text = text.replace("\n", " ")
-    return openai.Embedding.create(input=[text], model="text-embedding-ada-002")[
-        "data"
-    ][0]["embedding"]
+    if model.startswith("llama"):
+        return llm_embed.embed(text)
+    else:
+        return openai.Embedding.create(input=[text], model="text-embedding-ada-002")[
+            "data"
+        ][0]["embedding"]
 
 
 def openai_call(
@@ -190,7 +203,6 @@ def openai_call(
     while True:
         try:
             if model.startswith("llama"):
-                # Spawn a subprocess to run llama.cpp
                 result = llm(prompt[:CTX_MAX], stop=["### Human"], echo=True, temperature=0.2)
                 return result['choices'][0]['text'].strip()
             elif not model.startswith("gpt-"):
@@ -324,7 +336,7 @@ def context_agent(query: str, top_results_num: int):
         list: A list of tasks as context for the given query, sorted by relevance.
 
     """
-    query_embedding = get_ada_embedding(query)
+    query_embedding = get_embedding(query, )
     results = index.query(query_embedding, top_k=top_results_num, include_metadata=True, namespace=OBJECTIVE_PINECONE_COMPAT)
     # print("***** RESULTS *****")
     # print(results)
@@ -363,7 +375,7 @@ while True:
             "data": result
         }  # This is where you should enrich the result if needed
         result_id = f"result_{task['task_id']}"
-        vector = get_ada_embedding(
+        vector = get_embedding(
             enriched_result["data"]
         )  # get vector of the actual result extracted from the dictionary
         index.upsert(
