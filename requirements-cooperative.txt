@@ -1,2 +1,1 @@
--r requirements.txt
 ray==2.3.1

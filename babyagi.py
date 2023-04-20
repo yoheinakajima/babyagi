@@ -6,7 +6,7 @@ import time
 from collections import deque
 from typing import Dict, List, NamedTuple
 import importlib
-
+import re
 import openai
 from dotenv import load_dotenv
 
@@ -22,17 +22,18 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env"
 
 OPENAI_API_MODEL = os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo")
-assert OPENAI_API_MODEL, "OPENAI_API_MODEL environment variable is missing from .env"
 
-if "gpt-4" in OPENAI_API_MODEL.lower():
-    print(
-        "\033[91m\033[1m"
-        + "\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"
-        + "\033[0m\033[0m"
-    )
+# Run configuration
+BABY_NAME = os.getenv("BABY_NAME", "BabyAGI")
+COOPERATIVE_MODE = "none"
+JOIN_EXISTING_OBJECTIVE = False
 
 # Goal configuation
 OBJECTIVE = os.getenv("OBJECTIVE", "")
+# Pinecone namespaces are only compatible with ascii characters (used in query and upsert)
+ASCII_ONLY = re.compile('[^\x00-\x7F]+')
+OBJECTIVE_PINECONE_COMPAT = re.sub(ASCII_ONLY, '', OBJECTIVE)
+
 INITIAL_TASK = os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", ""))
 
 # Model configuration
@@ -60,7 +61,7 @@ if ENABLE_COMMAND_LINE_ARGS:
     if can_import("extensions.argparseext"):
         from extensions.argparseext import parse_arguments
 
-        OBJECTIVE, INITIAL_TASK, OPENAI_API_MODEL, DOTENV_EXTENSIONS = parse_arguments()
+        OBJECTIVE, INITIAL_TASK, OPENAI_API_MODEL, DOTENV_EXTENSIONS, BABY_NAME, COOPERATIVE_MODE, JOIN_EXISTING_OBJECTIVE = parse_arguments()
 
 # Load additional environment variables for enabled extensions
 if DOTENV_EXTENSIONS:
@@ -69,11 +70,17 @@ if DOTENV_EXTENSIONS:
 
         load_dotenv_extensions(DOTENV_EXTENSIONS)
 
+
 # TODO: There's still work to be done here to enable people to get
 # defaults from dotenv extensions # but also provide command line
 # arguments to override them
 
 # Extensions support end
+
+print("\033[95m\033[1m"+"\n*****CONFIGURATION*****\n"+"\033[0m\033[0m")
+print(f"Name: {BABY_NAME}")
+print(f"LLM : {OPENAI_API_MODEL}")
+print(f"Mode: {'none' if COOPERATIVE_MODE in ['n', 'none'] else 'local' if COOPERATIVE_MODE in ['l', 'local'] else 'distributed' if COOPERATIVE_MODE in ['d', 'distributed'] else 'undefined'}")
 
 # Check if we know what we are doing
 assert OBJECTIVE, "OBJECTIVE environment variable is missing from .env"
@@ -86,16 +93,39 @@ if "gpt-4" in OPENAI_API_MODEL.lower():
         + "\033[0m\033[0m"
     )
 
-# Print OBJECTIVE
 print("\033[94m\033[1m" + "\n*****OBJECTIVE*****\n" + "\033[0m\033[0m")
 print(f"{OBJECTIVE}")
 
-print("\033[93m\033[1m" + "\nInitial task:" + "\033[0m\033[0m" + f" {INITIAL_TASK}")
+if not JOIN_EXISTING_OBJECTIVE: print("\033[93m\033[1m" + "\nInitial task:" + "\033[0m\033[0m" + f" {INITIAL_TASK}")
+else: print("\033[93m\033[1m" + f"\nJoining to help the objective" + "\033[0m\033[0m")
 
 openai.api_key = OPENAI_API_KEY
 
-# Task list
-task_list = deque([])
+# Task storage supporting only a single instance of BabyAGI
+class SingleTaskListStorage:
+    def __init__(self):
+        self.tasks = deque([])
+        self.task_id_counter = 0
+
+    def append(self, task: Dict):
+        self.tasks.append(task)
+
+    def replace(self, tasks: List[Dict]):
+        self.tasks = deque(tasks)
+
+    def popleft(self):
+        return self.tasks.popleft()
+
+    def is_empty(self):
+        return False if self.tasks else True
+
+    def next_task_id(self):
+        self.task_id_counter += 1
+        return self.task_id_counter
+
+    def get_task_names(self):
+        return [t["task_name"] for t in self.tasks]
+
 
 # Memory for tasks
 index = NumpyMemory()
@@ -108,8 +138,16 @@ index = NumpyMemory()
 #from memories.vecto_memory import VectoMemory
 #index = VectoMemory()
 
-def add_task(task: Dict):
-    task_list.append(task)
+# Initialize tasks storage
+tasks_storage = SingleTaskListStorage()
+if COOPERATIVE_MODE in ['l', 'local']:
+    import sys
+    from pathlib import Path
+    sys.path.append(str(Path(__file__).resolve().parent))
+    from extensions.ray_tasks import CooperativeTaskListStorage
+    tasks_storage = CooperativeTaskListStorage(OBJECTIVE)
+elif COOPERATIVE_MODE in ['d', 'distributed']:
+    pass
 
 
 def openai_call(
@@ -151,7 +189,32 @@ def openai_call(
                 return response.choices[0].message.content.strip()
         except openai.error.RateLimitError:
             print(
-                "The OpenAI API rate limit has been exceeded. Waiting 10 seconds and trying again."
+                "   *** The OpenAI API rate limit has been exceeded. Waiting 10 seconds and trying again. ***"
+            )
+            time.sleep(10)  # Wait 10 seconds and try again
+        except openai.error.Timeout:
+            print(
+                "   *** OpenAI API timeout occured. Waiting 10 seconds and trying again. ***"
+            )
+            time.sleep(10)  # Wait 10 seconds and try again
+        except openai.error.APIError:
+            print(
+                "   *** OpenAI API error occured. Waiting 10 seconds and trying again. ***"
+            )
+            time.sleep(10)  # Wait 10 seconds and try again
+        except openai.error.APIConnectionError:
+            print(
+                "   *** OpenAI API connection error occured. Check your network settings, proxy configuration, SSL certificates, or firewall rules. Waiting 10 seconds and trying again. ***"
+            )
+            time.sleep(10)  # Wait 10 seconds and try again
+        except openai.error.InvalidRequestError:
+            print(
+                "   *** OpenAI API invalid request. Check the documentation for the specific API method you are calling and make sure you are sending valid and complete parameters. Waiting 10 seconds and trying again. ***"
+            )
+            time.sleep(10)  # Wait 10 seconds and try again
+        except openai.error.ServiceUnavailableError:
+            print(
+                "   *** OpenAI API service unavailable. Waiting 10 seconds and trying again. ***"
             )
             time.sleep(10)  # Wait 10 seconds and try again
         else:
@@ -172,10 +235,9 @@ def task_creation_agent(
     return [{"task_name": task_name} for task_name in new_tasks]
 
 
-def prioritization_agent(this_task_id: int):
-    global task_list
-    task_names = [t["task_name"] for t in task_list]
-    next_task_id = int(this_task_id) + 1
+def prioritization_agent():
+    task_names = tasks_storage.get_task_names()
+    next_task_id = tasks_storage.next_task_id()
     prompt = f"""
     You are a task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}.
     Consider the ultimate objective of your team:{OBJECTIVE}.
@@ -185,15 +247,17 @@ def prioritization_agent(this_task_id: int):
     Start the task list with number {next_task_id}."""
     response = openai_call(prompt)
     new_tasks = response.split("\n") if "\n" in response else [response]
-    task_list = deque()
+    new_tasks_list = []
     for task_string in new_tasks:
         task_parts = task_string.strip().split(".", 1)
         if len(task_parts) == 2:
             task_id = task_parts[0].strip()
             task_name = task_parts[1].strip()
-            task_list.append({"task_id": task_id, "task_name": task_name})
+            new_tasks_list.append({"task_id": task_id, "task_name": task_name})
+    tasks_storage.replace(new_tasks_list)
 
 
+# Execute a task based on the objective and five previous tasks 
 def execution_agent(objective: str, task: str) -> str:
     """
     Executes a task based on the given objective and previous context.
@@ -217,6 +281,7 @@ def execution_agent(objective: str, task: str) -> str:
     return openai_call(prompt, max_tokens=2000)
 
 
+# Get the top n completed tasks for the objective
 def context_agent(query: str, top_results_num: int):
     """
     Retrieves context for a given query from an index of tasks.
@@ -235,51 +300,61 @@ def context_agent(query: str, top_results_num: int):
     sorted_results = sorted(results, key=lambda x: x.score, reverse=True)
     return [(str(item.metadata["task"])) for item in sorted_results]
 
+# Add the initial task if starting new objective
+if not JOIN_EXISTING_OBJECTIVE:
+    initial_task = {
+        "task_id": tasks_storage.next_task_id(),
+        "task_name": INITIAL_TASK
+    }
+    tasks_storage.append(initial_task)
 
-# Add the first task
-first_task = {"task_id": 1, "task_name": INITIAL_TASK}
+def main ():
+    while True:
+        # As long as there are tasks in the storage...
+        if not tasks_storage.is_empty():
+            # Print the task list
+            print("\033[95m\033[1m" + "\n*****TASK LIST*****\n" + "\033[0m\033[0m")
+            for t in tasks_storage.get_task_names():
+                print(" • "+t)
 
-add_task(first_task)
-# Main loop
-task_id_counter = 1
-while True:
-    if task_list:
-        # Print the task list
-        print("\033[95m\033[1m" + "\n*****TASK LIST*****\n" + "\033[0m\033[0m")
-        for t in task_list:
-            print(str(t["task_id"]) + ": " + t["task_name"])
+            # Step 1: Pull the first incomplete task
+            task = tasks_storage.popleft()
+            print("\033[92m\033[1m" + "\n*****NEXT TASK*****\n" + "\033[0m\033[0m")
+            print(task['task_name'])
 
-        # Step 1: Pull the first task
-        task = task_list.popleft()
-        print("\033[92m\033[1m" + "\n*****NEXT TASK*****\n" + "\033[0m\033[0m")
-        print(str(task["task_id"]) + ": " + task["task_name"])
+            # Send to execution function to complete the task based on the context
+            result = execution_agent(OBJECTIVE, task["task_name"])
+            print("\033[93m\033[1m" + "\n*****TASK RESULT*****\n" + "\033[0m\033[0m")
+            print(result)
 
-        # Send to execution function to complete the task based on the context
-        result = execution_agent(OBJECTIVE, task["task_name"])
-        this_task_id = int(task["task_id"])
-        print("\033[93m\033[1m" + "\n*****TASK RESULT*****\n" + "\033[0m\033[0m")
-        print(result)
+            # Step 2: Enrich result and store in Pinecone
+            enriched_result = {
+                "data": result
+            }  # This is where you should enrich the result if needed
+            result_id = f"result_{task['task_id']}"
+            vector = get_ada_embedding(
+                enriched_result["data"]
+            )  # get vector of the actual result extracted from the dictionary
+            index.upsert(
+                [(result_id, vector, {"task": task["task_name"], "result": result})],
+          namespace=OBJECTIVE_PINECONE_COMPAT
+            )
 
-        # Step 2: Enrich result and store in Pinecone
-        enriched_result = {
-            "data": result
-        }  # This is where you should enrich the result if needed
-        result_id = f"result_{task['task_id']}"
+            # Step 3: Create new tasks and reprioritize task list
+            new_tasks = task_creation_agent(
+                OBJECTIVE,
+                enriched_result,
+                task["task_name"],
+                tasks_storage.get_task_names(),
+            )
 
-        index.add(result_id, result, {"task": task["task_name"], "result": result})
+            for new_task in new_tasks:
+                new_task.update({"task_id": tasks_storage.next_task_id()})
+                tasks_storage.append(new_task)
 
-        # Step 3: Create new tasks and reprioritize task list
-        new_tasks = task_creation_agent(
-            OBJECTIVE,
-            enriched_result,
-            task["task_name"],
-            [t["task_name"] for t in task_list],
-        )
+            if not JOIN_EXISTING_OBJECTIVE: prioritization_agent()
 
-        for new_task in new_tasks:
-            task_id_counter += 1
-            new_task.update({"task_id": task_id_counter})
-            add_task(new_task)
-        prioritization_agent(this_task_id)
+        time.sleep(5)  # Sleep before checking the task list again
 
-    time.sleep(1)  # Sleep before checking the task list again
+if __name__ == "__main__":
+    main()
