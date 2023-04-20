@@ -1,0 +1,33 @@
+{
+  "name": "babyagi",
+  "version": "1.0.0",
+  "description": "babyagi",
+  "main": "babyagi.js",
+  "type": "module",
+  "author": "",
+  "contributors": [
+    {
+      "name": "Anton Troynikov",
+      "url": "https://twitter.com/atroyn"
+    },
+    {
+      "name": "Aidan Rauscher",
+      "url": "https://twitter.com/aidanjrauscher"
+    }
+  ],
+  "scripts": {
+    "babyagi": "node babyagi.js",
+    "start": "npm run chroma-up && node babyagi.js",
+    "chroma-up": "docker-compose -f ./chroma/docker-compose.yml up -d --build",
+    "chroma-down": "docker-compose -f ./chroma/docker-compose.yml down"
+  },
+  "keywords": [],
+  "license": "ISC",
+  "dependencies": {
+    "chromadb": "^1.4.1",
+    "dotenv": "^16.0.3",
+    "openai": "^3.2.1",
+    "prompt": "^1.3.0",
+    "prompt-sync": "^4.2.0"
+  }
+}
