@@ -4,9 +4,20 @@
   "description": "babyagi",
   "main": "babyagi.js",
   "type": "module",
-  "directories": {
-    "doc": "docs"
+  "author": {
+    "name": "Yohei Nakajima",
+    "url": "https://twitter.com/yoheinakajima"
   },
+  "contributors": [
+    {
+      "name": "Anton Troynikov",
+      "url": "https://twitter.com/atroyn"
+    },
+    {
+      "name": "Aidan Rauscher",
+      "url": "https://twitter.com/aidanjrauscher"
+    }
+  ],
   "scripts": {
     "dev": "node babyagi.js",
     "babyagi": "npm run chroma-up && node babyagi.js",
