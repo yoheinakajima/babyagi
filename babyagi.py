@@ -33,15 +33,10 @@ JOIN_EXISTING_OBJECTIVE = False
 
 # Goal configuation
 OBJECTIVE = os.getenv("OBJECTIVE", "")
-# Pinecone namespaces are only compatible with ascii characters (used in query and upsert)
-ASCII_ONLY = re.compile('[^\x00-\x7F]+')
-OBJECTIVE_PINECONE_COMPAT = re.sub(ASCII_ONLY, '', OBJECTIVE)
-
 INITIAL_TASK = os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", ""))
 
 # Model configuration
 OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", 0.0))
-
 
 # Extensions support begin
 
@@ -51,7 +46,6 @@ def can_import(module_name):
         return True
     except ImportError:
         return False
-
 
 DOTENV_EXTENSIONS = os.getenv("DOTENV_EXTENSIONS", "").split(" ")
 
@@ -63,7 +57,6 @@ ENABLE_COMMAND_LINE_ARGS = (
 if ENABLE_COMMAND_LINE_ARGS:
     if can_import("extensions.argparseext"):
         from extensions.argparseext import parse_arguments
-
         OBJECTIVE, INITIAL_TASK, OPENAI_API_MODEL, DOTENV_EXTENSIONS, BABY_NAME, COOPERATIVE_MODE, JOIN_EXISTING_OBJECTIVE = parse_arguments()
 
 # Load additional environment variables for enabled extensions
@@ -83,7 +76,7 @@ if DOTENV_EXTENSIONS:
 print("\033[95m\033[1m"+"\n*****CONFIGURATION*****\n"+"\033[0m\033[0m")
 print(f"Name: {BABY_NAME}")
 print(f"LLM : {OPENAI_API_MODEL}")
-print(f"Mode: {'none' if COOPERATIVE_MODE in ['n', 'none'] else 'local' if COOPERATIVE_MODE in ['l', 'local'] else 'distributed' if COOPERATIVE_MODE in ['d', 'distributed'] else 'undefined'}")
+print(f"Mode: {'alone' if COOPERATIVE_MODE in ['n', 'none'] else 'local' if COOPERATIVE_MODE in ['l', 'local'] else 'distributed' if COOPERATIVE_MODE in ['d', 'distributed'] else 'undefined'}")
 
 # Check if we know what we are doing
 assert OBJECTIVE, "OBJECTIVE environment variable is missing from .env"
@@ -109,7 +102,7 @@ openai.api_key = OPENAI_API_KEY
 class DefaultResultsStorage:
     def __init__(self):
         # Create Chroma collection
-        chroma_persist_dir = "babyagi_storage"
+        chroma_persist_dir = "chroma"
         chroma_client = chromadb.Client(
             settings=chromadb.config.Settings(
                 chroma_db_impl="duckdb+parquet",
@@ -146,9 +139,10 @@ class DefaultResultsStorage:
         count: int = self.collection.count()
         if count == 0:
             return []
-        return self.collection.query(
+        results = self.collection.query(
             query_texts=query, n_results=min(top_results_num, count), include=["metadatas"]
         )
+        return [item["task"] for item in results["metadatas"][0]]
 
 # Initialize results storage
 results_storage = DefaultResultsStorage()
@@ -161,7 +155,7 @@ if PINECONE_API_KEY:
         ), "PINECONE_ENVIRONMENT environment variable is missing from .env"
         from extensions.pinecone_storage import PineconeResultsStorage
         results_storage = PineconeResultsStorage(OPENAI_API_KEY, PINECONE_API_KEY, PINECONE_ENVIRONMENT, YOUR_TABLE_NAME, OBJECTIVE)
-
+        print("\nReplacing results storage: " + "\033[93m\033[1m" +  "Pinecone" + "\033[0m\033[0m")
 
 # Task storage supporting only a single instance of BabyAGI
 class SingleTaskListStorage:
@@ -198,6 +192,7 @@ if COOPERATIVE_MODE in ['l', 'local']:
         sys.path.append(str(Path(__file__).resolve().parent))
         from extensions.ray_tasks import CooperativeTaskListStorage
         tasks_storage = CooperativeTaskListStorage(OBJECTIVE)
+        print("\nReplacing tasks storage: " + "\033[93m\033[1m" +  "Ray" + "\033[0m\033[0m")
 elif COOPERATIVE_MODE in ['d', 'distributed']:
     pass
 
@@ -349,7 +344,7 @@ def context_agent(query: str, top_results_num: int):
     results = results_storage.query(query=query, top_results_num=top_results_num)
     # print("***** RESULTS *****")
     # print(results)
-    return [item["task"] for item in results["metadatas"][0]]
+    return results
 
 # Add the initial task if starting new objective
 if not JOIN_EXISTING_OBJECTIVE:

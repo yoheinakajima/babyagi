@@ -1,9 +1,8 @@
-from collections import deque
 from typing import Dict, List
 import importlib
-import re
 import openai
 import pinecone
+import re
 
 def can_import(module_name):
     try:
@@ -14,8 +13,7 @@ def can_import(module_name):
 
 assert (
     can_import("pinecone")
-), "Pinecone storage requires Pinecone. Please install it with `pip install pinecone-client`"
-
+), "\033[91m\033[1m"+"Pinecone storage requires package pinecone-client.\nInstall:  pip install -r extensions/requirements.txt"
 
 class PineconeResultsStorage:
     def __init__(self, openai_api_key: str, pinecone_api_key: str, pinecone_environment: str, table_name: str, objective: str):
@@ -54,6 +52,6 @@ class PineconeResultsStorage:
         return [(str(item.metadata["task"])) for item in sorted_results]
 
     # Get embedding for the text
-    def get_ada_embedding(self, text):
+    def get_ada_embedding(self, text:str) -> list:
         text = text.replace("\n", " ")
         return openai.Embedding.create(input=[text], model="text-embedding-ada-002")["data"][0]["embedding"]

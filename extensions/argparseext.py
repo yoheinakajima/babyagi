@@ -1,7 +1,14 @@
 import os
 import sys
-import argparse
 import importlib
+import argparse
+
+def can_import(module_name):
+    try:
+        importlib.import_module(module_name)
+        return True
+    except ImportError:
+        return False
 
 # Extract the env filenames in the -e flag only
 # Ignore any other arguments
@@ -84,17 +91,10 @@ def parse_arguments():
         parser.print_help()
         parser.exit()
 
-    def can_import(module_name):
-        try:
-            importlib.import_module(module_name)
-            return True
-        except ImportError:
-            return False
-
     module_name = "ray"
     cooperative_mode = args.mode
     if cooperative_mode in ['l', 'local'] and not can_import(module_name):
-        print("\033[91m\033[1m"+f"Local cooperative mode requires package {module_name}\nInstall:  pip install -r requirements-cooperative.txt\n" + "\033[0m\033[0m")
+        print("\033[91m\033[1m"+f"Local cooperative mode requires package {module_name}\nInstall:  pip install -r extensions/requirements.txt\n" + "\033[0m\033[0m")
         parser.print_help()
         parser.exit()
     elif cooperative_mode in ['d', 'distributed']:
