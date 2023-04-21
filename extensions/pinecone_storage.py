@@ -16,23 +16,23 @@ assert (
 ), "\033[91m\033[1m"+"Pinecone storage requires package pinecone-client.\nInstall:  pip install -r extensions/requirements.txt"
 
 class PineconeResultsStorage:
-    def __init__(self, openai_api_key: str, pinecone_api_key: str, pinecone_environment: str, table_name: str, objective: str):
+    def __init__(self, openai_api_key: str, pinecone_api_key: str, pinecone_environment: str, results_store_name: str, objective: str):
         openai.api_key = openai_api_key
         pinecone.init(api_key=pinecone_api_key, environment=pinecone_environment)
 
         # Pinecone namespaces are only compatible with ascii characters (used in query and upsert)
         self.namespace = re.sub(re.compile('[^\x00-\x7F]+'), '', objective)
 
-        table_name = table_name
+        results_store_name = results_store_name
         dimension = 1536
         metric = "cosine"
         pod_type = "p1"
-        if table_name not in pinecone.list_indexes():
+        if results_store_name not in pinecone.list_indexes():
             pinecone.create_index(
-                table_name, dimension=dimension, metric=metric, pod_type=pod_type
+                results_store_name, dimension=dimension, metric=metric, pod_type=pod_type
             )
 
-        self.index = pinecone.Index(table_name)
+        self.index = pinecone.Index(results_store_name)
 
     def add(self, task: Dict, result: Dict, result_id: int, vector: List):
         enriched_result = {
