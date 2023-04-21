@@ -13,3 +13,8 @@ env/
 
 models
 llama/
+
+# for node
+chroma/
+node_modules/
+.DS_Store
