@@ -1,3 +1,8 @@
+# Inspired Projects
+
+This document highlights a curated selection of remarkable projects inspired by or built upon the concepts and ideas of BabyAGI. Our aim is to showcase the diversity and creativity of the community, foster collaboration, and provide inspiration for future projects. By exploring these examples, we hope you will gain valuable insights and ideas to enhance your own work.
+
+## Projects List
 
 1. [BabyAGI on Slack](https://twitter.com/frankc/status/1645898312594382848)
    - Description: An implementation of BabyAGI in Slack! Each thread represents a new objective.
