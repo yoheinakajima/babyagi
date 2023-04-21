@@ -7,7 +7,8 @@ from typing import Dict, List
 import importlib
 import re
 import openai
-import pinecone
+import chromadb
+from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 from dotenv import load_dotenv
 
 # Load default environment variables (.env)
@@ -20,14 +21,6 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env"
 
 OPENAI_API_MODEL = os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo")
-
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
-assert PINECONE_API_KEY, "PINECONE_API_KEY environment variable is missing from .env"
-
-PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "")
-assert (
-    PINECONE_ENVIRONMENT
-), "PINECONE_ENVIRONMENT environment variable is missing from .env"
 
 # Table config
 YOUR_TABLE_NAME = os.getenv("TABLE_NAME", "")
@@ -109,22 +102,26 @@ print(f"{OBJECTIVE}")
 if not JOIN_EXISTING_OBJECTIVE: print("\033[93m\033[1m" + "\nInitial task:" + "\033[0m\033[0m" + f" {INITIAL_TASK}")
 else: print("\033[93m\033[1m" + f"\nJoining to help the objective" + "\033[0m\033[0m")
 
-# Configure OpenAI and Pinecone
+# Configure OpenAI
 openai.api_key = OPENAI_API_KEY
-pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_ENVIRONMENT)
 
-# Create Pinecone index
-table_name = YOUR_TABLE_NAME
-dimension = 1536
-metric = "cosine"
-pod_type = "p1"
-if table_name not in pinecone.list_indexes():
-    pinecone.create_index(
-        table_name, dimension=dimension, metric=metric, pod_type=pod_type
+# Create Chroma collection
+chroma_persist_dir = "babyagi_storage"
+chroma_client = chromadb.Client(
+    settings=chromadb.config.Settings(
+        chroma_db_impl="duckdb+parquet",
+        persist_directory=chroma_persist_dir,
     )
+)
 
-# Connect to the index
-index = pinecone.Index(table_name)
+table_name = YOUR_TABLE_NAME
+metric = "cosine"
+embedding_function = OpenAIEmbeddingFunction(api_key=OPENAI_API_KEY)
+collection = chroma_client.get_or_create_collection(
+    name=table_name,
+    metadata={"hnsw:space": metric},
+    embedding_function=embedding_function,
+)
 
 # Task storage supporting only a single instance of BabyAGI
 class SingleTaskListStorage:
@@ -162,14 +159,6 @@ if COOPERATIVE_MODE in ['l', 'local']:
     tasks_storage = CooperativeTaskListStorage(OBJECTIVE)
 elif COOPERATIVE_MODE in ['d', 'distributed']:
     pass
-
-
-# Get embedding for the text
-def get_ada_embedding(text):
-    text = text.replace("\n", " ")
-    return openai.Embedding.create(input=[text], model="text-embedding-ada-002")[
-        "data"
-    ][0]["embedding"]
 
 
 def openai_call(
@@ -316,12 +305,15 @@ def context_agent(query: str, top_results_num: int):
         list: A list of tasks as context for the given query, sorted by relevance.
 
     """
-    query_embedding = get_ada_embedding(query)
-    results = index.query(query_embedding, top_k=top_results_num, include_metadata=True, namespace=OBJECTIVE_PINECONE_COMPAT)
+    count = collection.count()
+    if count == 0:
+        return []
+    results = collection.query(
+        query_texts=query, n_results=min(top_results_num, count), include=["metadatas"]
+    )
     # print("***** RESULTS *****")
     # print(results)
-    sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)
-    return [(str(item.metadata["task"])) for item in sorted_results]
+    return [item["task"] for item in results["metadatas"][0]]
 
 # Add the initial task if starting new objective
 if not JOIN_EXISTING_OBJECTIVE:
@@ -350,18 +342,29 @@ def main ():
             print("\033[93m\033[1m" + "\n*****TASK RESULT*****\n" + "\033[0m\033[0m")
             print(result)
 
-            # Step 2: Enrich result and store in Pinecone
+            # Step 2: Enrich result and store in Chroma
             enriched_result = {
                 "data": result
             }  # This is where you should enrich the result if needed
             result_id = f"result_{task['task_id']}"
-            vector = get_ada_embedding(
-                enriched_result["data"]
-            )  # get vector of the actual result extracted from the dictionary
-            index.upsert(
-                [(result_id, vector, {"task": task["task_name"], "result": result})],
-          namespace=OBJECTIVE_PINECONE_COMPAT
-            )
+            vector = enriched_result[
+                "data"
+            ]  # extract the actual result from the dictionary
+
+            if (
+                len(collection.get(ids=[result_id], include=[])["ids"]) > 0
+            ):  # Check if the result already exists
+                collection.update(
+                    ids=result_id,
+                    documents=vector,
+                    metadatas={"task": task["task_name"], "result": result},
+                )
+            else:
+                collection.add(
+                    ids=result_id,
+                    documents=vector,
+                    metadatas={"task": task["task_name"], "result": result},
+                )
 
             # Step 3: Create new tasks and reprioritize task list
             new_tasks = task_creation_agent(
