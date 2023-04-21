@@ -16,9 +16,21 @@ load_dotenv()
 
 # Engine configuration
 
+# Use manual chat
+USE_MANUAL_CHAT = (
+    os.getenv("USE_MANUAL_CHAT", "false").lower() == "true"
+)
+
+# Use pinecone chat
+USE_PINECONE = (
+    os.getenv("USE_PINECONE", "false").lower() == "true"
+)
+
 # API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env"
+if not USE_MANUAL_CHAT:
+    assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env"
+
 
 LLM_MODEL = os.getenv("LLM_MODEL", os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo"))
 
@@ -271,6 +283,11 @@ def openai_call(
         else:
             break
 
+def user_input_await(prompt: str) -> str:
+    print("\033[94m\033[1m" + "\n> COPY FOLLOWING TEXT TO CHATBOT\n" + "\033[0m\033[0m")
+    print(prompt)
+    response = input("\033[96m\033[1m" + "\n> PASTE YOUR RESPONSE:\n" + "\033[0m\033[0m")
+    return response.strip()
 
 def task_creation_agent(
     objective: str, result: Dict, task_description: str, task_list: List[str]
@@ -281,7 +298,12 @@ def task_creation_agent(
     This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}.
     Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks.
     Return the tasks as an array."""
-    response = openai_call(prompt)
+
+    if USE_MANUAL_CHAT:
+        response = user_input_await(prompt)
+    else:
+        response = openai_call(prompt)
+
     new_tasks = response.split("\n") if "\n" in response else [response]
     return [{"task_name": task_name} for task_name in new_tasks]
 
@@ -296,7 +318,12 @@ def prioritization_agent():
     #. First task
     #. Second task
     Start the task list with number {next_task_id}."""
-    response = openai_call(prompt)
+    
+    if USE_MANUAL_CHAT:
+        response = user_input_await(prompt)
+    else:
+        response = openai_call(prompt)
+
     new_tasks = response.split("\n") if "\n" in response else [response]
     new_tasks_list = []
     for task_string in new_tasks:
@@ -329,7 +356,13 @@ def execution_agent(objective: str, task: str) -> str:
     You are an AI who performs one task based on the following objective: {objective}\n.
     Take into account these previously completed tasks: {context}\n.
     Your task: {task}\nResponse:"""
-    return openai_call(prompt, max_tokens=2000)
+    
+    if USE_MANUAL_CHAT:
+        response = user_input_await(prompt)
+    else:
+        response = openai_call(prompt, max_tokens=2000)
+
+    return response
 
 
 # Get the top n completed tasks for the objective
@@ -388,7 +421,8 @@ def main ():
 
             result_id = f"result_{task['task_id']}"
 
-            results_storage.add(task, result, result_id, vector)
+            if USE_PINECONE:
+                results_storage.add(task, result, result_id, vector)
 
             # Step 3: Create new tasks and reprioritize task list
             # only the main instance in cooperative mode does that
