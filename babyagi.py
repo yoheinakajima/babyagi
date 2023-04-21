@@ -105,23 +105,63 @@ else: print("\033[93m\033[1m" + f"\nJoining to help the objective" + "\033[0m\03
 # Configure OpenAI
 openai.api_key = OPENAI_API_KEY
 
-# Create Chroma collection
-chroma_persist_dir = "babyagi_storage"
-chroma_client = chromadb.Client(
-    settings=chromadb.config.Settings(
-        chroma_db_impl="duckdb+parquet",
-        persist_directory=chroma_persist_dir,
-    )
-)
+# Results storage using local ChromaDB
+class DefaultResultsStorage:
+    def __init__(self):
+        # Create Chroma collection
+        chroma_persist_dir = "babyagi_storage"
+        chroma_client = chromadb.Client(
+            settings=chromadb.config.Settings(
+                chroma_db_impl="duckdb+parquet",
+                persist_directory=chroma_persist_dir,
+            )
+        )
 
-table_name = YOUR_TABLE_NAME
-metric = "cosine"
-embedding_function = OpenAIEmbeddingFunction(api_key=OPENAI_API_KEY)
-collection = chroma_client.get_or_create_collection(
-    name=table_name,
-    metadata={"hnsw:space": metric},
-    embedding_function=embedding_function,
-)
+        table_name = YOUR_TABLE_NAME
+        metric = "cosine"
+        embedding_function = OpenAIEmbeddingFunction(api_key=OPENAI_API_KEY)
+        self.collection = chroma_client.get_or_create_collection(
+            name=table_name,
+            metadata={"hnsw:space": metric},
+            embedding_function=embedding_function,
+        )
+
+    def add(self, task: Dict, result: Dict, result_id: int, vector: List):
+        if (
+            len(self.collection.get(ids=[result_id], include=[])["ids"]) > 0
+        ):  # Check if the result already exists
+            self.collection.update(
+                ids=result_id,
+                documents=vector,
+                metadatas={"task": task["task_name"], "result": result},
+            )
+        else:
+            self.collection.add(
+                ids=result_id,
+                documents=vector,
+                metadatas={"task": task["task_name"], "result": result},
+            )  # Sleep before checking the task list again
+
+    def query(self, query: str, top_results_num: int) -> List[dict]:
+        count: int = self.collection.count()
+        if count == 0:
+            return []
+        return self.collection.query(
+            query_texts=query, n_results=min(top_results_num, count), include=["metadatas"]
+        )
+
+# Initialize results storage
+results_storage = DefaultResultsStorage()
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
+if PINECONE_API_KEY:
+    if can_import("extensions.pinecone_storage"):
+        PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "")
+        assert (
+            PINECONE_ENVIRONMENT
+        ), "PINECONE_ENVIRONMENT environment variable is missing from .env"
+        from extensions.pinecone_storage import PineconeResultsStorage
+        results_storage = PineconeResultsStorage(OPENAI_API_KEY, PINECONE_API_KEY, PINECONE_ENVIRONMENT, YOUR_TABLE_NAME, OBJECTIVE)
+
 
 # Task storage supporting only a single instance of BabyAGI
 class SingleTaskListStorage:
@@ -152,11 +192,12 @@ class SingleTaskListStorage:
 # Initialize tasks storage
 tasks_storage = SingleTaskListStorage()
 if COOPERATIVE_MODE in ['l', 'local']:
-    import sys
-    from pathlib import Path
-    sys.path.append(str(Path(__file__).resolve().parent))
-    from extensions.ray_tasks import CooperativeTaskListStorage
-    tasks_storage = CooperativeTaskListStorage(OBJECTIVE)
+    if can_import("extensions.ray_tasks"):
+        import sys
+        from pathlib import Path
+        sys.path.append(str(Path(__file__).resolve().parent))
+        from extensions.ray_tasks import CooperativeTaskListStorage
+        tasks_storage = CooperativeTaskListStorage(OBJECTIVE)
 elif COOPERATIVE_MODE in ['d', 'distributed']:
     pass
 
@@ -305,12 +346,7 @@ def context_agent(query: str, top_results_num: int):
         list: A list of tasks as context for the given query, sorted by relevance.
 
     """
-    count = collection.count()
-    if count == 0:
-        return []
-    results = collection.query(
-        query_texts=query, n_results=min(top_results_num, count), include=["metadatas"]
-    )
+    results = results_storage.query(query=query, top_results_num=top_results_num)
     # print("***** RESULTS *****")
     # print(results)
     return [item["task"] for item in results["metadatas"][0]]
@@ -351,20 +387,7 @@ def main ():
                 "data"
             ]  # extract the actual result from the dictionary
 
-            if (
-                len(collection.get(ids=[result_id], include=[])["ids"]) > 0
-            ):  # Check if the result already exists
-                collection.update(
-                    ids=result_id,
-                    documents=vector,
-                    metadatas={"task": task["task_name"], "result": result},
-                )
-            else:
-                collection.add(
-                    ids=result_id,
-                    documents=vector,
-                    metadatas={"task": task["task_name"], "result": result},
-                )
+            results_storage.add(task, result, result_id, vector)
 
             # Step 3: Create new tasks and reprioritize task list
             new_tasks = task_creation_agent(
@@ -380,7 +403,7 @@ def main ():
 
             if not JOIN_EXISTING_OBJECTIVE: prioritization_agent()
 
-        time.sleep(5)  # Sleep before checking the task list again
+        time.sleep(5) 
 
 if __name__ == "__main__":
     main()
