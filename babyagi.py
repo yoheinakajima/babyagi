@@ -15,11 +15,13 @@ load_dotenv()
 
 # Engine configuration
 
+# Model: GPT, LLAMA, HUMAN, etc.
+LLM_MODEL = os.getenv("LLM_MODEL", os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo"))
+
 # API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-assert OPENAI_API_KEY, "\033[91m\033[1m" + "OPENAI_API_KEY environment variable is missing from .env" + "\033[0m\033[0m"
-
-LLM_MODEL = os.getenv("LLM_MODEL", os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo"))
+if not (LLM_MODEL.lower().startswith("llama") or LLM_MODEL.lower().startswith("human")):
+    assert OPENAI_API_KEY, "\033[91m\033[1m" + "OPENAI_API_KEY environment variable is missing from .env" + "\033[0m\033[0m"
 
 # Table config
 RESULTS_STORE_NAME = os.getenv("RESULTS_STORE_NAME", os.getenv("TABLE_NAME", ""))
@@ -57,6 +59,12 @@ if ENABLE_COMMAND_LINE_ARGS:
     if can_import("extensions.argparseext"):
         from extensions.argparseext import parse_arguments
         OBJECTIVE, INITIAL_TASK, LLM_MODEL, DOTENV_EXTENSIONS, INSTANCE_NAME, COOPERATIVE_MODE, JOIN_EXISTING_OBJECTIVE = parse_arguments()
+
+# Human mode extension
+# Gives human input to babyagi
+if LLM_MODEL == "HUMAN":
+    if can_import("extensions.human_mode"):
+        from extensions.human_mode import user_input_await
 
 # Load additional environment variables for enabled extensions
 # TODO: This might override the following command line arguments as well:
@@ -123,6 +131,13 @@ if "gpt-4" in LLM_MODEL.lower():
         + "\033[0m\033[0m"
     )
 
+if "human" in LLM_MODEL.lower():
+    print(
+        "\033[91m\033[1m"
+        + "\n*****USING HUMAN INPUT*****"
+        + "\033[0m\033[0m"
+    )
+
 print("\033[94m\033[1m" + "\n*****OBJECTIVE*****\n" + "\033[0m\033[0m")
 print(f"{OBJECTIVE}")
 
@@ -154,6 +169,12 @@ class DefaultResultsStorage:
         )
 
     def add(self, task: Dict, result: Dict, result_id: int, vector: List):
+
+        # Break the function if LLM_MODEL starts with "human" (case-insensitive)
+        if LLM_MODEL.lower().startswith("human"):
+            return
+        # Continue with the rest of the function
+
         embeddings = [llm_embed.embed(item) for item in vector] if LLM_MODEL.startswith("llama") else None
         if (
             len(self.collection.get(ids=[result_id], include=[])["ids"]) > 0
@@ -244,10 +265,12 @@ def openai_call(
 ):
     while True:
         try:
-            if model.startswith("llama"):
+            if model.lower().startswith("llama"):
                 result = llm(prompt[:CTX_MAX], stop=["### Human"], echo=True, temperature=0.2)
                 return result['choices'][0]['text'].strip()
-            elif not model.startswith("gpt-"):
+            elif model.lower().startswith("human"):
+                return user_input_await(prompt)
+            elif not model.lower().startswith("gpt-"):
                 # Use completion API
                 response = openai.Completion.create(
                     engine=model,
