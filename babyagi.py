@@ -8,37 +8,11 @@ import importlib
 import openai
 import chromadb
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
-from dotenv import load_dotenv
-
-# Load default environment variables (.env)
-load_dotenv()
-
-# Engine configuration
-
-# API Keys
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-assert OPENAI_API_KEY, "\033[91m\033[1m" + "OPENAI_API_KEY environment variable is missing from .env" + "\033[0m\033[0m"
-
-LLM_MODEL = os.getenv("LLM_MODEL", os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo"))
-
-# Table config
-RESULTS_STORE_NAME = os.getenv("RESULTS_STORE_NAME", os.getenv("TABLE_NAME", ""))
-assert RESULTS_STORE_NAME, "\033[91m\033[1m" + "RESULTS_STORE_NAME environment variable is missing from .env" + "\033[0m\033[0m"
-
-# Run configuration
-INSTANCE_NAME = os.getenv("INSTANCE_NAME", os.getenv("BABY_NAME", "BabyAGI"))
-COOPERATIVE_MODE = "none"
-JOIN_EXISTING_OBJECTIVE = False
-
-# Goal configuation
-OBJECTIVE = os.getenv("OBJECTIVE", "")
-INITIAL_TASK = os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", ""))
-
-# Model configuration
-OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", 0.0))
+from config.config import Config
+# Load config
+config = Config()
 
 # Extensions support begin
-
 def can_import(module_name):
     try:
         importlib.import_module(module_name)
@@ -46,25 +20,19 @@ def can_import(module_name):
     except ImportError:
         return False
 
-DOTENV_EXTENSIONS = os.getenv("DOTENV_EXTENSIONS", "").split(" ")
-
 # Command line arguments extension
-# Can override any of the above environment variables
-ENABLE_COMMAND_LINE_ARGS = (
-    os.getenv("ENABLE_COMMAND_LINE_ARGS", "false").lower() == "true"
-)
-if ENABLE_COMMAND_LINE_ARGS:
+if config.enable_command_line_args:
     if can_import("extensions.argparseext"):
         from extensions.argparseext import parse_arguments
-        OBJECTIVE, INITIAL_TASK, LLM_MODEL, DOTENV_EXTENSIONS, INSTANCE_NAME, COOPERATIVE_MODE, JOIN_EXISTING_OBJECTIVE = parse_arguments()
+        config.objective, config.initial_task, config.llm_model, config.dotenv_extensions, config.instance_name, config.cooperative_mode, config.join_existing_objective = parse_arguments()
 
 # Load additional environment variables for enabled extensions
 # TODO: This might override the following command line arguments as well:
 #    OBJECTIVE, INITIAL_TASK, LLM_MODEL, INSTANCE_NAME, COOPERATIVE_MODE, JOIN_EXISTING_OBJECTIVE
-if DOTENV_EXTENSIONS:
+if config.dotenv_extensions:
     if can_import("extensions.dotenvext"):
         from extensions.dotenvext import load_dotenv_extensions
-        load_dotenv_extensions(DOTENV_EXTENSIONS)
+        load_dotenv_extensions(config.dotenv_extensions)
 
 
 # TODO: There's still work to be done here to enable people to get
@@ -74,31 +42,26 @@ if DOTENV_EXTENSIONS:
 # Extensions support end
 
 print("\033[95m\033[1m"+"\n*****CONFIGURATION*****\n"+"\033[0m\033[0m")
-print(f"Name  : {INSTANCE_NAME}")
-print(f"Mode  : {'alone' if COOPERATIVE_MODE in ['n', 'none'] else 'local' if COOPERATIVE_MODE in ['l', 'local'] else 'distributed' if COOPERATIVE_MODE in ['d', 'distributed'] else 'undefined'}")
-print(f"LLM   : {LLM_MODEL}")
+print(f"Name  : {config.instance_name}")
+print(f"Mode  : {'alone' if config.cooperative_mode in ['n', 'none'] else 'local' if config.cooperative_mode in ['l', 'local'] else 'distributed' if config.cooperative_mode in ['d', 'distributed'] else 'undefined'}")
+print(f"LLM   : {config.llm_model}")
 
-# Check if we know what we are doing
-assert OBJECTIVE, "\033[91m\033[1m" + "OBJECTIVE environment variable is missing from .env" + "\033[0m\033[0m"
-assert INITIAL_TASK, "\033[91m\033[1m" + "INITIAL_TASK environment variable is missing from .env" + "\033[0m\033[0m"
-
-LLAMA_MODEL_PATH = os.getenv("LLAMA_MODEL_PATH", "models/llama-13B/ggml-model.bin")
-if "llama" in LLM_MODEL.lower():
+if "llama" in config.llm_model.lower():
     if can_import("llama_cpp"):
         from llama_cpp import Llama
 
-        print(f"LLAMA : {LLAMA_MODEL_PATH}" + "\n")
-        assert os.path.exists(LLAMA_MODEL_PATH), "\033[91m\033[1m" + f"Model can't be found." + "\033[0m\033[0m"
+        print(f"LLAMA : {config.llama_model_path}" + "\n")
+        assert os.path.exists(config.llama_model_path), "\033[91m\033[1m" + f"Model can't be found." + "\033[0m\033[0m"
 
         CTX_MAX = 2048
         THREADS_NUM = 16
         llm = Llama(
-            model_path=LLAMA_MODEL_PATH,
+            model_path=config.llama_model_path,
             n_ctx=CTX_MAX, n_threads=THREADS_NUM,
             use_mlock=True,
         )
         llm_embed = Llama(
-            model_path=LLAMA_MODEL_PATH,
+            model_path=config.llama_model_path,
             n_ctx=CTX_MAX, n_threads=THREADS_NUM,
             embedding=True, use_mlock=True,
         )
@@ -114,9 +77,9 @@ if "llama" in LLM_MODEL.lower():
             + "\nLlama LLM requires package llama-cpp. Falling back to GPT-3.5-turbo."
             + "\033[0m\033[0m"
         )
-        LLM_MODEL = "gpt-3.5-turbo"
+        config.llm_model = "gpt-3.5-turbo"
 
-if "gpt-4" in LLM_MODEL.lower():
+if "gpt-4" in config.llm_model.lower():
     print(
         "\033[91m\033[1m"
         + "\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"
@@ -124,13 +87,13 @@ if "gpt-4" in LLM_MODEL.lower():
     )
 
 print("\033[94m\033[1m" + "\n*****OBJECTIVE*****\n" + "\033[0m\033[0m")
-print(f"{OBJECTIVE}")
+print(f"{config.objective}")
 
-if not JOIN_EXISTING_OBJECTIVE: print("\033[93m\033[1m" + "\nInitial task:" + "\033[0m\033[0m" + f" {INITIAL_TASK}")
+if not config.join_existing_objective: print("\033[93m\033[1m" + "\nInitial task:" + "\033[0m\033[0m" + f" {config.initial_task}")
 else: print("\033[93m\033[1m" + f"\nJoining to help the objective" + "\033[0m\033[0m")
 
 # Configure OpenAI
-openai.api_key = OPENAI_API_KEY
+openai.api_key = config.open_ai_key
 
 # Results storage using local ChromaDB
 class DefaultResultsStorage:
@@ -146,15 +109,15 @@ class DefaultResultsStorage:
         )
 
         metric = "cosine"
-        embedding_function = OpenAIEmbeddingFunction(api_key=OPENAI_API_KEY)
+        embedding_function = OpenAIEmbeddingFunction(api_key=config.open_ai_key)
         self.collection = chroma_client.get_or_create_collection(
-            name=RESULTS_STORE_NAME,
+            name=config.restuls_store_name,
             metadata={"hnsw:space": metric},
             embedding_function=embedding_function,
         )
 
     def add(self, task: Dict, result: Dict, result_id: int, vector: List):
-        embeddings = [llm_embed.embed(item) for item in vector] if LLM_MODEL.startswith("llama") else None
+        embeddings = [llm_embed.embed(item) for item in vector] if config.llm_model.startswith("llama") else None
         if (
             len(self.collection.get(ids=[result_id], include=[])["ids"]) > 0
         ):  # Check if the result already exists
@@ -185,15 +148,10 @@ class DefaultResultsStorage:
 
 # Initialize results storage
 results_storage = DefaultResultsStorage()
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
-if PINECONE_API_KEY:
+if config.pinecone_api_key:
     if can_import("extensions.pinecone_storage"):
-        PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "")
-        assert (
-            PINECONE_ENVIRONMENT
-        ), "\033[91m\033[1m" + "PINECONE_ENVIRONMENT environment variable is missing from .env" + "\033[0m\033[0m"
         from extensions.pinecone_storage import PineconeResultsStorage
-        results_storage = PineconeResultsStorage(OPENAI_API_KEY, PINECONE_API_KEY, PINECONE_ENVIRONMENT, LLM_MODEL, LLAMA_MODEL_PATH, RESULTS_STORE_NAME, OBJECTIVE)
+        results_storage = PineconeResultsStorage(config.open_ai_key, config.pinecone_api_key, config.pinecone_environment, config.llm_model, config.llama_model_path, config.restuls_store_name, config.objective)
         print("\nReplacing results storage: " + "\033[93m\033[1m" +  "Pinecone" + "\033[0m\033[0m")
 
 # Task storage supporting only a single instance of BabyAGI
@@ -224,22 +182,22 @@ class SingleTaskListStorage:
 
 # Initialize tasks storage
 tasks_storage = SingleTaskListStorage()
-if COOPERATIVE_MODE in ['l', 'local']:
+if config.cooperative_mode in ['l', 'local']:
     if can_import("extensions.ray_tasks"):
         import sys
         from pathlib import Path
         sys.path.append(str(Path(__file__).resolve().parent))
         from extensions.ray_tasks import CooperativeTaskListStorage
-        tasks_storage = CooperativeTaskListStorage(OBJECTIVE)
+        tasks_storage = CooperativeTaskListStorage(config.objective)
         print("\nReplacing tasks storage: " + "\033[93m\033[1m" +  "Ray" + "\033[0m\033[0m")
-elif COOPERATIVE_MODE in ['d', 'distributed']:
+elif config.cooperative_mode in ['d', 'distributed']:
     pass
 
 
 def openai_call(
     prompt: str,
-    model: str = LLM_MODEL,
-    temperature: float = OPENAI_TEMPERATURE,
+    model: str = config.llm_model,
+    temperature: float = config.openai_temperature,
     max_tokens: int = 100,
 ):
     while True:
@@ -324,7 +282,7 @@ def prioritization_agent():
     next_task_id = tasks_storage.next_task_id()
     prompt = f"""
     You are a task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}.
-    Consider the ultimate objective of your team:{OBJECTIVE}.
+    Consider the ultimate objective of your team:{config.objective}.
     Do not remove any tasks. Return the result as a numbered list, like:
     #. First task
     #. Second task
@@ -384,10 +342,10 @@ def context_agent(query: str, top_results_num: int):
     return results
 
 # Add the initial task if starting new objective
-if not JOIN_EXISTING_OBJECTIVE:
+if not config.join_existing_objective:
     initial_task = {
         "task_id": tasks_storage.next_task_id(),
-        "task_name": INITIAL_TASK
+        "task_name": config.initial_task
     }
     tasks_storage.append(initial_task)
 
@@ -406,7 +364,7 @@ def main ():
             print(task['task_name'])
 
             # Send to execution function to complete the task based on the context
-            result = execution_agent(OBJECTIVE, task["task_name"])
+            result = execution_agent(config.objective, task["task_name"])
             print("\033[93m\033[1m" + "\n*****TASK RESULT*****\n" + "\033[0m\033[0m")
             print(result)
 
@@ -426,7 +384,7 @@ def main ():
             # Step 3: Create new tasks and reprioritize task list
             # only the main instance in cooperative mode does that
             new_tasks = task_creation_agent(
-                OBJECTIVE,
+                config.objective,
                 enriched_result,
                 task["task_name"],
                 tasks_storage.get_task_names(),
@@ -436,7 +394,7 @@ def main ():
                 new_task.update({"task_id": tasks_storage.next_task_id()})
                 tasks_storage.append(new_task)
 
-            if not JOIN_EXISTING_OBJECTIVE: prioritization_agent()
+            if not config.join_existing_objective: prioritization_agent()
 
         # Sleep a bit before checking the task list again
         time.sleep(5) 

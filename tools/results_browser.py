@@ -4,24 +4,10 @@ import curses
 import argparse
 import openai
 import pinecone
-from dotenv import load_dotenv
 import textwrap
+from config.config import Config
 
-load_dotenv()
-
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env"
-
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
-assert PINECONE_API_KEY, "PINECONE_API_KEY environment variable is missing from .env"
-
-PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "us-east1-gcp")
-assert PINECONE_ENVIRONMENT, "PINECONE_ENVIRONMENT environment variable is missing from .env"
-
-# Table config
-PINECONE_TABLE_NAME = os.getenv("TABLE_NAME", "")
-assert PINECONE_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
-
+config = Config()
 # Function to query records from the Pinecone index
 def query_records(index, query, top_k=1000):
     results = index.query(query, top_k=top_k, include_metadata=True)
@@ -66,10 +52,10 @@ def draw_summary(stdscr, objective, tasks, start, num):
 
 def main(stdscr):
     # Initialize Pinecone
-    pinecone.init(api_key=PINECONE_API_KEY)
+    pinecone.init(api_key=config.pinecone_api_key)
 
     # Connect to the objective index
-    index = pinecone.Index(PINECONE_TABLE_NAME)
+    index = pinecone.Index(config.pinecone_table_name)
 
     curses.curs_set(0)
     stdscr.timeout(1000)
@@ -86,7 +72,7 @@ def main(stdscr):
     parser.add_argument('objective', nargs='*', metavar='<objective>', help='''
     main objective description. Doesn\'t need to be quoted.
     if not specified, get objective from environment.
-    ''', default=[os.getenv("OBJECTIVE", "")])
+    ''', default=[config.objective])
     args = parser.parse_args()
 
     # Query records from the index
