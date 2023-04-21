@@ -20,14 +20,14 @@ load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env"
 
-OPENAI_API_MODEL = os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo")
+LLM_MODEL = os.getenv("LLM_MODEL", os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo"))
 
 # Table config
-YOUR_TABLE_NAME = os.getenv("TABLE_NAME", "")
-assert YOUR_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
+RESULTS_STORE_NAME = os.getenv("RESULTS_STORE_NAME", os.getenv("TABLE_NAME", ""))
+assert RESULTS_STORE_NAME, "RESULTS_STORE_NAME environment variable is missing from .env"
 
 # Run configuration
-BABY_NAME = os.getenv("BABY_NAME", "BabyAGI")
+INSTANCE_NAME = os.getenv("INSTANCE_NAME", os.getenv("BABY_NAME", "BabyAGI"))
 COOPERATIVE_MODE = "none"
 JOIN_EXISTING_OBJECTIVE = False
 
@@ -57,32 +57,33 @@ ENABLE_COMMAND_LINE_ARGS = (
 if ENABLE_COMMAND_LINE_ARGS:
     if can_import("extensions.argparseext"):
         from extensions.argparseext import parse_arguments
-        OBJECTIVE, INITIAL_TASK, OPENAI_API_MODEL, DOTENV_EXTENSIONS, BABY_NAME, COOPERATIVE_MODE, JOIN_EXISTING_OBJECTIVE = parse_arguments()
+        OBJECTIVE, INITIAL_TASK, LLM_MODEL, DOTENV_EXTENSIONS, INSTANCE_NAME, COOPERATIVE_MODE, JOIN_EXISTING_OBJECTIVE = parse_arguments()
 
 # Load additional environment variables for enabled extensions
+# TODO: This might override the following command line arguments as well:
+#    OBJECTIVE, INITIAL_TASK, LLM_MODEL, INSTANCE_NAME, COOPERATIVE_MODE, JOIN_EXISTING_OBJECTIVE
 if DOTENV_EXTENSIONS:
     if can_import("extensions.dotenvext"):
         from extensions.dotenvext import load_dotenv_extensions
-
         load_dotenv_extensions(DOTENV_EXTENSIONS)
 
 
 # TODO: There's still work to be done here to enable people to get
-# defaults from dotenv extensions # but also provide command line
+# defaults from dotenv extensions, but also provide command line
 # arguments to override them
 
 # Extensions support end
 
 print("\033[95m\033[1m"+"\n*****CONFIGURATION*****\n"+"\033[0m\033[0m")
-print(f"Name: {BABY_NAME}")
-print(f"LLM : {OPENAI_API_MODEL}")
+print(f"Name: {INSTANCE_NAME}")
+print(f"LLM : {LLM_MODEL}")
 print(f"Mode: {'alone' if COOPERATIVE_MODE in ['n', 'none'] else 'local' if COOPERATIVE_MODE in ['l', 'local'] else 'distributed' if COOPERATIVE_MODE in ['d', 'distributed'] else 'undefined'}")
 
 # Check if we know what we are doing
 assert OBJECTIVE, "OBJECTIVE environment variable is missing from .env"
 assert INITIAL_TASK, "INITIAL_TASK environment variable is missing from .env"
 
-if "gpt-4" in OPENAI_API_MODEL.lower():
+if "gpt-4" in LLM_MODEL.lower():
     print(
         "\033[91m\033[1m"
         + "\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"
@@ -101,6 +102,8 @@ openai.api_key = OPENAI_API_KEY
 # Results storage using local ChromaDB
 class DefaultResultsStorage:
     def __init__(self):
+        import logging
+        logging.getLogger('chromadb').setLevel(logging.ERROR)
         # Create Chroma collection
         chroma_persist_dir = "chroma"
         chroma_client = chromadb.Client(
@@ -110,11 +113,10 @@ class DefaultResultsStorage:
             )
         )
 
-        table_name = YOUR_TABLE_NAME
         metric = "cosine"
         embedding_function = OpenAIEmbeddingFunction(api_key=OPENAI_API_KEY)
         self.collection = chroma_client.get_or_create_collection(
-            name=table_name,
+            name=RESULTS_STORE_NAME,
             metadata={"hnsw:space": metric},
             embedding_function=embedding_function,
         )
@@ -133,14 +135,16 @@ class DefaultResultsStorage:
                 ids=result_id,
                 documents=vector,
                 metadatas={"task": task["task_name"], "result": result},
-            )  # Sleep before checking the task list again
+            )
 
     def query(self, query: str, top_results_num: int) -> List[dict]:
         count: int = self.collection.count()
         if count == 0:
             return []
         results = self.collection.query(
-            query_texts=query, n_results=min(top_results_num, count), include=["metadatas"]
+            query_texts=query,
+            n_results=min(top_results_num, count),
+            include=["metadatas"]
         )
         return [item["task"] for item in results["metadatas"][0]]
 
@@ -154,7 +158,7 @@ if PINECONE_API_KEY:
             PINECONE_ENVIRONMENT
         ), "PINECONE_ENVIRONMENT environment variable is missing from .env"
         from extensions.pinecone_storage import PineconeResultsStorage
-        results_storage = PineconeResultsStorage(OPENAI_API_KEY, PINECONE_API_KEY, PINECONE_ENVIRONMENT, YOUR_TABLE_NAME, OBJECTIVE)
+        results_storage = PineconeResultsStorage(OPENAI_API_KEY, PINECONE_API_KEY, PINECONE_ENVIRONMENT, RESULTS_STORE_NAME, OBJECTIVE)
         print("\nReplacing results storage: " + "\033[93m\033[1m" +  "Pinecone" + "\033[0m\033[0m")
 
 # Task storage supporting only a single instance of BabyAGI
@@ -199,7 +203,7 @@ elif COOPERATIVE_MODE in ['d', 'distributed']:
 
 def openai_call(
     prompt: str,
-    model: str = OPENAI_API_MODEL,
+    model: str = LLM_MODEL,
     temperature: float = OPENAI_TEMPERATURE,
     max_tokens: int = 100,
 ):
@@ -373,18 +377,21 @@ def main ():
             print("\033[93m\033[1m" + "\n*****TASK RESULT*****\n" + "\033[0m\033[0m")
             print(result)
 
-            # Step 2: Enrich result and store in Chroma
+            # Step 2: Enrich result and store in the results storage
+            # This is where you should enrich the result if needed
             enriched_result = {
                 "data": result
-            }  # This is where you should enrich the result if needed
+            }  
+            # extract the actual result from the dictionary
+            # since we don't do enrichment currently
+            vector = enriched_result["data"]  
+
             result_id = f"result_{task['task_id']}"
-            vector = enriched_result[
-                "data"
-            ]  # extract the actual result from the dictionary
 
             results_storage.add(task, result, result_id, vector)
 
             # Step 3: Create new tasks and reprioritize task list
+            # only the main instance in cooperative mode does that
             new_tasks = task_creation_agent(
                 OBJECTIVE,
                 enriched_result,
@@ -398,6 +405,7 @@ def main ():
 
             if not JOIN_EXISTING_OBJECTIVE: prioritization_agent()
 
+        # Sleep a bit before checking the task list again
         time.sleep(5) 
 
 if __name__ == "__main__":
