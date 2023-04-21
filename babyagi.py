@@ -34,7 +34,7 @@ if config.llm_model == "HUMAN":
 
 # Human mode extension
 # Gives human input to babyagi
-if LLM_MODEL == "HUMAN":
+if config.llm_model == "HUMAN":
     if can_import("extensions.human_mode"):
         from extensions.human_mode import user_input_await
 
@@ -98,7 +98,7 @@ if "gpt-4" in config.llm_model.lower():
         + "\033[0m\033[0m"
     )
 
-if "human" in LLM_MODEL.lower():
+if "human" in config.llm_model.lower():
     print(
         "\033[91m\033[1m"
         + "\n*****USING HUMAN INPUT*****"
