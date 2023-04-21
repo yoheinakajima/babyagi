@@ -22,6 +22,22 @@ assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env
 
 LLM_MODEL = os.getenv("LLM_MODEL", os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo"))
 
+LLAMA_MODEL_PATH = os.getenv("LLAMA_MODEL_PATH", "")
+if "llama" in LLM_MODEL.lower():
+    from llama_cpp import Llama
+
+    CTX_MAX = 2048
+    llm = Llama(
+        model_path=LLAMA_MODEL_PATH,
+        n_ctx=CTX_MAX, n_threads=4,
+        use_mlock=True,
+    )
+    llm_embed = Llama(
+        model_path=LLAMA_MODEL_PATH,
+        n_ctx=CTX_MAX, n_threads=4,
+        embedding=True, use_mlock=True,
+    )
+
 # Table config
 RESULTS_STORE_NAME = os.getenv("RESULTS_STORE_NAME", os.getenv("TABLE_NAME", ""))
 assert RESULTS_STORE_NAME, "RESULTS_STORE_NAME environment variable is missing from .env"
@@ -201,6 +217,17 @@ elif COOPERATIVE_MODE in ['d', 'distributed']:
     pass
 
 
+# Get embedding for the text
+def get_embedding(text, model: str = OPENAI_API_MODEL):
+    text = text.replace("\n", " ")
+    if model.startswith("llama"):
+        return llm_embed.embed(text)
+    else:
+        return openai.Embedding.create(input=[text], model="text-embedding-ada-002")[
+            "data"
+        ][0]["embedding"]
+
+
 def openai_call(
     prompt: str,
     model: str = LLM_MODEL,
@@ -210,10 +237,8 @@ def openai_call(
     while True:
         try:
             if model.startswith("llama"):
-                # Spawn a subprocess to run llama.cpp
-                cmd = ["llama/main", "-p", prompt]
-                result = subprocess.run(cmd, shell=True, stderr=subprocess.DEVNULL, stdout=subprocess.PIPE, text=True)
-                return result.stdout.strip()
+                result = llm(prompt[:CTX_MAX], stop=["### Human"], echo=True, temperature=0.2)
+                return result['choices'][0]['text'].strip()
             elif not model.startswith("gpt-"):
                 # Use completion API
                 response = openai.Completion.create(
@@ -308,7 +333,7 @@ def prioritization_agent():
     tasks_storage.replace(new_tasks_list)
 
 
-# Execute a task based on the objective and five previous tasks 
+# Execute a task based on the objective and five previous tasks
 def execution_agent(objective: str, task: str) -> str:
     """
     Executes a task based on the given objective and previous context.
@@ -345,6 +370,9 @@ def context_agent(query: str, top_results_num: int):
         list: A list of tasks as context for the given query, sorted by relevance.
 
     """
+    # TODO: Need to figure out how to make
+    # all implementations of the results store use the new embed function
+    # query_embedding = get_embedding(query)
     results = results_storage.query(query=query, top_results_num=top_results_num)
     # print("***** RESULTS *****")
     # print(results)
