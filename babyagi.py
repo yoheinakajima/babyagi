@@ -26,6 +26,18 @@ if config.enable_command_line_args:
         from extensions.argparseext import parse_arguments
         config.objective, config.initial_task, config.llm_model, config.dotenv_extensions, config.instance_name, config.cooperative_mode, config.join_existing_objective = parse_arguments()
 
+# Human mode extension
+# Gives human input to babyagi
+if config.llm_model == "HUMAN":
+    if can_import("extensions.human_mode"):
+        from extensions.human_mode import user_input_await
+
+# Human mode extension
+# Gives human input to babyagi
+if LLM_MODEL == "HUMAN":
+    if can_import("extensions.human_mode"):
+        from extensions.human_mode import user_input_await
+
 # Load additional environment variables for enabled extensions
 # TODO: This might override the following command line arguments as well:
 #    OBJECTIVE, INITIAL_TASK, LLM_MODEL, INSTANCE_NAME, COOPERATIVE_MODE, JOIN_EXISTING_OBJECTIVE
@@ -86,6 +98,13 @@ if "gpt-4" in config.llm_model.lower():
         + "\033[0m\033[0m"
     )
 
+if "human" in LLM_MODEL.lower():
+    print(
+        "\033[91m\033[1m"
+        + "\n*****USING HUMAN INPUT*****"
+        + "\033[0m\033[0m"
+    )
+
 print("\033[94m\033[1m" + "\n*****OBJECTIVE*****\n" + "\033[0m\033[0m")
 print(f"{config.objective}")
 
@@ -117,6 +136,12 @@ class DefaultResultsStorage:
         )
 
     def add(self, task: Dict, result: Dict, result_id: int, vector: List):
+
+        # Break the function if LLM_MODEL starts with "human" (case-insensitive)
+        if config.llm_model.lower().startswith("human"):
+            return
+        # Continue with the rest of the function
+
         embeddings = [llm_embed.embed(item) for item in vector] if config.llm_model.startswith("llama") else None
         if (
             len(self.collection.get(ids=[result_id], include=[])["ids"]) > 0
@@ -202,10 +227,12 @@ def openai_call(
 ):
     while True:
         try:
-            if model.startswith("llama"):
+            if model.lower().startswith("llama"):
                 result = llm(prompt[:CTX_MAX], stop=["### Human"], echo=True, temperature=0.2)
                 return result['choices'][0]['text'].strip()
-            elif not model.startswith("gpt-"):
+            elif model.lower().startswith("human"):
+                return user_input_await(prompt)
+            elif not model.lower().startswith("gpt-"):
                 # Use completion API
                 response = openai.Completion.create(
                     engine=model,
