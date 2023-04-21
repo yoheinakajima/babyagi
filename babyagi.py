@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 import os
-import subprocess
 import time
+import logging
 from collections import deque
 from typing import Dict, List
 import importlib
-import re
 import openai
 import chromadb
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
@@ -28,15 +27,15 @@ USE_PINECONE = (
 
 # API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-if not USE_MANUAL_CHAT:
-    assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env"
 
+if not USE_MANUAL_CHAT:
+    assert OPENAI_API_KEY, "\033[91m\033[1m" + "OPENAI_API_KEY environment variable is missing from .env" + "\033[0m\033[0m"
 
 LLM_MODEL = os.getenv("LLM_MODEL", os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo"))
 
 # Table config
 RESULTS_STORE_NAME = os.getenv("RESULTS_STORE_NAME", os.getenv("TABLE_NAME", ""))
-assert RESULTS_STORE_NAME, "RESULTS_STORE_NAME environment variable is missing from .env"
+assert RESULTS_STORE_NAME, "\033[91m\033[1m" + "RESULTS_STORE_NAME environment variable is missing from .env" + "\033[0m\033[0m"
 
 # Run configuration
 INSTANCE_NAME = os.getenv("INSTANCE_NAME", os.getenv("BABY_NAME", "BabyAGI"))
@@ -87,13 +86,47 @@ if DOTENV_EXTENSIONS:
 # Extensions support end
 
 print("\033[95m\033[1m"+"\n*****CONFIGURATION*****\n"+"\033[0m\033[0m")
-print(f"Name: {INSTANCE_NAME}")
-print(f"LLM : {LLM_MODEL}")
-print(f"Mode: {'alone' if COOPERATIVE_MODE in ['n', 'none'] else 'local' if COOPERATIVE_MODE in ['l', 'local'] else 'distributed' if COOPERATIVE_MODE in ['d', 'distributed'] else 'undefined'}")
+print(f"Name  : {INSTANCE_NAME}")
+print(f"Mode  : {'alone' if COOPERATIVE_MODE in ['n', 'none'] else 'local' if COOPERATIVE_MODE in ['l', 'local'] else 'distributed' if COOPERATIVE_MODE in ['d', 'distributed'] else 'undefined'}")
+print(f"LLM   : {LLM_MODEL}")
 
 # Check if we know what we are doing
-assert OBJECTIVE, "OBJECTIVE environment variable is missing from .env"
-assert INITIAL_TASK, "INITIAL_TASK environment variable is missing from .env"
+assert OBJECTIVE, "\033[91m\033[1m" + "OBJECTIVE environment variable is missing from .env" + "\033[0m\033[0m"
+assert INITIAL_TASK, "\033[91m\033[1m" + "INITIAL_TASK environment variable is missing from .env" + "\033[0m\033[0m"
+
+LLAMA_MODEL_PATH = os.getenv("LLAMA_MODEL_PATH", "models/llama-13B/ggml-model.bin")
+if "llama" in LLM_MODEL.lower():
+    if can_import("llama_cpp"):
+        from llama_cpp import Llama
+
+        print(f"LLAMA : {LLAMA_MODEL_PATH}" + "\n")
+        assert os.path.exists(LLAMA_MODEL_PATH), "\033[91m\033[1m" + f"Model can't be found." + "\033[0m\033[0m"
+
+        CTX_MAX = 2048
+        THREADS_NUM = 16
+        llm = Llama(
+            model_path=LLAMA_MODEL_PATH,
+            n_ctx=CTX_MAX, n_threads=THREADS_NUM,
+            use_mlock=True,
+        )
+        llm_embed = Llama(
+            model_path=LLAMA_MODEL_PATH,
+            n_ctx=CTX_MAX, n_threads=THREADS_NUM,
+            embedding=True, use_mlock=True,
+        )
+
+        print(
+            "\033[91m\033[1m"
+            + "\n*****USING LLAMA.CPP. POTENTIALLY SLOW.*****"
+            + "\033[0m\033[0m"
+        )
+    else:
+        print(
+            "\033[91m\033[1m"
+            + "\nLlama LLM requires package llama-cpp. Falling back to GPT-3.5-turbo."
+            + "\033[0m\033[0m"
+        )
+        LLM_MODEL = "gpt-3.5-turbo"
 
 if "gpt-4" in LLM_MODEL.lower():
     print(
@@ -114,7 +147,6 @@ openai.api_key = OPENAI_API_KEY
 # Results storage using local ChromaDB
 class DefaultResultsStorage:
     def __init__(self):
-        import logging
         logging.getLogger('chromadb').setLevel(logging.ERROR)
         # Create Chroma collection
         chroma_persist_dir = "chroma"
@@ -134,17 +166,20 @@ class DefaultResultsStorage:
         )
 
     def add(self, task: Dict, result: Dict, result_id: int, vector: List):
+        embeddings = [llm_embed.embed(item) for item in vector] if LLM_MODEL.startswith("llama") else None
         if (
             len(self.collection.get(ids=[result_id], include=[])["ids"]) > 0
         ):  # Check if the result already exists
             self.collection.update(
                 ids=result_id,
+                embeddings=embeddings,
                 documents=vector,
                 metadatas={"task": task["task_name"], "result": result},
             )
         else:
             self.collection.add(
                 ids=result_id,
+                embeddings=embeddings,
                 documents=vector,
                 metadatas={"task": task["task_name"], "result": result},
             )
@@ -168,9 +203,9 @@ if PINECONE_API_KEY:
         PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "")
         assert (
             PINECONE_ENVIRONMENT
-        ), "PINECONE_ENVIRONMENT environment variable is missing from .env"
+        ), "\033[91m\033[1m" + "PINECONE_ENVIRONMENT environment variable is missing from .env" + "\033[0m\033[0m"
         from extensions.pinecone_storage import PineconeResultsStorage
-        results_storage = PineconeResultsStorage(OPENAI_API_KEY, PINECONE_API_KEY, PINECONE_ENVIRONMENT, RESULTS_STORE_NAME, OBJECTIVE)
+        results_storage = PineconeResultsStorage(OPENAI_API_KEY, PINECONE_API_KEY, PINECONE_ENVIRONMENT, LLM_MODEL, LLAMA_MODEL_PATH, RESULTS_STORE_NAME, OBJECTIVE)
         print("\nReplacing results storage: " + "\033[93m\033[1m" +  "Pinecone" + "\033[0m\033[0m")
 
 # Task storage supporting only a single instance of BabyAGI
@@ -222,10 +257,8 @@ def openai_call(
     while True:
         try:
             if model.startswith("llama"):
-                # Spawn a subprocess to run llama.cpp
-                cmd = ["llama/main", "-p", prompt]
-                result = subprocess.run(cmd, shell=True, stderr=subprocess.DEVNULL, stdout=subprocess.PIPE, text=True)
-                return result.stdout.strip()
+                result = llm(prompt[:CTX_MAX], stop=["### Human"], echo=True, temperature=0.2)
+                return result['choices'][0]['text'].strip()
             elif not model.startswith("gpt-"):
                 # Use completion API
                 response = openai.Completion.create(
@@ -335,7 +368,7 @@ def prioritization_agent():
     tasks_storage.replace(new_tasks_list)
 
 
-# Execute a task based on the objective and five previous tasks 
+# Execute a task based on the objective and five previous tasks
 def execution_agent(objective: str, task: str) -> str:
     """
     Executes a task based on the given objective and previous context.
