@@ -1,43 +1,57 @@
 #!/usr/bin/env python3
 import os
+import subprocess
 import time
-import logging
 from collections import deque
 from typing import Dict, List
 import importlib
 import openai
-import chromadb
-from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
+import pinecone
 from dotenv import load_dotenv
+
+import datetime
 
 # Load default environment variables (.env)
 load_dotenv()
 
 # Engine configuration
 
-# Model: GPT, LLAMA, HUMAN, etc.
-LLM_MODEL = os.getenv("LLM_MODEL", os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo")).lower()
-
 # API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-if not (LLM_MODEL.startswith("llama") or LLM_MODEL.startswith("human")):
-    assert OPENAI_API_KEY, "\033[91m\033[1m" + "OPENAI_API_KEY environment variable is missing from .env" + "\033[0m\033[0m"
+assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env"
+
+OPENAI_API_MODEL = os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo")
+assert OPENAI_API_MODEL, "OPENAI_API_MODEL environment variable is missing from .env"
+
+if "gpt-4" in OPENAI_API_MODEL.lower():
+    print(
+        "\033[91m\033[1m"
+        + "\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"
+        + "\033[0m\033[0m"
+    )
+
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
+assert PINECONE_API_KEY, "PINECONE_API_KEY environment variable is missing from .env"
+
+PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "")
+assert (
+    PINECONE_ENVIRONMENT
+), "PINECONE_ENVIRONMENT environment variable is missing from .env"
 
 # Table config
-RESULTS_STORE_NAME = os.getenv("RESULTS_STORE_NAME", os.getenv("TABLE_NAME", ""))
-assert RESULTS_STORE_NAME, "\033[91m\033[1m" + "RESULTS_STORE_NAME environment variable is missing from .env" + "\033[0m\033[0m"
-
-# Run configuration
-INSTANCE_NAME = os.getenv("INSTANCE_NAME", os.getenv("BABY_NAME", "BabyAGI"))
-COOPERATIVE_MODE = "none"
-JOIN_EXISTING_OBJECTIVE = False
+YOUR_TABLE_NAME = os.getenv("TABLE_NAME", "")
+assert YOUR_TABLE_NAME, "TABLE_NAME environment variable is missing from .env"
 
 # Goal configuation
 OBJECTIVE = os.getenv("OBJECTIVE", "")
+STOP_CRITERIA = os.getenv("STOP_CRITERIA", "")
+PLAUSI_NUMBER = os.getenv("PLAUSI_NUMBER", "")
+FINAL_PROMPT = os.getenv("FINAL_PROMPT", "")
 INITIAL_TASK = os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", ""))
 
 # Model configuration
 OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", 0.0))
+
 
 # Extensions support begin
 
@@ -47,6 +61,7 @@ def can_import(module_name):
         return True
     except ImportError:
         return False
+
 
 DOTENV_EXTENSIONS = os.getenv("DOTENV_EXTENSIONS", "").split(" ")
 
@@ -58,219 +73,93 @@ ENABLE_COMMAND_LINE_ARGS = (
 if ENABLE_COMMAND_LINE_ARGS:
     if can_import("extensions.argparseext"):
         from extensions.argparseext import parse_arguments
-        OBJECTIVE, INITIAL_TASK, LLM_MODEL, DOTENV_EXTENSIONS, INSTANCE_NAME, COOPERATIVE_MODE, JOIN_EXISTING_OBJECTIVE = parse_arguments()
 
-# Human mode extension
-# Gives human input to babyagi
-if LLM_MODEL.startswith("human"):
-    if can_import("extensions.human_mode"):
-        from extensions.human_mode import user_input_await
+        OBJECTIVE, INITIAL_TASK, OPENAI_API_MODEL, DOTENV_EXTENSIONS = parse_arguments()
 
 # Load additional environment variables for enabled extensions
-# TODO: This might override the following command line arguments as well:
-#    OBJECTIVE, INITIAL_TASK, LLM_MODEL, INSTANCE_NAME, COOPERATIVE_MODE, JOIN_EXISTING_OBJECTIVE
 if DOTENV_EXTENSIONS:
     if can_import("extensions.dotenvext"):
         from extensions.dotenvext import load_dotenv_extensions
+
         load_dotenv_extensions(DOTENV_EXTENSIONS)
 
-
 # TODO: There's still work to be done here to enable people to get
-# defaults from dotenv extensions, but also provide command line
+# defaults from dotenv extensions # but also provide command line
 # arguments to override them
 
 # Extensions support end
 
-print("\033[95m\033[1m"+"\n*****CONFIGURATION*****\n"+"\033[0m\033[0m")
-print(f"Name  : {INSTANCE_NAME}")
-print(f"Mode  : {'alone' if COOPERATIVE_MODE in ['n', 'none'] else 'local' if COOPERATIVE_MODE in ['l', 'local'] else 'distributed' if COOPERATIVE_MODE in ['d', 'distributed'] else 'undefined'}")
-print(f"LLM   : {LLM_MODEL}")
-
 # Check if we know what we are doing
-assert OBJECTIVE, "\033[91m\033[1m" + "OBJECTIVE environment variable is missing from .env" + "\033[0m\033[0m"
-assert INITIAL_TASK, "\033[91m\033[1m" + "INITIAL_TASK environment variable is missing from .env" + "\033[0m\033[0m"
+assert OBJECTIVE, "OBJECTIVE environment variable is missing from .env"
+assert INITIAL_TASK, "INITIAL_TASK environment variable is missing from .env"
 
-LLAMA_MODEL_PATH = os.getenv("LLAMA_MODEL_PATH", "models/llama-13B/ggml-model.bin")
-if LLM_MODEL.startswith("llama"):
-    if can_import("llama_cpp"):
-        from llama_cpp import Llama
-
-        print(f"LLAMA : {LLAMA_MODEL_PATH}" + "\n")
-        assert os.path.exists(LLAMA_MODEL_PATH), "\033[91m\033[1m" + f"Model can't be found." + "\033[0m\033[0m"
-
-        CTX_MAX = 2048
-        THREADS_NUM = 16
-        llm = Llama(
-            model_path=LLAMA_MODEL_PATH,
-            n_ctx=CTX_MAX, n_threads=THREADS_NUM,
-            use_mlock=True,
-        )
-        llm_embed = Llama(
-            model_path=LLAMA_MODEL_PATH,
-            n_ctx=CTX_MAX, n_threads=THREADS_NUM,
-            embedding=True, use_mlock=True,
-        )
-
-        print(
-            "\033[91m\033[1m"
-            + "\n*****USING LLAMA.CPP. POTENTIALLY SLOW.*****"
-            + "\033[0m\033[0m"
-        )
-    else:
-        print(
-            "\033[91m\033[1m"
-            + "\nLlama LLM requires package llama-cpp. Falling back to GPT-3.5-turbo."
-            + "\033[0m\033[0m"
-        )
-        LLM_MODEL = "gpt-3.5-turbo"
-
-if LLM_MODEL.startswith("gpt-4"):
+if "gpt-4" in OPENAI_API_MODEL.lower():
     print(
         "\033[91m\033[1m"
         + "\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"
         + "\033[0m\033[0m"
     )
 
-if LLM_MODEL.startswith("human"):
-    print(
-        "\033[91m\033[1m"
-        + "\n*****USING HUMAN INPUT*****"
-        + "\033[0m\033[0m"
+# Write output to file
+def write_to_file(text: str, mode: chr):
+    with open('task_list.txt', mode) as f:
+        f.write(text)
+
+
+# Create file and write objective and initial task to file
+write_to_file(f"*****OBJECTIVE*****\n{OBJECTIVE}\n\n*****STOP CRITERIA*****\n{STOP_CRITERIA}\n\nInitial task: {INITIAL_TASK}\n\n", 'w')
+
+# Print OBJECTIVE, STOP_CRITERIA and INITIAL_TASK
+print(f"\033[94m\033[1m\n*****OBJECTIVE*****\n\n\033[0m\033[0m{OBJECTIVE}\033[94m\033[1m\n")
+print(f"*****STOP CRITERIA*****\n\n\033[0m\033[0m{STOP_CRITERIA}\n\033[93m\033[1m\n")
+print(f"Initial task:\033[0m\033[0m {INITIAL_TASK}")
+
+# Configure OpenAI and Pinecone
+openai.api_key = OPENAI_API_KEY
+pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_ENVIRONMENT)
+
+# Create Pinecone index
+table_name = YOUR_TABLE_NAME
+dimension = 1536
+metric = "cosine"
+pod_type = "p1"
+if table_name not in pinecone.list_indexes():
+    pinecone.create_index(
+        table_name, dimension=dimension, metric=metric, pod_type=pod_type
     )
 
-print("\033[94m\033[1m" + "\n*****OBJECTIVE*****\n" + "\033[0m\033[0m")
-print(f"{OBJECTIVE}")
+# Connect to the index
+index = pinecone.Index(table_name)
 
-if not JOIN_EXISTING_OBJECTIVE: print("\033[93m\033[1m" + "\nInitial task:" + "\033[0m\033[0m" + f" {INITIAL_TASK}")
-else: print("\033[93m\033[1m" + f"\nJoining to help the objective" + "\033[0m\033[0m")
-
-# Configure OpenAI
-openai.api_key = OPENAI_API_KEY
-
-# Results storage using local ChromaDB
-class DefaultResultsStorage:
-    def __init__(self):
-        logging.getLogger('chromadb').setLevel(logging.ERROR)
-        # Create Chroma collection
-        chroma_persist_dir = "chroma"
-        chroma_client = chromadb.Client(
-            settings=chromadb.config.Settings(
-                chroma_db_impl="duckdb+parquet",
-                persist_directory=chroma_persist_dir,
-            )
-        )
-
-        metric = "cosine"
-        embedding_function = OpenAIEmbeddingFunction(api_key=OPENAI_API_KEY)
-        self.collection = chroma_client.get_or_create_collection(
-            name=RESULTS_STORE_NAME,
-            metadata={"hnsw:space": metric},
-            embedding_function=embedding_function,
-        )
-
-    def add(self, task: Dict, result: Dict, result_id: int, vector: List):
-
-        # Break the function if LLM_MODEL starts with "human" (case-insensitive)
-        if LLM_MODEL.startswith("human"):
-            return
-        # Continue with the rest of the function
-
-        embeddings = [llm_embed.embed(item) for item in vector] if LLM_MODEL.startswith("llama") else None
-        if (
-            len(self.collection.get(ids=[result_id], include=[])["ids"]) > 0
-        ):  # Check if the result already exists
-            self.collection.update(
-                ids=result_id,
-                embeddings=embeddings,
-                documents=vector,
-                metadatas={"task": task["task_name"], "result": result},
-            )
-        else:
-            self.collection.add(
-                ids=result_id,
-                embeddings=embeddings,
-                documents=vector,
-                metadatas={"task": task["task_name"], "result": result},
-            )
-
-    def query(self, query: str, top_results_num: int) -> List[dict]:
-        count: int = self.collection.count()
-        if count == 0:
-            return []
-        results = self.collection.query(
-            query_texts=query,
-            n_results=min(top_results_num, count),
-            include=["metadatas"]
-        )
-        return [item["task"] for item in results["metadatas"][0]]
-
-# Initialize results storage
-results_storage = DefaultResultsStorage()
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
-if PINECONE_API_KEY:
-    if can_import("extensions.pinecone_storage"):
-        PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "")
-        assert (
-            PINECONE_ENVIRONMENT
-        ), "\033[91m\033[1m" + "PINECONE_ENVIRONMENT environment variable is missing from .env" + "\033[0m\033[0m"
-        from extensions.pinecone_storage import PineconeResultsStorage
-        results_storage = PineconeResultsStorage(OPENAI_API_KEY, PINECONE_API_KEY, PINECONE_ENVIRONMENT, LLM_MODEL, LLAMA_MODEL_PATH, RESULTS_STORE_NAME, OBJECTIVE)
-        print("\nReplacing results storage: " + "\033[93m\033[1m" +  "Pinecone" + "\033[0m\033[0m")
-
-# Task storage supporting only a single instance of BabyAGI
-class SingleTaskListStorage:
-    def __init__(self):
-        self.tasks = deque([])
-        self.task_id_counter = 0
-
-    def append(self, task: Dict):
-        self.tasks.append(task)
-
-    def replace(self, tasks: List[Dict]):
-        self.tasks = deque(tasks)
-
-    def popleft(self):
-        return self.tasks.popleft()
-
-    def is_empty(self):
-        return False if self.tasks else True
-
-    def next_task_id(self):
-        self.task_id_counter += 1
-        return self.task_id_counter
-
-    def get_task_names(self):
-        return [t["task_name"] for t in self.tasks]
+# Task list
+task_list = deque([])
 
 
-# Initialize tasks storage
-tasks_storage = SingleTaskListStorage()
-if COOPERATIVE_MODE in ['l', 'local']:
-    if can_import("extensions.ray_tasks"):
-        import sys
-        from pathlib import Path
-        sys.path.append(str(Path(__file__).resolve().parent))
-        from extensions.ray_tasks import CooperativeTaskListStorage
-        tasks_storage = CooperativeTaskListStorage(OBJECTIVE)
-        print("\nReplacing tasks storage: " + "\033[93m\033[1m" +  "Ray" + "\033[0m\033[0m")
-elif COOPERATIVE_MODE in ['d', 'distributed']:
-    pass
+def add_task(task: Dict):
+    task_list.append(task)
+
+
+def get_ada_embedding(text):
+    text = text.replace("\n", " ")
+    return openai.Embedding.create(input=[text], model="text-embedding-ada-002")[
+        "data"
+    ][0]["embedding"]
 
 
 def openai_call(
     prompt: str,
-    model: str = LLM_MODEL,
+    model: str = OPENAI_API_MODEL,
     temperature: float = OPENAI_TEMPERATURE,
     max_tokens: int = 100,
 ):
     while True:
         try:
-            if model.lower().startswith("llama"):
-                result = llm(prompt[:CTX_MAX], stop=["### Human"], echo=True, temperature=0.2)
-                return result['choices'][0]['text'].strip()
-            elif model.lower().startswith("human"):
-                return user_input_await(prompt)
-            elif not model.lower().startswith("gpt-"):
+            if model.startswith("llama"):
+                # Spawn a subprocess to run llama.cpp
+                cmd = ["llama/main", "-p", prompt]
+                result = subprocess.run(cmd, shell=True, stderr=subprocess.DEVNULL, stdout=subprocess.PIPE, text=True)
+                return result.stdout.strip()
+            elif not model.startswith("gpt-"):
                 # Use completion API
                 response = openai.Completion.create(
                     engine=model,
@@ -328,43 +217,78 @@ def openai_call(
             break
 
 
+# Create new tasks with reasoning for stop criteria and calculation of last task's result contribution to objective
 def task_creation_agent(
     objective: str, result: Dict, task_description: str, task_list: List[str]
 ):
     prompt = f"""
     You are a task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective},
     The last completed task has the result: {result}.
-    This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}.
+    This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}.\n
+    Do only create new tasks which do directly contribute to the ultimate objective. The ultimate objective is: {OBJECTIVE}.\n
+    Consider the stop criteria regarding the achievement of the ultimate objective. When it is met, and only then, create one new task with only content 'Stop criteria has been met...'.
+    Here is the stop criteria: {STOP_CRITERIA}.\n
     Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks.
-    Return the tasks as an array."""
+    Your aim is to create as few new tasks as possible to achieve the objective, with focus on the ultimate objective.
+    Return the tasks as an array.\n\n
+    Also determine the last completed task result with respect to the contribution to the ultimate objective, and output 'Goal achievement [%]: ' followed by a number between 0 and 100.
+    0 means we are very far away from the ultimate objective and 100 means the ulitmate objective has been achieved.
+    Always do your best to determine an exact number. If there is any contribution at all, assign a number greater than 0.
+    If the goal achievement output value cannot be determined, output 'Goal achievement [%]: unclear' and do only set it to 100, if the stop criteria has been met.
+    Output the goal achievement in one line, and only one line. Output the goal achievement at the end with one empty line before.\n
+    If the goal achievement value is 0 create new tasks for a different important open topic regarding the ultimate objective than in the last completed task."""
     response = openai_call(prompt)
     new_tasks = response.split("\n") if "\n" in response else [response]
-    return [{"task_name": task_name} for task_name in new_tasks]
+
+    # Remove the goal achievement from new tasks
+    for n in new_tasks:
+        if "Goal achievement [%]:" in n:
+            new_tasks.remove(n)
+            break
+
+    # Get the goal achievement probability
+    line = response.split("\n")
+    probability = -1
+    for l in line:
+        if "Goal achievement" in l:
+            try:
+                probability = int(l.split(": ")[1])
+                break
+            except (ValueError, IndexError):
+                probability = -1
+    #print(f"\nProbability: {probability}%")
+    return [{"task_name": task_name} for task_name in new_tasks], probability
 
 
-def prioritization_agent():
-    task_names = tasks_storage.get_task_names()
-    next_task_id = tasks_storage.next_task_id()
+# Prioritize the task list
+def prioritization_agent(this_task_id: int):
+    global task_list
+    task_names = [t["task_name"] for t in task_list]
+    next_task_id = int(this_task_id) + 1
     prompt = f"""
-    You are a task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}.
-    Consider the ultimate objective of your team:{OBJECTIVE}.
+    You are a task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}.\n
+    Consider the ultimate objective of your team of agent functions: {OBJECTIVE}.\n
+    Your aim is to prioritize the task list in a way that the ultimate objective is achieved with as few tasks as possible, and that the most relevant tasks are completed first.
+    When continueing research on a particular category of the ultimate objective, consider the ultimate objective as a whole and switch to another category if necessary.
+    Consider the order of the task list, with respect to which task depends on which and the order of creation, and improve the task list prioritization process.\n
     Do not remove any tasks. Return the result as a numbered list, like:
-    #. First task
-    #. Second task
+    1. Description of first task
+    2. Description of second task
+    3. Description of third task
+    4. ...
     Start the task list with number {next_task_id}."""
     response = openai_call(prompt)
     new_tasks = response.split("\n") if "\n" in response else [response]
-    new_tasks_list = []
+    task_list = deque()
     for task_string in new_tasks:
         task_parts = task_string.strip().split(".", 1)
         if len(task_parts) == 2:
             task_id = task_parts[0].strip()
             task_name = task_parts[1].strip()
-            new_tasks_list.append({"task_id": task_id, "task_name": task_name})
-    tasks_storage.replace(new_tasks_list)
+            task_list.append({"task_id": task_id, "task_name": task_name})
 
 
-# Execute a task based on the objective and five previous tasks
+# Execute a task based on the objective and five previous tasks 
 def execution_agent(objective: str, task: str) -> str:
     """
     Executes a task based on the given objective and previous context.
@@ -377,13 +301,13 @@ def execution_agent(objective: str, task: str) -> str:
         str: The response generated by the AI for the given task.
 
     """
-    
     context = context_agent(query=objective, top_results_num=5)
-    # print("\n*******RELEVANT CONTEXT******\n")
-    # print(context)
+    print(f"\033[91m\033[1m\n*****RELEVANT CONTEXT*****\n\033[0m\033[0m\n{context}")
+    write_to_file(f"*****RELEVANT CONTEXT*****\n{context}\n", 'a')
     prompt = f"""
-    You are an AI who performs one task based on the following objective: {objective}\n.
-    Take into account these previously completed tasks: {context}\n.
+    You are an AI who performs one task based on the following objective: {objective}.\n
+    Take into account these previously completed tasks: {context}.\n
+    The one performed task must contribute to the achievement of the ultimate objective: {OBJECTIVE}.\n
     Your task: {task}\nResponse:"""
     return openai_call(prompt, max_tokens=2000)
 
@@ -401,68 +325,92 @@ def context_agent(query: str, top_results_num: int):
         list: A list of tasks as context for the given query, sorted by relevance.
 
     """
-    results = results_storage.query(query=query, top_results_num=top_results_num)
-    # print("***** RESULTS *****")
-    # print(results)
-    return results
+    query_embedding = get_ada_embedding(query)
+    results = index.query(query_embedding, top_k=top_results_num, include_metadata=True, namespace=OBJECTIVE)
+    #print(f"\033[96m\033[1m\n*****CONTEXT QUERY*****\n\033[0m\033[0m{results}")
+    sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)
+    return [(str(item.metadata["task"])) for item in sorted_results]
 
-# Add the initial task if starting new objective
-if not JOIN_EXISTING_OBJECTIVE:
-    initial_task = {
-        "task_id": tasks_storage.next_task_id(),
-        "task_name": INITIAL_TASK
-    }
-    tasks_storage.append(initial_task)
 
-def main ():
-    while True:
-        # As long as there are tasks in the storage...
-        if not tasks_storage.is_empty():
-            # Print the task list
-            print("\033[95m\033[1m" + "\n*****TASK LIST*****\n" + "\033[0m\033[0m")
-            for t in tasks_storage.get_task_names():
-                print(" • "+t)
+# Send final prompt and handle final response(s)
+def final_prompt():
+    response = openai_call(f"{FINAL_PROMPT}. The ultimate objective is: {OBJECTIVE}.")
+    write_to_file(f"*****FINAL RESPONSE*****\n{response}\n", 'a')
+    print(f"\033[94m\033[1m\n*****FINAL RESPONSE*****\n\033[0m\033[0m\n{response}")
+    while "The final response generation has been completed" not in response:
+        response = openai_call("Continue with output. Say 'The final response generation has been completed...' in case the complete result has been output already or the prompt is unclear or ambiguous.")
+        write_to_file(f"{response}", 'a')
+        print(response)
+    print("\n***** The ultimate objective has been achieved, the work is done! BabyAGI will take a nap now... :-) *****\n")
 
-            # Step 1: Pull the first incomplete task
-            task = tasks_storage.popleft()
-            print("\033[92m\033[1m" + "\n*****NEXT TASK*****\n" + "\033[0m\033[0m")
-            print(task['task_name'])
 
-            # Send to execution function to complete the task based on the context
-            result = execution_agent(OBJECTIVE, task["task_name"])
-            print("\033[93m\033[1m" + "\n*****TASK RESULT*****\n" + "\033[0m\033[0m")
-            print(result)
+# Add the first task
+first_task = {"task_id": 1, "task_name": INITIAL_TASK}
+add_task(first_task)
+# Main loop
+task_id_counter = 1
+task_contribution = 0     # Percentage of goal achievement
+plausi_counter = 0.0    # Counter for number of plausibility checks for goal achievement
+while True:
+    if task_list:
+        # Print the task list
+        print("\033[95m\033[1m" + "\n*****TASK LIST*****\n" + "\033[0m\033[0m")
+        write_to_file("*****TASK LIST*****\n", 'a')
+        for t in task_list:
+            print(str(t["task_id"]) + ": " + t["task_name"])
+            write_to_file(str(t["task_id"]) + ": " + t["task_name"] + "\n\n", 'a')
 
-            # Step 2: Enrich result and store in the results storage
-            # This is where you should enrich the result if needed
-            enriched_result = {
-                "data": result
-            }  
-            # extract the actual result from the dictionary
-            # since we don't do enrichment currently
-            vector = enriched_result["data"]  
+        # Step 1: Pull the first task
+        task = task_list.popleft()
 
-            result_id = f"result_{task['task_id']}"
+        # Check for stop criteria text in task name or (optional) plausi counter overflow
+        if "Stop criteria has been met" in task["task_name"] or (plausi_counter >= float(PLAUSI_NUMBER) and float(PLAUSI_NUMBER) > 0):
+            final_prompt()
+            break
 
-            results_storage.add(task, result, result_id, vector)
+        print("\033[92m\033[1m" + "\n*****NEXT TASK*****\n" + "\033[0m\033[0m\n" + str(task["task_id"]) + ": " + task["task_name"])
+        write_to_file("*****NEXT TASK*****\n" + str(task["task_id"]) + ": " + task["task_name"] + "\n\n", 'a')
 
-            # Step 3: Create new tasks and reprioritize task list
-            # only the main instance in cooperative mode does that
-            new_tasks = task_creation_agent(
-                OBJECTIVE,
-                enriched_result,
-                task["task_name"],
-                tasks_storage.get_task_names(),
-            )
+        # Send to execution function to complete the task based on the context
+        result = execution_agent(OBJECTIVE, task["task_name"])
+        this_task_id = int(task["task_id"])
+        print(f"\033[93m\033[1m\n*****TASK RESULT*****\n\033[0m\033[0m\n{result}")
+        write_to_file(f"\n*****TASK RESULT*****\n{result}\n", 'a')
 
-            for new_task in new_tasks:
-                new_task.update({"task_id": tasks_storage.next_task_id()})
-                tasks_storage.append(new_task)
+        # Step 2: Enrich result with metadata and store in Pinecone
+        enriched_result = {
+            "data": result
+        }  # This is where you should enrich the result if needed
+        result_id = f"result_{task['task_id']}"
+        vector = get_ada_embedding(
+            enriched_result["data"]
+        )  # get vector of the actual result extracted from the dictionary
+        index.upsert(
+            [(result_id, vector, {"task": task["task_name"], "result": result})],
+	        namespace=OBJECTIVE
+        )
 
-            if not JOIN_EXISTING_OBJECTIVE: prioritization_agent()
+        # Step 3: Create new tasks and reprioritize task list
+        new_tasks, task_contribution = task_creation_agent(
+            OBJECTIVE,
+            enriched_result,
+            task["task_name"],
+            [t["task_name"] for t in task_list],
+        )
 
-        # Sleep a bit before checking the task list again
-        time.sleep(5) 
+        # Check for goal achievement contribution and increment plausi counter
+        if task_id_counter > 3 and task_contribution > 0 and task_contribution <= 100:
+                plausi_counter += (task_contribution*0.01)
 
-if __name__ == "__main__":
-    main()
+        print(f"\033[94m\033[1m\n*****GOAL ACHIEVEMENT RESULT*****\n\033[0m\033[0m")
+        print(f"Plausi counter: {plausi_counter} with threshold: {PLAUSI_NUMBER} and contribution to objective: {task_contribution}%")  
+        write_to_file(f"\n*****GOAL ACHIEVEMENT RESULT*****\n", 'a')
+        write_to_file(f"Plausi counter: {plausi_counter} with threshold: {PLAUSI_NUMBER} and contribution to objective: {task_contribution}%\n\n", 'a')
+
+        for new_task in new_tasks:
+            task_id_counter += 1
+            new_task.update({"task_id": task_id_counter})
+            add_task(new_task)
+        prioritization_agent(this_task_id)
+
+    time.sleep(1)  # Sleep before checking the task list again
