@@ -1,5 +1,6 @@
 # "BabyAGI with reasoning capabilities ...
-# ... making it possible to eventually achieve the objective"
+![image](https://github.com/robiwan303/babyagi/blob/main/BabyAGI_Reasoning.jpeg)
+# ... making it possible to achieve the ultimate objective"
 
 <<<<<<<<<<<<<<<<<<<<<<<
 
