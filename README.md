@@ -90,7 +90,7 @@ Once you have them, set LLAMA_MODEL_PATH to the path of the specific model to us
 
 # Warning<a name="continous-script-warning"></a>
 
-This script is designed to be run continuously as part of a task management system. Running this script continuously can result in high API usage, so please use it responsibly. Additionally, the script requires the OpenAI and Pinecone APIs to be set up correctly, so make sure you have set up the APIs before running the script.
+This script is designed to be run continuously as part of a task management system. Running this script continuously can result in high API usage, so please use it responsibly. Additionally, the script requires the OpenAI API to be set up correctly, so make sure you have set up the API before running the script.
 
 # Contribution
 
