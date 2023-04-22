@@ -4,10 +4,10 @@ This is a side branch of the BabyAGI main branch, intended for development of an
 
 Since I felt approaches involving counters or other "coded" solutions are suboptimal, I tried another route: Definition of a stop criteria and modification of agent function prompts, so that the ultimate objective is followed more closely and the stop criteria is considered.
 
-I am still testing and fine-tuning the new functionality, due to the high-frequency of new commits for the main branch I am not able to catch up, so I will keep it in this side branch for the time being...
+I am still testing and fine-tuning the new functionality. Due to the many  new commits for the main branch I am not able to catch up, so I will keep it in this side branch for the time being...
 
 
-# New set of parameters for ultimate objective in .env:
+# Parameters for ultimate objective in .env:
 
 OBJECTIVE=Solve world hunger
 
@@ -22,7 +22,19 @@ PLAUSI_NUMBER=3.0
 FINAL_PROMPT=Summarize and explain the final result for the ultimate objective, based on all researched information
   - This prompt will be issued when the STOP_CRITERIA is met and PLAUSI_NUMBER condition is satisfied, for one (or more) final response(s)
 
+The STOP_CRITERIA is pretty generic and should fit for most applications. The FINAL_PROMPT depends a bit on what you are trying to achieve.
 
+<<<<<<<<<<<<<<<<<<<<<<
+
+In the following screenshot you can see the solution to the objective "Solve world hunger" from .env.example... :-D
+
+![image](https://github.com/robiwan303/babyagi/blob/main/Solve_world_hunger.jpeg)
+
+I did use the plausi feature in order to reduce the time to completion, w/o might take a while for such a complex goal. Due the constant OpenAI API rate limit errors I am facing, even with 20$ paid account, the final response is truncated. Should have been at least two responses. The mechanism for triggering of multiple responses did work, but the rate limit did hit hard...
+
+See below the original README.md from BabyAGI main branch.
+
+------------------------------------------------------------------------------------
 
 # Translations:
 
