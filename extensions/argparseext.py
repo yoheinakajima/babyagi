@@ -1,7 +1,9 @@
-import os
 import sys
 import importlib
 import argparse
+from babyagi import Config
+
+config = Config()
 
 def can_import(module_name):
     try:
@@ -26,7 +28,7 @@ def parse_dotenv_extensions(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('-e', '--env', nargs='+', help='''
     filenames for additional env variables to load
-    ''', default=os.getenv("DOTENV_EXTENSIONS", "").split(' '))
+    ''', default=config.dotenv_extensions.split(' '))
 
     return parser.parse_args(env_argv).env
 
@@ -46,11 +48,11 @@ def parse_arguments():
     parser.add_argument('objective', nargs='*', metavar='<objective>', help='''
     main objective description. Doesn\'t need to be quoted.
     if not specified, get objective from environment.
-    ''', default=[os.getenv("OBJECTIVE", "")])
+    ''', default=[config.objective])
     parser.add_argument('-n', '--name', required=False, help='''
     instance name.
     if not specified, get the instance name from environment.
-    ''', default=os.getenv("INSTANCE_NAME", os.getenv("BABY_NAME", "BabyAGI")))
+    ''', default=config.instance_name)
     parser.add_argument('-m', '--mode', choices=['n', 'none', 'l', 'local', 'd', 'distributed'], help='''
     cooperative mode type
     ''', default='none')
@@ -58,7 +60,7 @@ def parse_arguments():
     group.add_argument('-t', '--task', metavar='<initial task>', help='''
     initial task description. must be quoted.
     if not specified, get initial_task from environment.
-    ''', default=os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", "")))
+    ''', default=config.initial_task)
     group.add_argument('-j', '--join', action='store_true', help='''
     join an existing objective.
     install cooperative requirements.
@@ -74,14 +76,14 @@ def parse_arguments():
     # to load those in the main file later as well
     parser.add_argument('-e', '--env', nargs='+', help='''
     filenames for additional env variables to load
-    ''', default=os.getenv("DOTENV_EXTENSIONS", "").split(' '))
+    ''', default=config.dotenv_extensions.split(' '))
     parser.add_argument('-h', '-?', '--help', action='help', help='''
     show this help message and exit
     ''')
 
     args = parser.parse_args()
 
-    llm_model = args.llm_model if args.llm_model else os.getenv("LLM_MODEL", os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo")).lower()
+    llm_model = args.llm_model if args.llm_model else config.llm_model
 
     dotenv_extensions = args.env
 
