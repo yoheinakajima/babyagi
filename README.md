@@ -1,5 +1,5 @@
 # BabyAGI with reasoning feature...
-# ... making it possible to really achieve the objective eventually!! :-)
+# ... making it possible to achieve the objective eventually!! :-)
 
 
 In the following screenshot you can see the solution to the objective "Solve world hunger" from .env.example... :-D
