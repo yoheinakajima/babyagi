@@ -4,7 +4,7 @@ description: >-
   BabyAGI is an AI-powered task management system that uses OpenAI and Pinecone APIs to create, prioritize, and execute tasks.
 baseurl: ""
 url: "https://babyagi.org"
-logo: babyagi-logo.png
+logo: docs/babyagi.png
 twitter_username: babyagi_
 github_username:  yoheinakajima
 show_downloads: false

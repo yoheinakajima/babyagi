@@ -1,8 +1,7 @@
-import os
 import sys
 import importlib
 import argparse
-from config.config import Config
+from babyagi import Config
 
 config = Config()
 
@@ -29,7 +28,7 @@ def parse_dotenv_extensions(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('-e', '--env', nargs='+', help='''
     filenames for additional env variables to load
-    ''', default=config.dotenv_extensions)
+    ''', default=config.dotenv_extensions.split(' '))
 
     return parser.parse_args(env_argv).env
 
@@ -77,7 +76,7 @@ def parse_arguments():
     # to load those in the main file later as well
     parser.add_argument('-e', '--env', nargs='+', help='''
     filenames for additional env variables to load
-    ''', default=config.dotenv_extensions)
+    ''', default=config.dotenv_extensions.split(' '))
     parser.add_argument('-h', '-?', '--help', action='help', help='''
     show this help message and exit
     ''')

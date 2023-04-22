@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-import os
 import curses
 import argparse
 import openai
 import pinecone
 import textwrap
-from config.config import Config
+from babyagi import Config
 
 config = Config()
+
+assert config.pinecone_api_key, "PINECONE_API_KEY environment variable is missing from .env"
+
 # Function to query records from the Pinecone index
 def query_records(index, query, top_k=1000):
     results = index.query(query, top_k=top_k, include_metadata=True)

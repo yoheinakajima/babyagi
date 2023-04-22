@@ -8,10 +8,76 @@ import importlib
 import openai
 import chromadb
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
-from config.config import Config
-# Load config
-config = Config()
+from dotenv import load_dotenv
 
+# Load default environment variables (.env)
+load_dotenv()
+
+class Config:
+    _instance = None
+    _initialized = False
+    def __new__(cls):
+        if not cls._instance:
+            cls._instance = super(Config, cls).__new__(cls)
+        return cls._instance
+    def __init__(self):
+        if self._initialized:
+            return
+        # OpenAI API Keys
+        self.openai_api_key = os.getenv("OPENAI_API_KEY", "")
+        assert self.openai_api_key, "\033[91m\033[1m" + \
+            "OPENAI_API_KEY environment variable is missing from .env" + \
+            "\033[0m\033[0m"
+        # Table config
+        self.results_store_name = os.getenv(
+            "RESULTS_STORE_NAME", os.getenv("TABLE_NAME", ""))
+        assert self.results_store_name, "\033[91m\033[1m" + \
+            "RESULTS_STORE_NAME environment variable is missing from .env" + \
+            "\033[0m\033[0m"
+        # Run configuration
+        self.instance_name = os.getenv(
+            "INSTANCE_NAME", os.getenv("BABY_NAME", "BabyAGI"))
+        self.cooperative_mode = os.getenv("COOPERATIVE_MODE", "none").split("#",1)[0].strip()
+        self.join_existing_objective = False
+        # Goal configuation
+        self.objective = os.getenv("OBJECTIVE", "")
+        assert self.objective, "\033[91m\033[1m" + \
+            "OBJECTIVE environment variable is missing from .env" + \
+            "\033[0m\033[0m"
+        self.initial_task = os.getenv(
+            "INITIAL_TASK", os.getenv("FIRST_TASK", ""))
+        assert self.initial_task, "\033[91m\033[1m" + \
+            "INITIAL_TASK environment variable is missing from .env" + \
+            "\033[0m\033[0m"
+        # Pinecone configuration
+        self.pinecone_api_key = os.getenv("PINECONE_API_KEY", "")
+        if self.pinecone_api_key:
+            # Env config
+            self.pinecone_environment = os.getenv("PINECONE_ENVIRONMENT", "")
+            assert (
+                self.pinecone_environment
+            ), "\033[91m\033[1m" + "PINECONE_ENVIRONMENT environment variable is missing from .env" + "\033[0m\033[0m"
+            # Table config
+            self.pinecone_table_name = os.getenv("TABLE_NAME", "")
+            assert self.pinecone_table_name, "TABLE_NAME environment variable is missing from .env"
+        # Model configuration
+        self.openai_temperature = float(os.getenv("OPENAI_TEMPERATURE", 0.0))
+        # Model: GPT, LLAMA, HUMAN, etc.
+        self.llm_model = os.getenv("LLM_MODEL", os.getenv(
+            "OPENAI_API_MODEL", "gpt-3.5-turbo")).split("#",1)[0].strip().lower()
+        if self.llm_model.startswith('llama'):
+            self.llama_model_path = os.getenv(
+                "LLAMA_MODEL_PATH", "models/llama-13B/ggml-model.bin").split("#",1)[0].strip()
+            assert (
+                self.pinecone_environment
+            ), "\033[91m\033[1m" + "LLAMA_MODEL_PATH environment variable is missing from .env" + "\033[0m\033[0m"
+        # Extensions
+        self.dotenv_extensions = os.getenv("DOTENV_EXTENSIONS", "").split(" ")
+        self.enable_command_line_args = (
+            os.getenv("ENABLE_COMMAND_LINE_ARGS", "false").lower() == "true"
+        )
+
+config:Config = Config()
 # Extensions support begin
 def can_import(module_name):
     try:
@@ -19,8 +85,9 @@ def can_import(module_name):
         return True
     except ImportError:
         return False
-
+    
 # Command line arguments extension
+# Can override any of the above environment variables
 if config.enable_command_line_args:
     if can_import("extensions.argparseext"):
         from extensions.argparseext import parse_arguments
@@ -28,19 +95,13 @@ if config.enable_command_line_args:
 
 # Human mode extension
 # Gives human input to babyagi
-if config.llm_model == "HUMAN":
-    if can_import("extensions.human_mode"):
-        from extensions.human_mode import user_input_await
-
-# Human mode extension
-# Gives human input to babyagi
-if config.llm_model == "HUMAN":
+if config.llm_model.startswith("human"):
     if can_import("extensions.human_mode"):
         from extensions.human_mode import user_input_await
 
 # Load additional environment variables for enabled extensions
 # TODO: This might override the following command line arguments as well:
-#    OBJECTIVE, INITIAL_TASK, LLM_MODEL, INSTANCE_NAME, COOPERATIVE_MODE, JOIN_EXISTING_OBJECTIVE
+#    OBJECTIVE, INITIAL_TASK, config.llm_model, INSTANCE_NAME, COOPERATIVE_MODE, JOIN_EXISTING_OBJECTIVE
 if config.dotenv_extensions:
     if can_import("extensions.dotenvext"):
         from extensions.dotenvext import load_dotenv_extensions
@@ -58,7 +119,7 @@ print(f"Name  : {config.instance_name}")
 print(f"Mode  : {'alone' if config.cooperative_mode in ['n', 'none'] else 'local' if config.cooperative_mode in ['l', 'local'] else 'distributed' if config.cooperative_mode in ['d', 'distributed'] else 'undefined'}")
 print(f"LLM   : {config.llm_model}")
 
-if "llama" in config.llm_model.lower():
+if config.llm_model.startswith("llama"):
     if can_import("llama_cpp"):
         from llama_cpp import Llama
 
@@ -91,14 +152,14 @@ if "llama" in config.llm_model.lower():
         )
         config.llm_model = "gpt-3.5-turbo"
 
-if "gpt-4" in config.llm_model.lower():
+if config.llm_model.startswith("gpt-4"):
     print(
         "\033[91m\033[1m"
         + "\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"
         + "\033[0m\033[0m"
     )
 
-if "human" in config.llm_model.lower():
+if config.llm_model.startswith("human"):
     print(
         "\033[91m\033[1m"
         + "\n*****USING HUMAN INPUT*****"
@@ -112,7 +173,7 @@ if not config.join_existing_objective: print("\033[93m\033[1m" + "\nInitial task
 else: print("\033[93m\033[1m" + f"\nJoining to help the objective" + "\033[0m\033[0m")
 
 # Configure OpenAI
-openai.api_key = config.open_ai_key
+openai.api_key = config.openai_api_key
 
 # Results storage using local ChromaDB
 class DefaultResultsStorage:
@@ -128,9 +189,9 @@ class DefaultResultsStorage:
         )
 
         metric = "cosine"
-        embedding_function = OpenAIEmbeddingFunction(api_key=config.open_ai_key)
+        embedding_function = OpenAIEmbeddingFunction(api_key=config.openai_api_key)
         self.collection = chroma_client.get_or_create_collection(
-            name=config.restuls_store_name,
+            name=config.results_store_name,
             metadata={"hnsw:space": metric},
             embedding_function=embedding_function,
         )
@@ -138,7 +199,7 @@ class DefaultResultsStorage:
     def add(self, task: Dict, result: Dict, result_id: int, vector: List):
 
         # Break the function if LLM_MODEL starts with "human" (case-insensitive)
-        if config.llm_model.lower().startswith("human"):
+        if config.llm_model.startswith("human"):
             return
         # Continue with the rest of the function
 
@@ -176,7 +237,7 @@ results_storage = DefaultResultsStorage()
 if config.pinecone_api_key:
     if can_import("extensions.pinecone_storage"):
         from extensions.pinecone_storage import PineconeResultsStorage
-        results_storage = PineconeResultsStorage(config.open_ai_key, config.pinecone_api_key, config.pinecone_environment, config.llm_model, config.llama_model_path, config.restuls_store_name, config.objective)
+        results_storage = PineconeResultsStorage(config.openai_api_key, config.pinecone_api_key, config.pinecone_environment, config.llm_model, config.llama_model_path, config.results_store_name, config.objective)
         print("\nReplacing results storage: " + "\033[93m\033[1m" +  "Pinecone" + "\033[0m\033[0m")
 
 # Task storage supporting only a single instance of BabyAGI
@@ -227,12 +288,12 @@ def openai_call(
 ):
     while True:
         try:
-            if model.lower().startswith("llama"):
+            if model.startswith("llama"):
                 result = llm(prompt[:CTX_MAX], stop=["### Human"], echo=True, temperature=0.2)
                 return result['choices'][0]['text'].strip()
-            elif model.lower().startswith("human"):
+            elif model.startswith("human"):
                 return user_input_await(prompt)
-            elif not model.lower().startswith("gpt-"):
+            elif not model.startswith("gpt-"):
                 # Use completion API
                 response = openai.Completion.create(
                     engine=model,

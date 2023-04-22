@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-import os
 import argparse
 import openai
 import pinecone
-from config.config import Config
+from babyagi import Config
 
 config = Config()
 
