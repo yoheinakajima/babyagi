@@ -1,5 +1,5 @@
-# BabyAGI with reasoning feature...
-# ... making it possible to achieve the objective eventually...
+# BabyAGI with reasoning feature ...
+# ... making it possible to achieve the objective eventually!
 
 <<<<<<<<<<<<<<<<<<<<<<<
 
@@ -15,6 +15,8 @@ In the following screenshot you can see the solution to the objective "Solve wor
 
 
 ![image](https://github.com/robiwan303/babyagi/blob/main/Solve_world_hunger.jpeg)
+
+I did use the plausi feature in order to reduce the time to completion, w/o might take a while for such a complex goal. Due the constant OpenAI API rate limit errors I am facing, even with 20$ paid account, the final response is truncated. Should have been at least two responses. The mechanism for triggering of multiple responses did work, but the rate limit did hit hard...
 
 
 # Parameters for ultimate objective in .env:
@@ -35,8 +37,6 @@ FINAL_PROMPT=Summarize and explain the final result for the ultimate objective, 
 <<<<<<<<<<<<<<<<<<<<<<<
 
 The STOP_CRITERIA is pretty generic and should fit for most applications. The FINAL_PROMPT depends a bit on what you are trying to achieve.
-
-I did use the plausi feature in order to reduce the time to completion, w/o might take a while for such a complex goal. Due the constant OpenAI API rate limit errors I am facing, even with 20$ paid account, the final response is truncated. Should have been at least two responses. The mechanism for triggering of multiple responses did work, but the rate limit did hit hard...
 
 See below the original README.md from BabyAGI main branch.
 
