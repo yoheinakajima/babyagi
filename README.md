@@ -25,18 +25,13 @@ I did use the plausi feature in order to reduce the time to completion, w/o migh
 
 # Parameters for ultimate objective in .env:
 
-OBJECTIVE=Solve world hunger
+OBJECTIVE=Same as for main branch, the ultimate objective
 
-STOP_CRITERIA=When the ultimate objective has been achieved and is plausible, or when further evaluation will most probably not improve the result
-  - With STOP_CRITERIA it is possible to reach a final response at some point, with a not too complex OBJECTIVE or with enough time
+STOP_CRITERIA=The condition which under which the ultimate objective shall be deemed achieved
 
-PLAUSI_NUMBER=3.0
-  - Number of times the STOP_CRITERIA must be met before the final prompt is sent (optional, default: 0.0)
-  - 0: Without plausi feature, the decision about stop depends solely on the task_creation_agent
-  - 1 (or more): A low PLAUSI_NUMBER can reduce the time until final prompt triggering, higher values will increase the time due to iterations (more detailed results), unless the task_creation_agent decides to stop earlier
+PLAUSI_NUMBER=Plausibilization is done based on the latest task result's contribution to the ultimate objective. Each completed task gets evaluated and a percentage value is assigned. After a factor is applied (value*0.01) the values are added up and checked against the PLAUSI_NUMBER in main(). If greater the final prompt is triggered.
 
-FINAL_PROMPT=Summarize and explain the final result for the ultimate objective, based on all researched information
-  - This prompt will be issued when the STOP_CRITERIA is met and PLAUSI_NUMBER condition is satisfied, for one (or more) final response(s)
+FINAL_PROMPT=Description for action which shall be executed when the ultimate objective has been achieved, before stopping the script
 
 <<<<<<<<<<<<<<<<<<<<<<<
 
