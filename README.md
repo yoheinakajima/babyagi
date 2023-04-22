@@ -1,5 +1,5 @@
-# BabyAGI with reasoning capabilities ...
-# ... making it possible to eventually achieve the objective
+# "BabyAGI with reasoning capabilities ...
+# ... making it possible to eventually achieve the objective"
 
 <<<<<<<<<<<<<<<<<<<<<<<
 
