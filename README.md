@@ -18,6 +18,7 @@ In the following screenshot you can see the solution to the objective "Solve wor
 
 I did use the plausi feature in order to reduce the time to completion, w/o might take a while for such a complex goal. Due the constant OpenAI API rate limit errors I am facing, even with 20$ paid account, the final response is truncated. Should have been at least two responses. The mechanism for triggering of multiple responses did work, but the rate limit did hit hard...
 
+<<<<<<<<<<<<<<<<<<<<<<<
 
 # Parameters for ultimate objective in .env:
 
