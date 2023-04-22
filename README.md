@@ -9,12 +9,11 @@ I did also add a mechanism to have the LLM judge on the level of contribution fo
 
 Since I felt approaches involving counters or other "coded" solutions are suboptimal, I tried another route: Definition of a stop criteria and modification of agent function prompts, so that the ultimate objective is followed more closely and the stop criteria is considered.
 
-I am still testing and fine-tuning the new functionality. Due to the many  new commits for the main branch I am not able to catch up, so I will keep it in this side branch for the time being...
+I am still testing and fine-tuning the functionality. Due to the many commits to the main branch I am not able to catch up, so I will keep it in this side branch for the time being...
 
 <<<<<<<<<<<<<<<<<<<<<<<
 
 In the following screenshot you can see the solution to the objective "Solve world hunger" from .env.example... :-D
-
 
 ![image](https://github.com/robiwan303/babyagi/blob/main/Solve_world_hunger.jpeg)
 
