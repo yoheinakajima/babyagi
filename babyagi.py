@@ -16,11 +16,11 @@ load_dotenv()
 # Engine configuration
 
 # Model: GPT, LLAMA, HUMAN, etc.
-LLM_MODEL = os.getenv("LLM_MODEL", os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo"))
+LLM_MODEL = os.getenv("LLM_MODEL", os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo")).lower()
 
 # API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-if not (LLM_MODEL.lower().startswith("llama") or LLM_MODEL.lower().startswith("human")):
+if not (LLM_MODEL.startswith("llama") or LLM_MODEL.startswith("human")):
     assert OPENAI_API_KEY, "\033[91m\033[1m" + "OPENAI_API_KEY environment variable is missing from .env" + "\033[0m\033[0m"
 
 # Table config
@@ -62,7 +62,7 @@ if ENABLE_COMMAND_LINE_ARGS:
 
 # Human mode extension
 # Gives human input to babyagi
-if LLM_MODEL == "HUMAN":
+if LLM_MODEL.startswith("human"):
     if can_import("extensions.human_mode"):
         from extensions.human_mode import user_input_await
 
@@ -91,7 +91,7 @@ assert OBJECTIVE, "\033[91m\033[1m" + "OBJECTIVE environment variable is missing
 assert INITIAL_TASK, "\033[91m\033[1m" + "INITIAL_TASK environment variable is missing from .env" + "\033[0m\033[0m"
 
 LLAMA_MODEL_PATH = os.getenv("LLAMA_MODEL_PATH", "models/llama-13B/ggml-model.bin")
-if "llama" in LLM_MODEL.lower():
+if LLM_MODEL.startswith("llama"):
     if can_import("llama_cpp"):
         from llama_cpp import Llama
 
@@ -124,14 +124,14 @@ if "llama" in LLM_MODEL.lower():
         )
         LLM_MODEL = "gpt-3.5-turbo"
 
-if "gpt-4" in LLM_MODEL.lower():
+if LLM_MODEL.startswith("gpt-4"):
     print(
         "\033[91m\033[1m"
         + "\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"
         + "\033[0m\033[0m"
     )
 
-if "human" in LLM_MODEL.lower():
+if LLM_MODEL.startswith("human"):
     print(
         "\033[91m\033[1m"
         + "\n*****USING HUMAN INPUT*****"
@@ -171,7 +171,7 @@ class DefaultResultsStorage:
     def add(self, task: Dict, result: Dict, result_id: int, vector: List):
 
         # Break the function if LLM_MODEL starts with "human" (case-insensitive)
-        if LLM_MODEL.lower().startswith("human"):
+        if LLM_MODEL.startswith("human"):
             return
         # Continue with the rest of the function
 
