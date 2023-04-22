@@ -1,9 +1,11 @@
 # BabyAGI with reasoning feature ...
-# ... making it possible to eventually achieve the objective.
+# ... making it possible to eventually achieve the objective
 
 <<<<<<<<<<<<<<<<<<<<<<<
 
-This is a side branch of the BabyAGI main branch, intended for development of an ultimate objective achievement feature,... meaning BabyAGI does determine on its own when the ultimate objective is (sufficiently) achieved, summarizes the result and ends the script.
+This is a side branch of the BabyAGI main branch, intended for development of an reasoning feature,... the LLM does determine on its own when the ultimate objective is (sufficiently) achieved.
+
+I did also add a mechanism to have the LLM judge on the level of contribution for each task result, with respect to the ultimate objective. When the decision is made to come to an end, a final prompt is triggered. Handling of multi-part responses (for longer text) is implemented.
 
 Since I felt approaches involving counters or other "coded" solutions are suboptimal, I tried another route: Definition of a stop criteria and modification of agent function prompts, so that the ultimate objective is followed more closely and the stop criteria is considered.
 
@@ -37,9 +39,11 @@ FINAL_PROMPT=Summarize and explain the final result for the ultimate objective, 
 
 <<<<<<<<<<<<<<<<<<<<<<<
 
-The STOP_CRITERIA is pretty generic and should fit for most applications. The FINAL_PROMPT depends a bit on what you are trying to achieve.
+The STOP_CRITERIA is pretty generic and should fit for most applications. The FINAL_PROMPT depends on what shall be achieved.
 
 See below the original README.md from BabyAGI main branch.
+
+<<<<<<<<<<<<<<<<<<<<<<<
 
 ------------------------------------------------------------------------------------
 
