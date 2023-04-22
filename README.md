@@ -27,9 +27,9 @@ I did use the plausi feature in order to reduce the time to completion, w/o migh
 
 OBJECTIVE=Same as for main branch, the ultimate objective
 
-STOP_CRITERIA=The condition which under which the ultimate objective shall be deemed achieved
+STOP_CRITERIA=The condition under which the ultimate objective is achieved
 
-PLAUSI_NUMBER=Plausibilization is done based on the latest task result's contribution to the ultimate objective. Each completed task gets evaluated and a percentage value is assigned. After a factor is applied (value*0.01) the values are added up and checked against the PLAUSI_NUMBER in main(). If greater the final prompt is triggered.
+PLAUSI_NUMBER=Plausibilization is done based on the latest task result's contribution to the ultimate objective. Each completed task gets evaluated and a percentage value is assigned. After a factor is applied (value*0.01). The values are added up each cycle and checked against the PLAUSI_NUMBER. If the value is greater PLAUSI_NUMBER, the final prompt is triggered.
 
 FINAL_PROMPT=Description for action which shall be executed when the ultimate objective has been achieved, before stopping the script
 
