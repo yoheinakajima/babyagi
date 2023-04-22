@@ -4,7 +4,7 @@
 
 <<<<<<<<<<<<<<<<<<<<<<<
 
-This is a side branch of the BabyAGI main branch, intended for development of an reasoning feature,... the LLM does determine on its own when the ultimate objective is (sufficiently) achieved.
+This is a side branch of the BabyAGI main branch for an enhanced reasoning feature,... the LLM does determine on its own when the ultimate objective is (sufficiently) achieved.
 
 I did also add a mechanism to have the LLM judge on the level of contribution for each task result, with respect to the ultimate objective. When the decision is made to come to an end, a final prompt is triggered. Handling of multi-part responses (for longer text) is implemented.
 
