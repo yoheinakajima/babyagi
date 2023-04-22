@@ -90,4 +90,10 @@ This document highlights a curated selection of remarkable projects inspired by 
 1. [Chippr-AGI](https://github.com/chippr-robotics/chippr-agi)
     - Description: Chippr-AGI is an open-source framework that uses AI models to automate task creation and prioritization. NodeJS, Redis, OpenAI/LLAMA
     - Author: [Cody Burns](https://github.com/realcodywburns)
-    - Twitter: https://twitter.com/DontPanicBurns
+    - Twitter: https://twitter.com/DontPanicBurns1. [Agent-LLM](https://github.com/Josh-XT/Agent-LLM)
+
+    - Description: Agent-LLM is a dynamic AI task management assistant with adaptive memory, web browsing, code evaluation, and a versatile plugin system for seamless integration with various AI providers and models both locally and remotely hosted.
+
+    - Author: [Josh XT](https://github.com/Josh-XT)
+
+    - Twitter: https://twitter.com/Josh_XT
