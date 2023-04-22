@@ -1,4 +1,5 @@
-# BabyAGI comes to a final conclusion eventually...
+# BabyAGI with reasoning feature:
+# ... making it possible to come to a final conclusion eventually!! :-)
 
 This is a side branch of the BabyAGI main branch, intended for development of an ultimate objective achievement feature,... meaning BabyAGI does determine on its own when the ultimate objective is (sufficiently) achieved, summarizes the result and ends the script.
 
