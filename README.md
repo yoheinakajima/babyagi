@@ -8,6 +8,7 @@ This is a side branch of the BabyAGI main branch, intended for development of an
 I did also add a mechanism to have the LLM judge on the level of contribution for each task result, with respect to the ultimate objective. When the decision is made to come to an end, a final prompt is triggered. Handling of multi-part responses (for longer text) is implemented.
 
 Since I felt approaches involving counters or other "coded" solutions are suboptimal, I tried another route: Definition of a stop criteria and modification of agent function prompts, so that the ultimate objective is followed more closely and the stop criteria is considered.
+Last but not least I did implent a simple function for writing the terminal output to a text file.
 
 I am still testing and fine-tuning the functionality. Due to the many commits to the main branch I am not able to catch up, so I will keep it in this side branch for the time being...
 
@@ -17,7 +18,7 @@ In the following screenshot you can see the solution to the objective "Solve wor
 
 ![image](https://github.com/robiwan303/babyagi/blob/main/Solve_world_hunger.jpeg)
 
-I did use the plausi feature in order to reduce the time to completion, w/o might take a while for such a complex goal. Due the constant OpenAI API rate limit errors I am facing, even with 20$ paid account, the final response is truncated. Should have been at least two responses. The mechanism for triggering of multiple responses did work, but the rate limit did hit hard...
+I did use the plausi feature in order to reduce the time to completion, w/o might take a while for such a complex goal. Due to the heavy usage of OpenAI API, I am getting rate limit errors constantly. Therefore the final response is truncated, should have been at least two parts. The mechanism for triggering of multiple responses did work, but the rate limit did hit hard...
 
 <<<<<<<<<<<<<<<<<<<<<<<
 
