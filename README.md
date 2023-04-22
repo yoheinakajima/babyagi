@@ -1,20 +1,18 @@
 # BabyAGI with reasoning feature...
 # ... making it possible to achieve the objective eventually...
 
-
-In the following screenshot you can see the solution to the objective "Solve world hunger" from .env.example... :-D
-
-![image](https://github.com/robiwan303/babyagi/blob/main/Solve_world_hunger.jpeg)
-
-<<<<<<<<<<<<<<<<<<<<<<<
-
 This is a side branch of the BabyAGI main branch, intended for development of an ultimate objective achievement feature,... meaning BabyAGI does determine on its own when the ultimate objective is (sufficiently) achieved, summarizes the result and ends the script.
 
 Since I felt approaches involving counters or other "coded" solutions are suboptimal, I tried another route: Definition of a stop criteria and modification of agent function prompts, so that the ultimate objective is followed more closely and the stop criteria is considered.
 
-I am still testing and fine-tuning the new functionality. Due to the many  new commits for the main branch I am not able to catch up, so I will keep it in this side branch for the time being...
-
 <<<<<<<<<<<<<<<<<<<<<<<
+
+I am still testing and fine-tuning the new functionality. Due to the many  new commits for the main branch I am not able to catch up, so I will keep it in this side branch for the time being...
+In the following screenshot you can see the solution to the objective "Solve world hunger" from .env.example... :-D
+
+
+![image](https://github.com/robiwan303/babyagi/blob/main/Solve_world_hunger.jpeg)
+
 
 # Parameters for ultimate objective in .env:
 
