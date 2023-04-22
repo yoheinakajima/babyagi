@@ -1,5 +1,12 @@
 # BabyAGI with reasoning feature:
-# ... making it possible to come to a final conclusion eventually!! :-)
+# ... making it possible to really achieve the objective eventually!! :-)
+
+
+In the following screenshot you can see the solution to the objective "Solve world hunger" from .env.example... :-D
+
+![image](https://github.com/robiwan303/babyagi/blob/main/Solve_world_hunger.jpeg)
+
+<<<<<<<<<<<<<<<<<<<<<<<
 
 This is a side branch of the BabyAGI main branch, intended for development of an ultimate objective achievement feature,... meaning BabyAGI does determine on its own when the ultimate objective is (sufficiently) achieved, summarizes the result and ends the script.
 
@@ -7,6 +14,7 @@ Since I felt approaches involving counters or other "coded" solutions are subopt
 
 I am still testing and fine-tuning the new functionality. Due to the many  new commits for the main branch I am not able to catch up, so I will keep it in this side branch for the time being...
 
+<<<<<<<<<<<<<<<<<<<<<<<
 
 # Parameters for ultimate objective in .env:
 
@@ -23,13 +31,9 @@ PLAUSI_NUMBER=3.0
 FINAL_PROMPT=Summarize and explain the final result for the ultimate objective, based on all researched information
   - This prompt will be issued when the STOP_CRITERIA is met and PLAUSI_NUMBER condition is satisfied, for one (or more) final response(s)
 
+<<<<<<<<<<<<<<<<<<<<<<<
+
 The STOP_CRITERIA is pretty generic and should fit for most applications. The FINAL_PROMPT depends a bit on what you are trying to achieve.
-
-<<<<<<<<<<<<<<<<<<<<<<
-
-In the following screenshot you can see the solution to the objective "Solve world hunger" from .env.example... :-D
-
-![image](https://github.com/robiwan303/babyagi/blob/main/Solve_world_hunger.jpeg)
 
 I did use the plausi feature in order to reduce the time to completion, w/o might take a while for such a complex goal. Due the constant OpenAI API rate limit errors I am facing, even with 20$ paid account, the final response is truncated. Should have been at least two responses. The mechanism for triggering of multiple responses did work, but the rate limit did hit hard...
 
