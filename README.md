@@ -1,3 +1,29 @@
+# BabyAGI comes to a final conclusion eventually...
+
+This is a side branch of the BabyAGI main branch, intended for development of an ultimate objective achievement feature,... meaning BabyAGI does determine on its own when the ultimate objective is (sufficiently) achieved, summarizes the result and ends the script.
+
+Since I felt approaches involving counters or other "coded" solutions are suboptimal, I tried another route: Definition of a stop criteria and modification of agent function prompts, so that the ultimate objective is followed more closely and the stop criteria is considered.
+
+I am still testing and fine-tuning the new functionality, due to the high-frequency of new commits for the main branch I am not able to catch up, so I will keep it in this side branch for the time being...
+
+
+# New set of parameters for ultimate objective in .env:
+
+OBJECTIVE=Solve world hunger
+
+STOP_CRITERIA=When the ultimate objective has been achieved and is plausible, or when further evaluation will most probably not improve the result
+  - With STOP_CRITERIA it is possible to reach a final response at some point, with a not too complex OBJECTIVE or with enough time
+
+PLAUSI_NUMBER=3.0
+  - Number of times the STOP_CRITERIA must be met before the final prompt is sent (optional, default: 0.0)
+  - 0: Without plausi feature, the decision about stop depends solely on the task_creation_agent
+  - 1 (or more): A low PLAUSI_NUMBER can reduce the time until final prompt triggering, higher values will increase the time due to iterations (more detailed results), unless the task_creation_agent decides to stop earlier
+
+FINAL_PROMPT=Summarize and explain the final result for the ultimate objective, based on all researched information
+  - This prompt will be issued when the STOP_CRITERIA is met and PLAUSI_NUMBER condition is satisfied, for one (or more) final response(s)
+
+
+
 # Translations:
 
 [<img title="Français" alt="Français" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/fr.svg" width="22">](docs/README-fr.md)
