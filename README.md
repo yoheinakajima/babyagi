@@ -1,5 +1,5 @@
 # BabyAGI with reasoning feature ...
-# ... making it possible to achieve the objective eventually!
+# ... making it possible to eventually achieve the objective.
 
 <<<<<<<<<<<<<<<<<<<<<<<
 
