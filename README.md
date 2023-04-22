@@ -78,15 +78,15 @@ docker-compose up
 
 # Supported Models<a name="supported-models"></a>
 
-This script works with all OpenAI models, as well as Llama through Llama.cpp. Default model is **gpt-3.5-turbo**. To use a different model, specify it through OPENAI_API_MODEL or use the command line.
+This script works with all OpenAI models, as well as Llama and its variations through Llama.cpp. Default model is **gpt-3.5-turbo**. To use a different model, specify it through LLM_MODEL or use the command line.
 
 ## Llama
 
-Download the latest version of [Llama.cpp](https://github.com/ggerganov/llama.cpp) and follow instructions to make it. You will also need the Llama model weights.
+Llama integration requires llama-cpp package. You will also need the Llama model weights. 
 
 - **Under no circumstances share IPFS, magnet links, or any other links to model downloads anywhere in this repository, including in issues, discussions or pull requests. They will be immediately deleted.**
 
-After that link `llama/main` to llama.cpp/main and `models` to the folder where you have the Llama model weights. Then run the script with `OPENAI_API_MODEL=llama` or `-l` argument.
+Once you have them, set LLAMA_MODEL_PATH to the path of the specific model to use. For convenience, you can link `models` in BabyAGI repo to the folder where you have the Llama model weights. Then run the script with `LLM_MODEL=llama` or `-l` argument.
 
 # Warning<a name="continous-script-warning"></a>
 
@@ -107,7 +107,7 @@ I am new to GitHub and open source, so please be patient as I learn to manage th
 
 # Inspired projects
 
-In the short time since it was release, BabyAGI inspired many projects. You can see them all [here](inspired-projects.md).
+In the short time since it was release, BabyAGI inspired many projects. You can see them all [here](docs/inspired-projects.md).
 
 # Backstory
 

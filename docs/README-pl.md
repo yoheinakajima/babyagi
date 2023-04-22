@@ -87,7 +87,7 @@ Jestem nowy w GitHubie i open source, więc proszę o cierpliwość, gdy będę 
 
 # Inne projekty zainspirowane tym projektem
 
-W krótkim czasie od premiery, BabyAGI zainspirowało wiele projektów. Możesz zobaczyć je wszystkie [tutaj](inspired-projects.md).
+W krótkim czasie od premiery, BabyAGI zainspirowało wiele projektów. Możesz zobaczyć je wszystkie [tutaj](docs/inspired-projects.md).
 
 # Tło
 

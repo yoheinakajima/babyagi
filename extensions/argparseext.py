@@ -81,7 +81,7 @@ def parse_arguments():
 
     args = parser.parse_args()
 
-    llm_model = args.llm_model if args.llm_model else os.getenv("LLM_MODEL", os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo"))
+    llm_model = args.llm_model if args.llm_model else os.getenv("LLM_MODEL", os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo")).lower()
 
     dotenv_extensions = args.env
 

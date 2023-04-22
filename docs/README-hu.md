@@ -102,7 +102,7 @@ I am new to GitHub and open source, so please be patient as I learn to manage th
 
 # Inspirált projektek
 
-A megjelenés óta eltelt rövid idő alatt a BabyAGI számos projektet inspirált. Mindegyiket megtekintheti [itt](inspired-projects.md).
+A megjelenés óta eltelt rövid idő alatt a BabyAGI számos projektet inspirált. Mindegyiket megtekintheti [itt](docs/inspired-projects.md).
 
 # Háttértörténet
 
