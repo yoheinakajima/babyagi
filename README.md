@@ -1,4 +1,4 @@
-# BabyAGI with reasoning feature:
+# BabyAGI with reasoning feature...
 # ... making it possible to really achieve the objective eventually!! :-)
 
 
