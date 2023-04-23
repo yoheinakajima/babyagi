@@ -108,7 +108,7 @@ def write_to_file(text: str, mode: chr):
 write_to_file(f"*****OBJECTIVE*****\n{OBJECTIVE}\n\n*****STOP CRITERIA*****\n{STOP_CRITERIA}\n\nInitial task: {INITIAL_TASK}\n\n", 'w')
 print(f"\033[94m\033[1m\n*****OBJECTIVE*****\n\033[0m\033[0m{OBJECTIVE}")
 print(f"\033[91m\033[1m\n*****STOP CRITERIA*****\n\033[0m\033[0m{STOP_CRITERIA}")
-print(f"Initial task:\033[0m\033[0m {INITIAL_TASK}")
+print(f"\nInitial task:\033[0m\033[0m {INITIAL_TASK}")
 
 # Configure OpenAI and Pinecone
 openai.api_key = OPENAI_API_KEY
@@ -227,33 +227,33 @@ def task_creation_agent(
     Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks.
     Your aim is to create as few new tasks as possible to achieve the objective, with focus on the ultimate objective.
     Return the tasks as an array.\n\n
-    Also evaluate the last completed task result regarding the contribution to the ultimate objective, and output 'Goal achievement [%]: ' followed by a number between 0 and 100.
+    Also evaluate the last completed task result regarding the contribution to the ultimate objective, and output 'Contribution [%]: ' followed by a number between 0 and 100.
     0 means we are very far away from the ultimate objective and 100 means the ulitmate objective has been achieved.
     Always do your best to determine an exact number. If there is any contribution at all, assign a number greater than 0.
-    If the goal achievement output value cannot be determined, output 'Goal achievement [%]: unclear' and do only set it to 100, if the stop criteria has been met.
-    Output the goal achievement in one line, and only one line. Output the goal achievement at the end with one empty line before.\n
-    If the goal achievement value is 0 create new tasks for a different important open topic regarding the ultimate objective than the topic in the last completed task result."""
+    If the contribution output value cannot be determined, output 'Contribution [%]: unclear' and do only set it to 100, if the stop criteria has been met.
+    Output the contribution in one line, and only one line. Output the contribution at the end with one empty line before.\n
+    If the contribution value is 0 create new tasks for a different important open topic regarding the ultimate objective than the topic in the last completed task result."""
     response = openai_call(prompt)
     new_tasks = response.split("\n") if "\n" in response else [response]
 
-    # Remove the goal achievement from new tasks
+    # Remove the contribution output from new tasks
     for n in new_tasks:
-        if "Goal achievement [%]:" in n:
+        if "Contribution [%]:" in n:
             new_tasks.remove(n)
             break
 
-    # Get the goal achievement probability
+    # Get the contribution value
     line = response.split("\n")
-    probability = -1
+    contribution = -1
     for l in line:
-        if "Goal achievement" in l:
+        if "Contribution" in l:
             try:
-                probability = int(l.split(": ")[1])
+                contribution = int(l.split(": ")[1])
                 break
             except (ValueError, IndexError):
-                probability = -1
+                contribution = -1
     #print(f"\nProbability: {probability}%")
-    return [{"task_name": task_name} for task_name in new_tasks], probability
+    return [{"task_name": task_name} for task_name in new_tasks], contribution
 
 
 # Prioritize the task list
@@ -265,13 +265,13 @@ def prioritization_agent(this_task_id: int):
     You are a task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}.\n
     Consider the ultimate objective of your team of agent functions: {OBJECTIVE}.\n
     Your aim is to prioritize the task list in a way that the ultimate objective is achieved with as few tasks as possible, and that the most relevant tasks are completed first.
-    When continueing research on a particular category of the ultimate objective, consider the ultimate objective as a whole and switch to another category if necessary.
+    When continueing research on a particular topic for the ultimate objective, consider the ultimate objective as a whole and switch to another topic, if advisable.
     Consider the order of the task list, with respect to which task depends on which and the order of creation, and improve the task list prioritization process.\n
     Do not remove any tasks. Return the result as a numbered list, like:
     1. Description of first task
     2. Description of second task
     3. Description of third task
-    4. ...
+    4. ...\n
     Start the task list with number {next_task_id}."""
     response = openai_call(prompt)
     new_tasks = response.split("\n") if "\n" in response else [response]
@@ -303,7 +303,6 @@ def execution_agent(objective: str, task: str) -> str:
     prompt = f"""
     You are an AI who performs one task based on the following objective: {objective}.\n
     Take into account these previously completed tasks: {context}.\n
-    The one performed task must contribute to the achievement of the ultimate objective: {OBJECTIVE}.\n
     Your task: {task}\nResponse:"""
     return openai_call(prompt, max_tokens=2000)
 
