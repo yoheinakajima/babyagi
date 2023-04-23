@@ -300,7 +300,7 @@ def execution_agent(objective: str, task: str) -> str:
 
     """
     context = context_agent(query=objective, top_results_num=5)
-    print(f"\033[96m\033[1m\n*****RELEVANT CONTEXT*****\n\033[0m\033[0m{context}")
+    print(f"\033[96m\033[1m\n*****RELEVANT CONTEXT*****\033[0m\033[0m{context}")
     write_to_file(f"*****RELEVANT CONTEXT*****\n{context}\n", 'a')
     prompt = f"""
     You are an AI who performs one task based on the following objective: {objective}.\n
