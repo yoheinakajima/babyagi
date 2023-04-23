@@ -38,7 +38,7 @@ FINAL_PROMPT=Description for action which shall be executed when the ultimate ob
 The STOP_CRITERIA is pretty generic and should fit for most applications. The FINAL_PROMPT depends on what shall be achieved.
 
 Hints for these prompts:
-   - The wording in STOP_CRITERIA has a significant impact on when this condition will be met. For example see "When the ultimate objective has been achieved and is plausible" vs. "... has been achieved in an adequate manner and is plausible". This makes a big difference, since in the second case the LLM will determine on its own what is "adequate" in this case.
+   - The wording in STOP_CRITERIA has a significant impact on when this condition will be met. For example see "When the ultimate objective has been achieved and is plausible" vs. "... has been achieved in an adequate manner and is plausible". This can make a big difference, depending on the OBJECTIVE, since in the second case the LLM will determine on its own what is "adequate" for this application. If the "... is plausible" is removed from the condition, most probably the research will be shallow and short.
    - The next part in the predefined STOP_CRITERA ", or when further evaluation will most probably not improve the result" has been added as a safety condition to make sure that the process is finite and at some point the condition will be met.
    - The intention behind the FINAL_PROMPT is to have the final result reported in as many subsequent responses as necessary. Therefore I did implement the mechanism for triggering of next part of the response. Unfortunately, due my API rate limit error problem, this does not work for me. But the mechanism is working otherwise the script would not stop.
 
