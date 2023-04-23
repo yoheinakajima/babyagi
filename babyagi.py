@@ -23,6 +23,7 @@ class Config:
     def __init__(self):
         if self._initialized:
             return
+        self._initialized = True
         # OpenAI API Keys
         self.openai_api_key = os.getenv("OPENAI_API_KEY", "")
         assert self.openai_api_key, "\033[91m\033[1m" + \
