@@ -28,15 +28,14 @@ class Monitor(commands.Cog):
         self.interaction = ctx.interaction
         await ctx.interaction.response.send_message(f"Connecting...", ephemeral=True, silent=True)
 
+        self.start_message_deleted = False
+        self.objectives = {}
+
         self.objectives_raw = CooperativeObjectivesListStorage()
         if not self.objectives_raw.get_objective_names():
             await self.interaction.followup.send(f"No objectives being worked towards currently", ephemeral=True, silent=True)
             await self.after_fetcher()
             return
-
-        self.start_message_deleted = False
-
-        self.objectives = {}
 
         self.fetcher.start()
 
