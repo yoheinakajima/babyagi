@@ -107,12 +107,10 @@ def write_to_file(text: str, mode: chr):
         f.write(text)
 
 
-# Create file and write objective and initial task to file
+# Print and write to file OBJECTIVE, STOP_CRITERIA and INITIAL_TASK
 write_to_file(f"*****OBJECTIVE*****\n{OBJECTIVE}\n\n*****STOP CRITERIA*****\n{STOP_CRITERIA}\n\nInitial task: {INITIAL_TASK}\n\n", 'w')
-
-# Print OBJECTIVE, STOP_CRITERIA and INITIAL_TASK
-print(f"\033[94m\033[1m\n*****OBJECTIVE*****\n\n\033[0m\033[0m{OBJECTIVE}\033[94m\033[1m\n")
-print(f"*****STOP CRITERIA*****\n\n\033[0m\033[0m{STOP_CRITERIA}\n\033[93m\033[1m\n")
+print(f"\033[94m\033[1m\n*****OBJECTIVE*****\n\033[0m\033[0m{OBJECTIVE}")
+print(f"\033[91m\033[1m\n*****STOP CRITERIA*****\n\033[0m\033[0m{STOP_CRITERIA}")
 print(f"Initial task:\033[0m\033[0m {INITIAL_TASK}")
 
 # Configure OpenAI and Pinecone
@@ -232,12 +230,12 @@ def task_creation_agent(
     Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks.
     Your aim is to create as few new tasks as possible to achieve the objective, with focus on the ultimate objective.
     Return the tasks as an array.\n\n
-    Also determine the last completed task result with respect to the contribution to the ultimate objective, and output 'Goal achievement [%]: ' followed by a number between 0 and 100.
+    Also evaluate the last completed task result regarding the contribution to the ultimate objective, and output 'Goal achievement [%]: ' followed by a number between 0 and 100.
     0 means we are very far away from the ultimate objective and 100 means the ulitmate objective has been achieved.
     Always do your best to determine an exact number. If there is any contribution at all, assign a number greater than 0.
     If the goal achievement output value cannot be determined, output 'Goal achievement [%]: unclear' and do only set it to 100, if the stop criteria has been met.
     Output the goal achievement in one line, and only one line. Output the goal achievement at the end with one empty line before.\n
-    If the goal achievement value is 0 create new tasks for a different important open topic regarding the ultimate objective than in the last completed task."""
+    If the goal achievement value is 0 create new tasks for a different important open topic regarding the ultimate objective than in the last completed task result."""
     response = openai_call(prompt)
     new_tasks = response.split("\n") if "\n" in response else [response]
 
@@ -303,7 +301,7 @@ def execution_agent(objective: str, task: str) -> str:
 
     """
     context = context_agent(query=objective, top_results_num=5)
-    print(f"\033[91m\033[1m\n*****RELEVANT CONTEXT*****\n\033[0m\033[0m\n{context}")
+    print(f"\033[96m\033[1m\n*****RELEVANT CONTEXT*****\n\033[0m\033[0m{context}")
     write_to_file(f"*****RELEVANT CONTEXT*****\n{context}\n", 'a')
     prompt = f"""
     You are an AI who performs one task based on the following objective: {objective}.\n
@@ -337,9 +335,9 @@ def context_agent(query: str, top_results_num: int):
 def final_prompt():
     response = openai_call(f"{FINAL_PROMPT}. The ultimate objective is: {OBJECTIVE}.")
     write_to_file(f"*****FINAL RESPONSE*****\n{response}\n", 'a')
-    print(f"\033[94m\033[1m\n*****FINAL RESPONSE*****\n\033[0m\033[0m\n{response}")
+    print(f"\033[94m\033[1m\n*****FINAL RESPONSE*****\n\033[0m\033[0m{response}")
     while "The final response generation has been completed" not in response:
-        response = openai_call("Continue with output. Say 'The final response generation has been completed...' in case the complete result has been output already or the prompt is unclear or ambiguous.")
+        response = openai_call("Continue with output. Say 'The final response generation has been completed...' in case the complete result has been output already or the prompt is unclear.")
         write_to_file(f"{response}", 'a')
         print(response)
     print("\n***** The ultimate objective has been achieved, the work is done! BabyAGI will take a nap now... :-) *****\n")
@@ -355,7 +353,7 @@ plausi_counter = 0.0    # Counter for number of plausibility checks for goal ach
 while True:
     if task_list:
         # Print the task list
-        print("\033[95m\033[1m" + "\n*****TASK LIST*****\n" + "\033[0m\033[0m")
+        print("\033[95m\033[1m" + "\n*****TASK LIST*****" + "\033[0m\033[0m")
         write_to_file("*****TASK LIST*****\n", 'a')
         for t in task_list:
             print(str(t["task_id"]) + ": " + t["task_name"])
@@ -369,13 +367,13 @@ while True:
             final_prompt()
             break
 
-        print("\033[92m\033[1m" + "\n*****NEXT TASK*****\n" + "\033[0m\033[0m\n" + str(task["task_id"]) + ": " + task["task_name"])
+        print("\033[92m\033[1m" + "\n*****NEXT TASK*****\n" + "\033[0m\033[0m" + str(task["task_id"]) + ": " + task["task_name"])
         write_to_file("*****NEXT TASK*****\n" + str(task["task_id"]) + ": " + task["task_name"] + "\n\n", 'a')
 
         # Send to execution function to complete the task based on the context
         result = execution_agent(OBJECTIVE, task["task_name"])
         this_task_id = int(task["task_id"])
-        print(f"\033[93m\033[1m\n*****TASK RESULT*****\n\033[0m\033[0m\n{result}")
+        print(f"\033[93m\033[1m\n*****TASK RESULT*****\n\033[0m\033[0m{result}")
         write_to_file(f"\n*****TASK RESULT*****\n{result}\n", 'a')
 
         # Step 2: Enrich result with metadata and store in Pinecone
@@ -403,9 +401,9 @@ while True:
         if task_id_counter > 3 and task_contribution > 0 and task_contribution <= 100:
                 plausi_counter += (task_contribution*0.01)
 
-        print(f"\033[94m\033[1m\n*****GOAL ACHIEVEMENT RESULT*****\n\033[0m\033[0m")
+        print(f"\033[94m\033[1m\n*****TASK GOAL ACHIEVEMENT*****\033[0m\033[0m")
         print(f"Plausi counter: {plausi_counter} with threshold: {PLAUSI_NUMBER} and contribution to objective: {task_contribution}%")  
-        write_to_file(f"\n*****GOAL ACHIEVEMENT RESULT*****\n", 'a')
+        write_to_file(f"\n*****TASK GOAL ACHIEVEMENT*****\n", 'a')
         write_to_file(f"Plausi counter: {plausi_counter} with threshold: {PLAUSI_NUMBER} and contribution to objective: {task_contribution}%\n\n", 'a')
 
         for new_task in new_tasks:
@@ -415,3 +413,4 @@ while True:
         prioritization_agent(this_task_id)
 
     time.sleep(1)  # Sleep before checking the task list again
+
