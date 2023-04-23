@@ -29,7 +29,7 @@ OBJECTIVE=Same as for main branch, the ultimate objective
 
 STOP_CRITERIA=The condition under which the ultimate objective is achieved
 
-PLAUSI_NUMBER=Plausibilization is done based on the latest task result's contribution to the ultimate objective. Each completed task gets evaluated and a percentage value is assigned. After a factor is applied (value*0.01). The values are added up each cycle and checked if greater than the PLAUSI_NUMBER.
+PLAUSI_NUMBER=Plausibilization is an additional feature to the stop criteria and is done based on the latest task result's contribution to the ultimate objective. Each completed task gets evaluated and a percentage value is assigned. After a factor is applied (value * 0.01), the values are added up each cycle and checked if greater than the PLAUSI_NUMBER. The feature is intended as a safety mechanism against infinite operation. If PLAUSI_NUMBER i set to 0 the plausi mechanism is deactivated.
 
 FINAL_PROMPT=Description for action which shall be executed when the ultimate objective (or enough plausibility) has been achieved, before stopping the script
 
@@ -39,8 +39,8 @@ The STOP_CRITERIA is pretty generic and should fit for most applications. The FI
 
 Hints for these prompts:
    - The wording in STOP_CRITERIA has a significant impact on when this condition will be met. For example see "When the ultimate objective has been achieved and is plausible" vs. "... has been achieved in an adequate manner and is plausible". This makes a big difference, since in the second case the LLM will determine on its own what is "adequate" in this case.
-   - The next part in the predefined STOP_CRITERA ", or when further evaluation will most probably not improve the result" has been added as a safety condition to make sure that the process in finite and at some point the condition will be met.
-   - The intention behind the FINAL_PROMPT is to have the final result reported in as many subsequent responses as necessary. Therefore I did implement the mechanism for triggering of the next part of the response. Unfortunately, due my API rate limit error problem, this does not work for me. But the mechanism is working otherwise the final line and program exit would not be reached.
+   - The next part in the predefined STOP_CRITERA ", or when further evaluation will most probably not improve the result" has been added as a safety condition to make sure that the process is finite and at some point the condition will be met.
+   - The intention behind the FINAL_PROMPT is to have the final result reported in as many subsequent responses as necessary. Therefore I did implement the mechanism for triggering of next part of the response. Unfortunately, due my API rate limit error problem, this does not work for me. But the mechanism is working otherwise the script would not stop.
 
 See below the original README.md from BabyAGI main branch.
 
