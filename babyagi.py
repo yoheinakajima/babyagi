@@ -9,8 +9,6 @@ import openai
 import pinecone
 from dotenv import load_dotenv
 
-import datetime
-
 # Load default environment variables (.env)
 load_dotenv()
 
