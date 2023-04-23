@@ -232,7 +232,7 @@ def task_creation_agent(
     Always do your best to determine an exact number. If there is any contribution at all, assign a number greater than 0.
     If the goal achievement output value cannot be determined, output 'Goal achievement [%]: unclear' and do only set it to 100, if the stop criteria has been met.
     Output the goal achievement in one line, and only one line. Output the goal achievement at the end with one empty line before.\n
-    If the goal achievement value is 0 create new tasks for a different important open topic regarding the ultimate objective than in the last completed task result."""
+    If the goal achievement value is 0 create new tasks for a different important open topic regarding the ultimate objective than the topic in the last completed task result."""
     response = openai_call(prompt)
     new_tasks = response.split("\n") if "\n" in response else [response]
 
