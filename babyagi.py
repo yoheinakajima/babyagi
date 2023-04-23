@@ -345,8 +345,8 @@ first_task = {"task_id": 1, "task_name": INITIAL_TASK}
 add_task(first_task)
 # Main loop
 task_id_counter = 1
-task_contribution = 0     # Percentage of goal achievement
-plausi_counter = 0.0    # Counter for number of plausibility checks for goal achievement
+task_contribution = 0   # Contribution of the task to the ultimate objective as percentage
+plausi_counter = 0.0    # Plausibility counter for the task contribution (in percentage*0.01)
 while True:
     if task_list:
         # Print the task list
@@ -394,14 +394,14 @@ while True:
             [t["task_name"] for t in task_list],
         )
 
-        # Check for goal achievement contribution and increment plausi counter
+        # Evaluate task result contribution and increment plausi counter
         if task_id_counter > 3 and task_contribution > 0 and task_contribution <= 100:
             plausi_counter += (task_contribution*0.01)
 
-        print(f"\033[94m\033[1m\n*****TASK GOAL ACHIEVEMENT*****\033[0m\033[0m")
-        print(f"Plausi counter: {plausi_counter} with threshold: {PLAUSI_NUMBER} and contribution to objective: {task_contribution}%")  
-        write_to_file(f"\n*****TASK GOAL ACHIEVEMENT*****\n", 'a')
-        write_to_file(f"Plausi counter: {plausi_counter} with threshold: {PLAUSI_NUMBER} and contribution to objective: {task_contribution}%\n\n", 'a')
+        print(f"\033[94m\033[1m\n*****TASK CONTRIBUTION*****\033[0m\033[0m")
+        print(f"Contribution of task result to objective: {task_contribution}% with plausi counter: {plausi_counter} and threshold: {PLAUSI_NUMBER}")  
+        write_to_file(f"\n*****TASK CONTRIBUTION*****\n", 'a')
+        write_to_file(f"Contribution of task result to objective: {task_contribution}% with plausi counter: {plausi_counter} and threshold: {PLAUSI_NUMBER}\n\n", 'a')
 
         for new_task in new_tasks:
             task_id_counter += 1
