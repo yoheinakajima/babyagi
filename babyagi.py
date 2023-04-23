@@ -396,7 +396,7 @@ while True:
 
         # Check for goal achievement contribution and increment plausi counter
         if task_id_counter > 3 and task_contribution > 0 and task_contribution <= 100:
-                plausi_counter += (task_contribution*0.01)
+            plausi_counter += (task_contribution*0.01)
 
         print(f"\033[94m\033[1m\n*****TASK GOAL ACHIEVEMENT*****\033[0m\033[0m")
         print(f"Plausi counter: {plausi_counter} with threshold: {PLAUSI_NUMBER} and contribution to objective: {task_contribution}%")  
