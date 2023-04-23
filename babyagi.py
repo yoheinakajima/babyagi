@@ -1,4 +1,3 @@
-# Modified version of BabayAGI with reasoning feature
 #!/usr/bin/env python3
 import os
 import subprocess
