@@ -70,7 +70,7 @@ class Config:
             self.llama_model_path = os.getenv(
                 "LLAMA_MODEL_PATH", "models/llama-13B/ggml-model.bin").split("#",1)[0].strip()
             assert (
-                self.pinecone_environment
+                self.llama_model_path
             ), "\033[91m\033[1m" + "LLAMA_MODEL_PATH environment variable is missing from .env" + "\033[0m\033[0m"
         # Extensions
         self.dotenv_extensions = os.getenv("DOTENV_EXTENSIONS", "").split(" ")
