@@ -1,15 +1,10 @@
 #!/usr/bin/env python3
+import asyncio
 import os
 import sys
-import time
-import logging
 from collections import deque
 from typing import Dict, List
-import asyncio
 import importlib
-import openai
-import chromadb
-from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 from dotenv import load_dotenv
 
 from colors import Colors
@@ -33,63 +28,84 @@ from discord.ext import commands
 # Load default environment variables (.env)
 load_dotenv()
 
-class Bot(commands.Bot):
-    def __init__(self, app_id: str, token: str, *args, **kwargs):
-        intents = discord.Intents.all()
-        intents.members = True
-        intents.messages = True
-        intents.reactions = True
-        intents.message_content = True
+class Monitor(commands.Cog):
+    def __init__(self, bot: commands.Bot):
+        self.bot = bot
 
+    @commands.hybrid_command(
+        with_app_command=True,
+        help="Starts new instance.",
+        brief="Starts new instance.",
+        description="Starts new instance.",
+        usage="/start instance_name",
+        )
+    async def start(self, ctx, instance_name: str):
+        global start_message
+        start_message = await ctx.send(f"Started {instance_name}!")
+        await start_message.add_reaction("✅")
+
+    @commands.hybrid_command(with_app_command=True)
+    async def finish(self, ctx):
+        if start_message:
+            await start_message.edit(content="Stopped!")
+            await start_message.clear_reaction("✅")
+
+    @commands.hybrid_command(
+        with_app_command=True,
+        hidden=True,
+        )
+    async def secret(self,ctx):
+        secret_message = await ctx.send(f"Hello, {ctx.author.mention}! This message is only visible to you.", delete_after=30.0)
+        await secret_message.add_reaction("❌")
+
+    @commands.Cog.listener()
+    async def on_reaction_add(self, reaction, user):
+        print(cl('Reaction added:', Colors.YELLOW) + f' {reaction.emoji} by {user.name} on {reaction.message.content}')
+
+        # if reaction.message.author == bot.user and user != bot.user:
+        #     if reaction.emoji == "❌":
+        #         await reaction.message.delete()
+
+class DiscordBot():
+    def __init__(self, app_id: str, token: str):
         self.app_id = app_id
         self.token = token
 
-        super().__init__(application_id=app_id, command_prefix='/', intents=intents)
+        self.intents = discord.Intents.all()
+        self.intents.members = True
+        self.intents.messages = True
+        self.intents.reactions = True
+        self.intents.message_content = True
 
-start_message = None
+        self.bot = commands.Bot(
+            application_it=app_id,
+            command_prefix='!',
+            intents=self.intents
+        )
 
-APP_ID = os.getenv('APP_ID', "")
-TOKEN = os.getenv('BOT_TOKEN', "")
-assert APP_ID, cl("Please set the APP_ID environment variable.", Colors.RED)
-assert TOKEN, cl("Please set the BOT_TOKEN environment variable.", Colors.RED)
+        asyncio.run(self.bot.add_cog(Monitor(self)))
 
-bot = Bot(APP_ID, TOKEN)
+    async def sync(self):
+        await self.bot.tree.sync()
 
-@bot.hybrid_command(
-    with_app_command=True,
-    help="Starts new instance.",
-    brief="Starts new instance.",
-    description="Starts new instance.",
-    usage="/start")
-async def start(ctx):
-    global start_message
-    start_message = await ctx.send("Started!")
-    await start_message.add_reaction("✅")
+    def run(self):
+        self.bot.run(self.token)
 
-@bot.hybrid_command(with_app_command=True)
-async def finish(ctx):
-    if start_message:
-        await start_message.edit(content="Stopped!")
-        await start_message.clear_reaction("✅")
+def run(app_id: str, token: str):
+    discordBot = DiscordBot(app_id, token)
 
-@bot.hybrid_command(with_app_command=True)
-async def secret(ctx):
-    secret_message = await ctx.send(f"Hello, {ctx.author.mention}! This message is only visible to you.", delete_after=30.0)
-    await secret_message.add_reaction("❌")
+    @discordBot.bot.event
+    async def on_ready():
+        print(cl(f'{discordBot.bot.user}', Colors.GREEN) + ' has connected to Discord!')
+        await discordBot.bot.tree.sync()
+        print(cl('Tree synced', Colors.CYAN))
 
-@bot.event
-async def on_reaction_add(reaction, user):
-    if reaction.message.author == bot.user and user != bot.user:
-        if reaction.emoji == "❌":
-            await reaction.message.delete()
-
-@bot.event
-async def on_ready():
-    print(cl(f'{bot.user}', Colors.GREEN) + ' has connected to Discord!')
-    await bot.tree.sync()
-
-def run():
-    bot.run(bot.token)
+    discordBot.run()
 
 if __name__ == "__main__":
-    run()
+    APP_ID = os.getenv('APP_ID', "")
+    TOKEN = os.getenv('BOT_TOKEN', "")
+    assert APP_ID, cl("Please set the APP_ID environment variable.", Colors.RED)
+    assert TOKEN, cl("Please set the BOT_TOKEN environment variable.", Colors.RED)
+
+    run(APP_ID, TOKEN)
