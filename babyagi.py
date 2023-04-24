@@ -99,15 +99,15 @@ if LLM_MODEL.startswith("llama"):
         assert os.path.exists(LLAMA_MODEL_PATH), "\033[91m\033[1m" + f"Model can't be found." + "\033[0m\033[0m"
 
         CTX_MAX = 2048
-        THREADS_NUM = 16
+        LLAMA_THREADS_NUM = int(os.getenv("LLAMA_THREADS_NUM", 16))
         llm = Llama(
             model_path=LLAMA_MODEL_PATH,
-            n_ctx=CTX_MAX, n_threads=THREADS_NUM,
+            n_ctx=CTX_MAX, n_threads=LLAMA_THREADS_NUM,
             use_mlock=True,
         )
         llm_embed = Llama(
             model_path=LLAMA_MODEL_PATH,
-            n_ctx=CTX_MAX, n_threads=THREADS_NUM,
+            n_ctx=CTX_MAX, n_threads=LLAMA_THREADS_NUM,
             embedding=True, use_mlock=True,
         )
 
