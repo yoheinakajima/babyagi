@@ -205,28 +205,32 @@ class DefaultResultsStorage:
         return [item["task"] for item in results["metadatas"][0]]
 
 # Initialize results storage
-WEAVIATE_URL = os.getenv("WEAVIATE_URL", "")
-if WEAVIATE_URL:
-    if can_import("extensions.weaviate_storage"):
+def try_weaviate():
+    WEAVIATE_URL = os.getenv("WEAVIATE_URL", "")
+    if WEAVIATE_URL and can_import("extensions.weaviate_storage"):
         WEAVIATE_API_KEY = os.getenv("WEAVIATE_API_KEY", "")
         from extensions.weaviate_storage import WeaviateResultsStorage
-        results_storage = WeaviateResultsStorage(OPENAI_API_KEY, WEAVIATE_URL, WEAVIATE_API_KEY, LLM_MODEL, LLAMA_MODEL_PATH, RESULTS_STORE_NAME, OBJECTIVE)
-        print("\nReplacing results storage: " + "\033[93m\033[1m" +  "Weaviate" + "\033[0m\033[0m")
-    else:
-        print("\033[91m\033[1m" + "Weaviate is not installed. Falling back to ChromaDB." + "\033[0m\033[0m")
-        results_storage = DefaultResultsStorage()
-else:
-    results_storage = DefaultResultsStorage()
+        print("\nUsing results storage: " + "\033[93m\033[1m" + "Weaviate" + "\033[0m\033[0m")
+        return WeaviateResultsStorage(OPENAI_API_KEY, WEAVIATE_URL, WEAVIATE_API_KEY, LLM_MODEL, LLAMA_MODEL_PATH, RESULTS_STORE_NAME, OBJECTIVE)
+    return None
+
+def try_pinecone():
     PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
-    if PINECONE_API_KEY:
-        if can_import("extensions.pinecone_storage"):
-            PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "")
-            assert (
-                PINECONE_ENVIRONMENT
-            ), "\033[91m\033[1m" + "PINECONE_ENVIRONMENT environment variable is missing from .env" + "\033[0m\033[0m"
-            from extensions.pinecone_storage import PineconeResultsStorage
-            results_storage = PineconeResultsStorage(OPENAI_API_KEY, PINECONE_API_KEY, PINECONE_ENVIRONMENT, LLM_MODEL, LLAMA_MODEL_PATH, RESULTS_STORE_NAME, OBJECTIVE)
-            print("\nReplacing results storage: " + "\033[93m\033[1m" +  "Pinecone" + "\033[0m\033[0m")
+    if PINECONE_API_KEY and can_import("extensions.pinecone_storage"):
+        PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "")
+        assert (
+            PINECONE_ENVIRONMENT
+        ), "\033[91m\033[1m" + "PINECONE_ENVIRONMENT environment variable is missing from .env" + "\033[0m\033[0m"
+        from extensions.pinecone_storage import PineconeResultsStorage
+        print("\nUsing results storage: " + "\033[93m\033[1m" + "Pinecone" + "\033[0m\033[0m")
+        return PineconeResultsStorage(OPENAI_API_KEY, PINECONE_API_KEY, PINECONE_ENVIRONMENT, LLM_MODEL, LLAMA_MODEL_PATH, RESULTS_STORE_NAME, OBJECTIVE)
+    return None
+
+def use_chroma():
+    print("\nUsing results storage: " + "\033[93m\033[1m" + "Chroma (Default)" + "\033[0m\033[0m")
+    return DefaultResultsStorage()
+
+results_storage = try_weaviate() or try_pinecone() or use_chroma()
 
 # Task storage supporting only a single instance of BabyAGI
 class SingleTaskListStorage:
