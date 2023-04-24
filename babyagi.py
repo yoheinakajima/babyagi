@@ -369,7 +369,7 @@ while True:
         # Send to execution function to complete the task based on the context
         result = execution_agent(OBJECTIVE, task["task_name"])
         this_task_id = int(task["task_id"])
-        print(f"\033[93m\033[1m\n*****TASK RESULT*****\n\033[0m\033[0m{result}")
+        print(f"\033[93m\033[1m\n*****TASK RESULT*****\033[0m\033[0m{result}")
         write_to_file(f"\n*****TASK RESULT*****\n{result}\n", 'a')
 
         # Step 2: Enrich result with metadata and store in Pinecone
