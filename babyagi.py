@@ -231,8 +231,8 @@ def task_creation_agent(
     0 means we are very far away from the ultimate objective and 100 means the ulitmate objective has been achieved.
     Always do your best to determine an exact number. If there is any contribution at all, assign a number greater than 0.
     If the contribution output value cannot be determined, output 'Contribution [%]: unclear' and do only set it to 100, if the stop criteria has been met.
-    Output the contribution in one line, and only one line. Output the contribution at the end with one empty line before.\n
-    If the contribution value is 0 create new tasks for a different important open topic regarding the ultimate objective than the topic in the last completed task result."""
+    Output the contribution in one line, and only one line. Output the contribution at the end.\n
+    If the contribution value is 0 create new tasks for a different important open topic with respect to the ultimate objective than the topic from the last completed task result."""
     response = openai_call(prompt)
     new_tasks = response.split("\n") if "\n" in response else [response]
 
@@ -265,8 +265,8 @@ def prioritization_agent(this_task_id: int):
     You are a task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}.\n
     Consider the ultimate objective of your team of agent functions: {OBJECTIVE}.\n
     Your aim is to prioritize the task list in a way that the ultimate objective is achieved with as few tasks as possible, and that the most relevant tasks are completed first.
-    When continueing research on a particular topic for the ultimate objective, consider the ultimate objective as a whole and switch to another topic, if advisable.
-    Consider the order of the task list, with respect to which task depends on which and the order of creation, and improve the task list prioritization process.\n
+    Consider the order of the task list, with respect to which task depends on which and the order of creation, for the task list prioritization process.
+    When continuous research on a topic proves inconclusive, switch to the oldest incomplete task from the task list dealing with a different topic.\n
     Do not remove any tasks. Return the result as a numbered list, like:
     1. Description of first task
     2. Description of second task
@@ -301,7 +301,7 @@ def execution_agent(objective: str, task: str) -> str:
     print(f"\033[96m\033[1m\n*****RELEVANT CONTEXT*****\033[0m\033[0m{context}")
     write_to_file(f"*****RELEVANT CONTEXT*****\n{context}\n", 'a')
     prompt = f"""
-    You are an AI who performs one task based on the following objective: {objective}.\n
+    You are a task management AI who performs one task based on the following objective: {objective}.\n
     Take into account these previously completed tasks: {context}.\n
     Your task: {task}\nResponse:"""
     return openai_call(prompt, max_tokens=2000)
@@ -336,7 +336,7 @@ def final_prompt():
         response = openai_call("Continue with output. Say 'The final response generation has been completed...' in case the complete result has been output already or the prompt is unclear.")
         write_to_file(f"{response}", 'a')
         print(response)
-    print("\n***** The ultimate objective has been achieved, the work is done! BabyAGI will take a nap now... :-) *****\n")
+    print("\n***** The ultimate objective has been achieved, the work is done! BabyAGI will take a nap now... *****\n")
 
 
 # Add the first task
@@ -385,7 +385,7 @@ while True:
 	        namespace=OBJECTIVE
         )
 
-        # Step 3: Create new tasks and reprioritize task list
+        # Step 3: Create new tasks, reprioritize task list and calculate contribution value for last task result
         new_tasks, task_contribution = task_creation_agent(
             OBJECTIVE,
             enriched_result,
@@ -394,7 +394,7 @@ while True:
         )
 
         # Evaluate task result contribution and increment plausi counter
-        if task_id_counter > 3 and task_contribution > 0 and task_contribution <= 100:
+        if task_id_counter > 1 and task_contribution > 0 and task_contribution <= 100:
             plausi_counter += (task_contribution*0.01)
 
         print(f"\033[94m\033[1m\n*****TASK CONTRIBUTION*****\033[0m\033[0m")
