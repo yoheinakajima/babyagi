@@ -128,7 +128,7 @@ if config.llm_model.startswith("llama"):
         assert os.path.exists(config.llama_model_path), "\033[91m\033[1m" + f"Model can't be found." + "\033[0m\033[0m"
 
         CTX_MAX = 2048
-        THREADS_NUM = 16
+        LLAMA_THREADS_NUM = int(os.getenv("LLAMA_THREADS_NUM", 4))
         llm = Llama(
             model_path=config.llama_model_path,
             n_ctx=CTX_MAX, n_threads=THREADS_NUM,
@@ -325,17 +325,17 @@ def openai_call(
             time.sleep(10)  # Wait 10 seconds and try again
         except openai.error.Timeout:
             print(
-                "   *** OpenAI API timeout occured. Waiting 10 seconds and trying again. ***"
+                "   *** OpenAI API timeout occurred. Waiting 10 seconds and trying again. ***"
             )
             time.sleep(10)  # Wait 10 seconds and try again
         except openai.error.APIError:
             print(
-                "   *** OpenAI API error occured. Waiting 10 seconds and trying again. ***"
+                "   *** OpenAI API error occurred. Waiting 10 seconds and trying again. ***"
             )
             time.sleep(10)  # Wait 10 seconds and try again
         except openai.error.APIConnectionError:
             print(
-                "   *** OpenAI API connection error occured. Check your network settings, proxy configuration, SSL certificates, or firewall rules. Waiting 10 seconds and trying again. ***"
+                "   *** OpenAI API connection error occurred. Check your network settings, proxy configuration, SSL certificates, or firewall rules. Waiting 10 seconds and trying again. ***"
             )
             time.sleep(10)  # Wait 10 seconds and try again
         except openai.error.InvalidRequestError:
@@ -470,7 +470,7 @@ def main ():
 
             results_storage.add(task, result, result_id, vector)
 
-            # Step 3: Create new tasks and reprioritize task list
+            # Step 3: Create new tasks and re-prioritize task list
             # only the main instance in cooperative mode does that
             new_tasks = task_creation_agent(
                 config.objective,
