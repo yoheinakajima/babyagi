@@ -99,7 +99,7 @@ if LLM_MODEL.startswith("llama"):
         assert os.path.exists(LLAMA_MODEL_PATH), "\033[91m\033[1m" + f"Model can't be found." + "\033[0m\033[0m"
 
         CTX_MAX = 2048
-        THREADS_NUM = 16
+        THREADS_NUM = 4
         llm = Llama(
             model_path=LLAMA_MODEL_PATH,
             n_ctx=CTX_MAX, n_threads=THREADS_NUM,
