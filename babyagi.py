@@ -301,17 +301,17 @@ def openai_call(
             time.sleep(10)  # Wait 10 seconds and try again
         except openai.error.Timeout:
             print(
-                "   *** OpenAI API timeout occured. Waiting 10 seconds and trying again. ***"
+                "   *** OpenAI API timeout occurred. Waiting 10 seconds and trying again. ***"
             )
             time.sleep(10)  # Wait 10 seconds and try again
         except openai.error.APIError:
             print(
-                "   *** OpenAI API error occured. Waiting 10 seconds and trying again. ***"
+                "   *** OpenAI API error occurred. Waiting 10 seconds and trying again. ***"
             )
             time.sleep(10)  # Wait 10 seconds and try again
         except openai.error.APIConnectionError:
             print(
-                "   *** OpenAI API connection error occured. Check your network settings, proxy configuration, SSL certificates, or firewall rules. Waiting 10 seconds and trying again. ***"
+                "   *** OpenAI API connection error occurred. Check your network settings, proxy configuration, SSL certificates, or firewall rules. Waiting 10 seconds and trying again. ***"
             )
             time.sleep(10)  # Wait 10 seconds and try again
         except openai.error.InvalidRequestError:
@@ -346,7 +346,7 @@ def prioritization_agent():
     task_names = tasks_storage.get_task_names()
     next_task_id = tasks_storage.next_task_id()
     prompt = f"""
-    You are a task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}.
+    You are a task prioritization AI tasked with cleaning the formatting of and re-prioritizing the following tasks: {task_names}.
     Consider the ultimate objective of your team:{OBJECTIVE}.
     Do not remove any tasks. Return the result as a numbered list, like:
     #. First task
@@ -446,7 +446,7 @@ def main ():
 
             results_storage.add(task, result, result_id, vector)
 
-            # Step 3: Create new tasks and reprioritize task list
+            # Step 3: Create new tasks and re-prioritize task list
             # only the main instance in cooperative mode does that
             new_tasks = task_creation_agent(
                 OBJECTIVE,
