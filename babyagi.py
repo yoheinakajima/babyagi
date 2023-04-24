@@ -108,7 +108,7 @@ def write_to_file(text: str, mode: chr):
 write_to_file(f"*****OBJECTIVE*****\n{OBJECTIVE}\n\n*****STOP CRITERIA*****\n{STOP_CRITERIA}\n\nInitial task: {INITIAL_TASK}\n\n", 'w')
 print(f"\033[94m\033[1m\n*****OBJECTIVE*****\n\033[0m\033[0m{OBJECTIVE}")
 print(f"\033[91m\033[1m\n*****STOP CRITERIA*****\n\033[0m\033[0m{STOP_CRITERIA}")
-print(f"\nInitial task:\033[0m\033[0m {INITIAL_TASK}")
+print(f"\033[93m\033[1m\nInitial task:\033[0m\033[0m {INITIAL_TASK}")
 
 # Configure OpenAI and Pinecone
 openai.api_key = OPENAI_API_KEY
