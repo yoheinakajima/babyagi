@@ -73,7 +73,7 @@ def get_toplist(topic, api_key, search_engine_id, num_results, num_pages):
     if links:
         webpage_content = extract_relevant_content(links[0])
     else:
-        webpage_content = ""
+        webpage_content = str("")
     #print(f"Topresults: {snippets}\n")
     #print(str(links[0]) + ": " + webpage_content)
     return snippets, webpage_content, links[0]
