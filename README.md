@@ -8,6 +8,8 @@
 
 <<<<<<<<<<<<<<<<<<<<<<<
 
+# New functionality for reasoning capabilities:
+
 This is a side branch of the BabyAGI main branch for an enhanced reasoning feature,... the LLM does determine on its own when the ultimate objective is (sufficiently) achieved.
 
 I did also add a mechanism to have the LLM judge on the level of contribution for each task result, with respect to the ultimate objective. When the decision is made to come to an end, a final prompt is triggered. Handling of multi-part responses (for longer text) is implemented.
@@ -27,7 +29,14 @@ I did use the plausi feature in order to reduce the time to completion, w/o migh
 
 <<<<<<<<<<<<<<<<<<<<<<<
 
-# Parameters for ultimate objective in .env:
+# New parameters in environment file:
+
+...
+
+GOOGLE_API_KEY=Google custom search API key
+SEARCH_ENGINE_ID=Search engine ID
+
+...
 
 OBJECTIVE=Same as for main branch, the ultimate objective.
 
@@ -35,20 +44,26 @@ STOP_CRITERIA=The condition under which the ultimate objective is achieved.
 
 PLAUSI_NUMBER=Plausibilization is an additional feature, working in parallel to the stop criteria. Based on the latest task result's contribution to the ultimate objective each completed task gets evaluated and a percentage value is assigned. After a factor is applied (value * 0.01), the values are added up each cycle and checked if greater than the PLAUSI_NUMBER. The feature is intended as a safety mechanism against infinite operation. If PLAUSI_NUMBER is set to 0 the plausi mechanism gets deactivated.
 
-FINAL_PROMPT=Description for action which shall be executed when the ultimate objective (or enough plausibility) has been achieved, before stopping the script.
+CONTRIBUTION_THRESHOLD=The threshold (percentage) for last task result's contribution to the task objective, for changing the topic for new tasks in case of low contribution (0 means only in case of no contribution and deactivates the feature)
+
+FINAL_PROMPT=Description for action which shall be executed when the ultimate objective has been achieved, before stopping the script.
+
+...
 
 <<<<<<<<<<<<<<<<<<<<<<<
+
+# Tipss & Tricks
 
 The STOP_CRITERIA is pretty generic and should fit for most applications. The FINAL_PROMPT depends on what shall be achieved.
 
 Hints for these prompts:
-   - The wording in STOP_CRITERIA has a significant impact on when this condition will be met. For example see "When the ultimate objective has been achieved and is plausible" vs. "... has been achieved in an adequate manner and is plausible". This can make a big difference, depending on the OBJECTIVE, since in the second case the LLM will determine on its own what is "adequate" for this application. If the "... is plausible" is removed from the condition, most probably the research will be shallow and short.
+   - The wording in STOP_CRITERIA has a significant impact on when this condition will be met. For example see "When the ultimate objective has been achieved and is plausible" vs. "... has been adequately achieved manner and is suitably plausible". This can make a big difference, depending on the OBJECTIVE, since in the second case the LLM will determine on its own what is "adequate" and "plausible".
    - The next part in the predefined STOP_CRITERA ", or when further evaluation will most probably not improve the result" has been added as a safety condition to make sure that the process is finite and at some point the condition will be met.
    - The intention behind the FINAL_PROMPT is to have the final result reported in as many subsequent responses as necessary. Therefore I did implement the mechanism for triggering of next part of the response. Unfortunately, due my API rate limit error problem, this does not work for me. But the mechanism is working otherwise the script would not stop.
 
-See below the original README.md from BabyAGI main branch.
-
 <<<<<<<<<<<<<<<<<<<<<<<
+
+See below the original README.md from BabyAGI main branch.
 
 ------------------------------------------------------------------------------------
 
