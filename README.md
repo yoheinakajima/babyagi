@@ -1,5 +1,4 @@
-# "BabyAGI with enhanced reasoning capabilities ...
-# ... making it possible to achieve the ultimate objective"
+# BabyAGI with enhanced reasoning capabilities,... making it possible to achieve the ultimate objective
 ![image](https://github.com/robiwan303/babyagi/blob/main/BabyAGI_Reasoning.jpeg)
 
 ## Major update: Google search functionality, also using reasoning capabilities, has been integrated (see also comments in commit for babyagi.py)
@@ -32,9 +31,8 @@ I did use the plausi feature in order to reduce the time to completion, w/o migh
 
 # New parameters in environment file:
 
-...
-
 GOOGLE_API_KEY=Google custom search API key
+
 SEARCH_ENGINE_ID=Search engine ID
 
 ...
@@ -49,11 +47,9 @@ CONTRIBUTION_THRESHOLD=The threshold (percentage) for last task result's contrib
 
 FINAL_PROMPT=Description for action which shall be executed when the ultimate objective has been achieved, before stopping the script.
 
-...
-
 <<<<<<<<<<<<<<<<<<<<<<<
 
-# Tipss & Tricks
+# Tipps & Tricks
 
 The STOP_CRITERIA is pretty generic and should fit for most applications. The FINAL_PROMPT depends on what shall be achieved.
 
