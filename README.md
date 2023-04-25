@@ -1,7 +1,7 @@
 # "BabyAGI with enhanced reasoning capabilities ...
 ![image](https://github.com/robiwan303/babyagi/blob/main/BabyAGI_Reasoning.jpeg)
 # ... making it possible to achieve the ultimate objective"
-
+## Major update: Google search functionality with reasoning capabilities has been integrated (see commit comments for babyagi.py)
 <<<<<<<<<<<<<<<<<<<<<<<
 
 This is a side branch of the BabyAGI main branch for an enhanced reasoning feature,... the LLM does determine on its own when the ultimate objective is (sufficiently) achieved.
