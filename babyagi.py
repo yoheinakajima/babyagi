@@ -230,7 +230,7 @@ def task_creation_agent(
     You are a task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective},
     The last completed task has the result: {result}
     This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}\n
-    Do only create new tasks which do directly contribute to the objective. 
+    Do only create new tasks which contribute to the ultimate objective. This is the ultimate objective: {OBJECTIVE}\n
     Take into account the stop criteria. When it is met, and only then, create one new task with only content 'Stop criteria has been met...'. 
     Here is the stop criteria: {STOP_CRITERIA}\n
     Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks. 
