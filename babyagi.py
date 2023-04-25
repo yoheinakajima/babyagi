@@ -207,11 +207,12 @@ class DefaultResultsStorage:
 # Initialize results storage
 def try_weaviate():
     WEAVIATE_URL = os.getenv("WEAVIATE_URL", "")
-    if WEAVIATE_URL and can_import("extensions.weaviate_storage"):
+    WEAVIATE_USE_EMBEDDED = os.getenv("WEAVIATE_USE_EMBEDDED", "False").lower() == "true"
+    if (WEAVIATE_URL or WEAVIATE_USE_EMBEDDED) and can_import("extensions.weaviate_storage"):
         WEAVIATE_API_KEY = os.getenv("WEAVIATE_API_KEY", "")
         from extensions.weaviate_storage import WeaviateResultsStorage
         print("\nUsing results storage: " + "\033[93m\033[1m" + "Weaviate" + "\033[0m\033[0m")
-        return WeaviateResultsStorage(OPENAI_API_KEY, WEAVIATE_URL, WEAVIATE_API_KEY, LLM_MODEL, LLAMA_MODEL_PATH, RESULTS_STORE_NAME, OBJECTIVE)
+        return WeaviateResultsStorage(OPENAI_API_KEY, WEAVIATE_URL, WEAVIATE_API_KEY, WEAVIATE_USE_EMBEDDED, LLM_MODEL, LLAMA_MODEL_PATH, RESULTS_STORE_NAME, OBJECTIVE)
     return None
 
 def try_pinecone():

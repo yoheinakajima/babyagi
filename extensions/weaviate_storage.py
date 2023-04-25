@@ -5,6 +5,7 @@ from typing import Dict, List
 
 import openai
 import weaviate
+from weaviate.embedded import EmbeddedOptions
 
 
 def can_import(module_name):
@@ -21,12 +22,20 @@ assert can_import("weaviate"), (
 )
 
 
-def create_client(weaviate_url: str, weaviate_api_key: str):
-    auth_config = (
-        weaviate.auth.AuthApiKey(api_key=weaviate_api_key) if weaviate_api_key else None
-    )
+def create_client(
+    weaviate_url: str, weaviate_api_key: str, weaviate_use_embedded: bool
+):
+    if weaviate_use_embedded:
+        client = weaviate.Client(embedded_options=EmbeddedOptions())
+    else:
+        auth_config = (
+            weaviate.auth.AuthApiKey(api_key=weaviate_api_key)
+            if weaviate_api_key
+            else None
+        )
+        client = weaviate.Client(weaviate_url, auth_client_secret=auth_config)
 
-    return weaviate.Client(weaviate_url, auth_client_secret=auth_config)
+    return client
 
 
 class WeaviateResultsStorage:
@@ -43,13 +52,16 @@ class WeaviateResultsStorage:
         openai_api_key: str,
         weaviate_url: str,
         weaviate_api_key: str,
+        weaviate_use_embedded: bool,
         llm_model: str,
         llama_model_path: str,
         results_store_name: str,
         objective: str,
     ):
         openai.api_key = openai_api_key
-        self.client = create_client(weaviate_url, weaviate_api_key)
+        self.client = create_client(
+            weaviate_url, weaviate_api_key, weaviate_use_embedded
+        )
         self.index_name = None
         self.create_schema(results_store_name)
 
