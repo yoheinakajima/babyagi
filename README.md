@@ -2,6 +2,8 @@
 ![image](https://github.com/robiwan303/babyagi/blob/main/BabyAGI_Reasoning.jpeg)
 # ... making it possible to achieve the ultimate objective"
 ## Major update: Google search functionality, also using reasoning capabilities, has been integrated (see commit comments for babyagi.py)
+  - The LLM does reason when it is necessary to access the internet (optimizing Google API usage), rephrases the task objective to an optimal search request, determines only the relevant information from the search result and combines this with what it knows already
+  - The Google top result list and the content of the top web page (up to 500 characters) are getting analyzed
 <<<<<<<<<<<<<<<<<<<<<<<
 
 This is a side branch of the BabyAGI main branch for an enhanced reasoning feature,... the LLM does determine on its own when the ultimate objective is (sufficiently) achieved.
