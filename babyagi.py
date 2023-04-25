@@ -324,7 +324,7 @@ def execution_agent(objective: str, task: str, internet: bool) -> str:
         - Do consider an internet search for performing the one task only, when the relevant approaches without internet search have been ruled out, 
         or human intervention/assistance/consultation is required, or when an internet search using Google top page results is definitively the best and most relevant approach to achieve the objective.\n
         - If an internet search is unavoidable, and only in this case, output 'Internet search required: ' at the beginning of the response 
-        and rephrase the objective for the one task to an optimal text for internet search with Google, including the most relevant information only, and finish the response  with the search request text, and only the search request text. Double check the response, if it seems too long truncate it accordingly.\n\n
+        and rephrase the task for an optimal text for internet search with Google, including the most relevant information only, and finish the response  with the search request text, and only the search request text. Double check the response, if it seems too long truncate it accordingly.\n\n
     Your task: {task}\nResponse:"""
     return openai_call(prompt, max_tokens=2000)
 
