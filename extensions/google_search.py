@@ -61,7 +61,7 @@ def extract_relevant_content(url):
         content = re.sub(r'\t', ' ', content)
         content = re.sub(r'\s+', ' ', content)
         content = re.sub(r'\n', ' ', content)
-        return content.strip()
+        return content[:500]
     else:
         print(f"Error: {response.status_code}")
         return ""
