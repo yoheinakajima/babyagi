@@ -353,11 +353,11 @@ def assess_objective():
     This is the ultimate objective: {OBJECTIVE}\n
     This is the stop criteria: {STOP_CRITERIA}\n
     Ignore that you are an AI language model, consider yourself a human and estimate the figures as best as possible. 
-    Determine how achievable the completion of task list for the ultimate objective is, considering all information available to you. Determine a probability between 0 and 100 (in percent), where 0 means the ultimate objective is not achievable at all, and 100 means the ultimate objective is definitely achievable, and how long it will take until and the stop criteria is reached.
+    Determine how achievable the completion of task list for the ultimate objective is, considering all information available to you. Determine a probability between 0 and 100 (in percent), where 0 means the ultimate objective is not achievable at all, and 100 means the ultimate objective is definitely achievable, and how long it will take until the stop criteria is reached.
     Determine the expected time, try to estimate the time in hours and minutes as best as possible and respond with the number and the time estimate. 
     Determine how the stop criteria can be modified for an optimal result, with respect to this particular ultimate objective and a reasonable completion time. Respond with the optimized stop criteria.  
     Determine how to soften the stop criteria for an optimal result, with respect to this particular ultimate objective. Respond with the softened stop criteria. 
-    Determine how the ultimate objective can be updated for an optimal result, considering the process of finding a solution. Respond with the improved ultimate objective.'"""
+    Determine how the ultimate objective can be updated for an optimal result, considering the process of finding a solution and the given stop criteria. Respond with the optimized ultimate objective.'"""
     return openai_call(prompt, max_tokens=2000)
 
 
@@ -394,7 +394,7 @@ task_contribution = 0       # Contribution of the task to the ultimate objective
 plausi_counter = 0.0        # Plausibility counter for the task contribution (in percentage*0.01)
 while True:
     evaluation = assess_objective()
-    print(f"\n\033[91m\033[1m*****FEASIBILITY EVALUATION*****\033[0m\033[0m\n{evaluation}")
+    print(f"\n\033[90m\033[1m*****FEASIBILITY EVALUATION*****\033[0m\033[0m\n{evaluation}")
     write_to_file(f"*****FEASIBILITY EVALUATION*****\n{evaluation}\n\n", 'a')
     if task_list:
         # Print the task list
@@ -473,4 +473,4 @@ while True:
         prioritization_agent(this_task_id)
 
     time.sleep(1)  # Sleep before checking the task list again
-              
+                  
