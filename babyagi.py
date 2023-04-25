@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 
 from extensions.google_search import get_toplist
 
+
 # Load default environment variables (.env)
 load_dotenv()
 
@@ -227,21 +228,20 @@ def task_creation_agent(
 ):
     prompt = f"""
     You are a task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective},
-    The last completed task has the result: {result}.
-    This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}.\n
-    Do only create new tasks which do directly contribute to the objective.
-    Take into account the stop criteria. When it is met, and only then, create one new task with only content 'Stop criteria has been met...'.
-    Here is the stop criteria: {STOP_CRITERIA}.\n
-    Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks.
-    Your aim is to create as few new tasks as possible to achieve the objective, while keeping focus on the objective.
-    Do make sure that new tasks are properly phrased and optimized for prompting a large language model.
+    The last completed task has the result: {result}
+    This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}\n
+    Do only create new tasks which do directly contribute to the objective. 
+    Take into account the stop criteria. When it is met, and only then, create one new task with only content 'Stop criteria has been met...'. 
+    Here is the stop criteria: {STOP_CRITERIA}\n
+    Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks. 
+    Your aim is to create as few new tasks as possible to achieve the objective, while keeping focus on the objective. 
+    Do make sure that new tasks are properly phrased and optimized for prompting a large language model. 
     If {YOUR_GOOGLE_API_KEY} is {""} or {YOUR_SEARCH_ENGINE_ID} is {""}, internet search is not possible. This must be considered for creation of new tasks, no new tasks including, refering to or dealing with internet search shall be created.
     Return the tasks as an array.\n\n
-    Also evaluate the last completed task result regarding the contribution to the objective, and output 'Contribution [%]: ' followed by a number between 0 and 100.
-    0 means we are very far away from the objective and 100 means the ulitmate objective has been achieved.
-    Always do your best to determine an exact number. If there is any contribution at all, assign a number greater than 0.
-    Always do your best to determine an exact number with one decimal place. If there is any contribution at all, assign a number greater than 0.
-    If the contribution output value cannot be determined, output 'Contribution [%]: unclear' and do only set it to 100, if the stop criteria has been met.
+    Also evaluate the last completed task result regarding the contribution to the objective, and output 'Contribution [%]: ' followed by a number between 0 and 100. 
+    0 means we are very far away from the objective and 100 means the ulitmate objective has been achieved. 
+    Always do your best to determine an exact number with one decimal place. If there is any contribution at all, assign a number greater than 0. 
+    If the contribution output value cannot be determined, output 'Contribution [%]: unclear' and do only set it to 100, if the stop criteria has been met. 
     Output the contribution in one line, and only one line. Output the contribution at the end of the response.\n
     If the contribution value is smaller than {threshold} and not unclear, create new tasks for a different subject area than the subject area the last completed task dealt with."""
     response = openai_call(prompt)
@@ -273,11 +273,12 @@ def prioritization_agent(this_task_id: int):
     task_names = [t["task_name"] for t in task_list]
     next_task_id = int(this_task_id) + 1
     prompt = f"""
-    You are a task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}.\n
-    Consider the ultimate objective of your team of agent functions: {OBJECTIVE}.\n
-    Your aim is to prioritize the task list in a way that the ultimate objective is achieved with as few tasks as possible, and that the most relevant tasks are completed first.
+    You are a task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}\n
+    Consider the ultimate objective of your team of agent functions: {OBJECTIVE}\n
+    Your aim is to prioritize the task list in a way that the ultimate objective is achieved with as few tasks as possible, and that the most relevant tasks are completed first. 
     Consider the order of the task list, with respect to which task depends on which and the order of creation, for the task list prioritization process.
-    When continuous research on a subject area proves inconclusive or the subject area been sufficiently researched already, switch to an older incomplete task from the task list dealing with a differing subject area.\nDo not remove any tasks. Return the result as a numbered list, like:
+    When continuous research on a subject area proves inconclusive or the subject area been sufficiently researched already, switch to an older incomplete task from the task list dealing with a differing subject area.\n
+    Do not remove any tasks. Only remove a task if it does not contribute to the ultimate objective any longer, in this case rearrange the task list accordingly. Return the result as a numbered list, like:\n
     1. Description of first task
     2. Description of second task
     3. Description of third task
@@ -317,13 +318,13 @@ def execution_agent(objective: str, task: str, internet: bool) -> str:
         write_to_file(f"*****RELEVANT CONTEXT*****\n{context}\n", 'a')
 
     prompt = f"""
-    You are a task management AI who performs one task based on the following objective: {objective}.\n
-    Take into account these previously completed tasks: {context}.\n
-    If the objective does not includes internet search results and {YOUR_GOOGLE_API_KEY} is not {""} and {YOUR_SEARCH_ENGINE_ID} is not {""}:
-        - Do consider a internet search for performing the one task only, when the relevant approaches without internet search have been ruled out, 
-        or human intervention/assistance/consultation is required, or when an internet search using Google top page results is definitively the best and most relevant approach to achieve the objective.
+    You are a task execution AI who performs one task based on the following objective: {objective}\n
+    Take into account these previously completed tasks: {context}\n
+    If the objective does not includes internet search results and {YOUR_GOOGLE_API_KEY} is not {""} and {YOUR_SEARCH_ENGINE_ID} is not {""}:\n
+        - Do consider an internet search for performing the one task only, when the relevant approaches without internet search have been ruled out, 
+        or human intervention/assistance/consultation is required, or when an internet search using Google top page results is definitively the best and most relevant approach to achieve the objective.\n
         - If an internet search is unavoidable, and only in this case, output 'Internet search required: ' at the beginning of the response 
-        and rephrase the objective to an optimal text for internet search with Google, including the most relevant information only, and finish the response output with the search request text, and only the search request text.\n\n
+        and rephrase the objective for the one task to an optimal text for internet search with Google, including the most relevant information only, and finish the response  with the search request text, and only the search request text. Double check the response, if it seems too long truncate it accordingly.\n\n
     Your task: {task}\nResponse:"""
     return openai_call(prompt, max_tokens=2000)
 
@@ -361,13 +362,15 @@ def final_prompt():
 
 
 # Provide internet access via Google API, using google_search.py, and summary of results from snippets
-def internet_research(topic: str, num_results: int, num_pages: int):
-    toplist_result, page_content, link = get_toplist(topic, YOUR_GOOGLE_API_KEY, YOUR_SEARCH_ENGINE_ID, num_results, num_pages)
+# max value for num_results is 10 (results per page)
+def internet_research(topic: str, num_results=5, num_pages=1):
+    toplist_result, page_content, links = get_toplist(topic, YOUR_GOOGLE_API_KEY, YOUR_SEARCH_ENGINE_ID, num_results, num_pages)
     if toplist_result == []:
         toplist_result = "\n *** No data returned from Google custom search API... ***\n"
-    print(f"\nGoogle search top results: {str(toplist_result)}")
-    print(f"\n{str(link)}: {str(page_content)}")
-    return toplist_result, page_content, link
+    else:
+        print(f"\nGoogle search top results: {str(toplist_result)}")
+        print(f"\nTop web page content: {str(page_content)}")
+    return toplist_result, page_content
 
 
 # Add the first task
@@ -397,14 +400,14 @@ while True:
         print("\033[92m\033[1m" + "\n*****NEXT TASK*****\n" + "\033[0m\033[0m" + str(task["task_id"]) + ": " + task["task_name"])
         write_to_file("*****NEXT TASK*****\n" + str(task["task_id"]) + ": " + task["task_name"] + "\n\n", 'a')
 
-        # Step 3: Send to execution function to complete the task based on the context
+        # Step 3: Send task to execution agent to complete the task based on the context
         result = execution_agent(OBJECTIVE, task["task_name"], False)
         this_task_id = int(task["task_id"])
         print(f"\033[93m\033[1m\n*****TASK RESULT*****\033[0m\033[0m")
         write_to_file(f"\n*****TASK RESULT*****\n", 'a')
 
         # Step 4: Check if internet search is required for conclusion of this task (only when Google API key and search engine ID are provided) 
-        if "Internet search required: " in result and task_id_counter > 1:
+        if "internet search required" or "perform an internet search" in result and task_id_counter > 2:
             if (YOUR_GOOGLE_API_KEY == "" or YOUR_SEARCH_ENGINE_ID == ""):
                 print("No search engine access, please provide your Google API key and search engine ID in .env parameters...")
                 write_to_file("No search engine access, please provide your Google API key and search engine ID in .env parameters...\n", 'a')
@@ -412,9 +415,9 @@ while True:
                 search_request = result.split("Internet search required: ")
                 print(f"Internet search: {search_request}.\nAccessing Google search for top results and evaluating task result again...")
                 write_to_file(f"Internet search: {search_request}.\nAccessing Google search for top results and evaluating task result again...\n", 'a')
-                toplist, webpage, link = internet_research(search_request, 10, 1)
-                new_objective = task["task_name"] + "\nAn Google internet research has been performed for the previous described task with the following request: " + result + "\nThis is the result from Google top list: " + str(toplist) + "\nContent of top result webpage: " + str(webpage) + "\nTake into account that not all the information from internet research might be relevant for the task. Evaluate which information is relevant and which is not and complete the task accordingly, considering other information available than the internet research as supplementary."
-		result = execution_agent(OBJECTIVE, new_objective, True)
+                toplist, webpage = internet_research(search_request)
+                new_objective = task["task_name"] + "\nGoogle internet research has been performed for the previous described task with the following request: " + result + "\nThis is the result from Google top list: " + str(toplist) + "\nContent of top result webpage: " + webpage + "\nTake into account that not all the information from internet research might be relevant for the task. Evaluate which information is relevant and which is not and complete the task accordingly, considering other information available than the internet research as supplementary."
+                result = execution_agent(OBJECTIVE, new_objective, True)
         print(f"{result}")
         write_to_file(f"{result}\n", 'a')
 
@@ -441,7 +444,7 @@ while True:
         )
 
         # Evaluate task result contribution and increment plausi counter
-        if task_id_counter > 1 and task_contribution > 0 and task_contribution <= 100:
+        if task_id_counter > 2 and task_contribution > 0 and task_contribution <= 100:
             plausi_counter += (task_contribution*0.01)
 
         print(f"\033[94m\033[1m\n*****TASK CONTRIBUTION*****\033[0m\033[0m")
@@ -455,3 +458,4 @@ while True:
         prioritization_agent(this_task_id)
 
     time.sleep(1)  # Sleep before checking the task list again
+    
