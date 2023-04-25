@@ -235,7 +235,7 @@ def task_creation_agent(
     Here is the stop criteria: {STOP_CRITERIA}\n
     Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks. 
     Your aim is to create as few new tasks as possible to achieve the objective, while keeping focus on the objective. 
-    Do make sure that new tasks are properly phrased and optimized for prompting a large language model. 
+    Do make sure that new tasks are properly verbalized and optimized for prompting a large language model. 
     If {YOUR_GOOGLE_API_KEY} is {""} or {YOUR_SEARCH_ENGINE_ID} is {""}, internet search is not possible. This must be considered for creation of new tasks, no new tasks including, refering to or dealing with internet search shall be created.
     Return the tasks as an array.\n\n
     Also evaluate the last completed task result regarding the contribution to the ultimate objective, and output 'Contribution [%]: ' followed by a number between 0 and 100. 
@@ -295,7 +295,7 @@ def prioritization_agent(this_task_id: int):
             task_list.append({"task_id": task_id, "task_name": task_name})
 
 
-# Execute a task based on the objective and five previous tasks, rephraze the task to a request for internet search if required
+# Execute a task based on the objective and five previous tasks, verbalize the task to a request for internet search if required
 def execution_agent(objective: str, task: str, internet: bool) -> str:
     """
     Executes a task based on the given objective and previous context.
@@ -322,9 +322,8 @@ def execution_agent(objective: str, task: str, internet: bool) -> str:
     Take into account these previously completed tasks: {context}\n
     If the objective does not includes internet search results and {YOUR_GOOGLE_API_KEY} is not {""} and {YOUR_SEARCH_ENGINE_ID} is not {""}:\n
         - Do consider an internet search for performing the one task only, when the relevant approaches without internet search have been ruled out, 
-        or human intervention/assistance/consultation is required, or when an internet search using Google top page results is definitively the best and most relevant approach to achieve the objective.\n
-        - If an internet search is unavoidable, and only in this case, output 'Internet search required: ' at the beginning of the response 
-        and rephrase the task for an optimal text for internet search with Google, including the most relevant information only, and finish the response with the search request text, and only the search request text. Double check the response, if it seems too long truncate it accordingly.\n\n
+        or human intervention/assistance/consultation is required, or when an internet search using Google top page results is definitively the best and most relevant approach to achieve the objective, and only in this case, output 'Internet search required: ' at the beginning of the response 
+        and redraft the task for an optimal text for internet search with Google, including the most relevant information only, and finish the response with the search request text, and only the search request text.\n\n
     Your task: {task}\nResponse:"""
     return openai_call(prompt, max_tokens=2000)
 
@@ -458,4 +457,5 @@ while True:
         prioritization_agent(this_task_id)
 
     time.sleep(1)  # Sleep before checking the task list again
+    
     
