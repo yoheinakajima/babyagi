@@ -238,7 +238,7 @@ def task_creation_agent(
     Do make sure that new tasks are properly phrased and optimized for prompting a large language model. 
     If {YOUR_GOOGLE_API_KEY} is {""} or {YOUR_SEARCH_ENGINE_ID} is {""}, internet search is not possible. This must be considered for creation of new tasks, no new tasks including, refering to or dealing with internet search shall be created.
     Return the tasks as an array.\n\n
-    Also evaluate the last completed task result regarding the contribution to the objective, and output 'Contribution [%]: ' followed by a number between 0 and 100. 
+    Also evaluate the last completed task result regarding the contribution to the ultimate objective, and output 'Contribution [%]: ' followed by a number between 0 and 100. 
     0 means we are very far away from the objective and 100 means the ulitmate objective has been achieved. 
     Always do your best to determine an exact number with one decimal place. If there is any contribution at all, assign a number greater than 0. 
     If the contribution output value cannot be determined, output 'Contribution [%]: unclear' and do only set it to 100, if the stop criteria has been met. 
