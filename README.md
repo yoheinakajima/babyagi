@@ -1,21 +1,25 @@
 # BabyAGI with enhanced reasoning capabilities,... making it possible to achieve the ultimate objective
 ![image](https://github.com/robiwan303/babyagi/blob/main/BabyAGI_Reasoning.jpeg)
 
-## Major update: Streamlined Google search functionality, using reasoning capabilities, has been integrated
+## Major update: Added streamlined Google search functionality, using reasoning capabilities
   - The LLM does reason when it is necessary to access the internet (optimizing Google API usage), rephrases the task objective to an optimal search request, determines only the relevant information from the search result and combines this with what it knows already
   - The Google top result list and the content of the top web page (up to 500 characters) are getting analyzed
   - If the Google API key is not configured, internet search functionality is excluded automatically. In case an internet search would have been relevant for the task, this is displayed in terminal & file output
 
 <<<<<<<<<<<<<<<<<<<<<<<
 
-# New functionality for reasoning capabilities:
+# New enhanced reasoning capabilities:
 
-This is a side branch of the BabyAGI main branch for an enhanced reasoning feature,... the LLM does determine on its own when the ultimate objective is (sufficiently) achieved.
+Since I felt approaches involving counters or other "coded" solutions are suboptimal for a finite process with a final result, I tried another route: Definition of a stop criteria and modification of agent function prompts, so that the ultimate objective is followed more closely and the stop criteria is considered. This is how it started...
 
-I did also add a mechanism to have the LLM judge on the level of contribution for each task result, with respect to the ultimate objective. When the decision is made to come to an end, a final prompt is triggered. Handling of multi-part responses (for longer text) is implemented.
+In the meantime I did modify almost all agent prompts, some extensively, with the goal to optimize the task management for the finite process. Beside the things described above, I tried to instruct the AI to:
+  - Try to spawn as few task as possible for achievement of an objective
+  - Optimize the order based on the dependency of tasks to each other and the chronology
+  - Switch to another subject area when the research proves inconclusive
+  - Determine the contribution of each task result to the ultimate objective and consider this for calculation of a plausibility value
+  - Make the best use of internet search capabilities by reasoning when/how to access Google search and how to interpret the results and merge with exisiting knowledge
 
-Since I felt approaches involving counters or other "coded" solutions are suboptimal, I tried another route: Definition of a stop criteria and modification of agent function prompts, so that the ultimate objective is followed more closely and the stop criteria is considered.
-Last but not least I did implent a simple function for writing the terminal output to a text file.
+No new agents have been introduced, hence no additional OpenAI API calls required.
 
 I am still testing and fine-tuning the functionality. Due to the many commits to the main branch I am not able to catch up, so I will keep it in this side branch for the time being...
 
