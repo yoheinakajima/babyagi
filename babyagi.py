@@ -407,7 +407,7 @@ while True:
         write_to_file(f"\n*****TASK RESULT*****\n", 'a')
 
         # Step 4: Check if internet search is required for conclusion of this task (only when Google API key and search engine ID are provided) 
-        if "internet search required" or "perform an internet search" in result and task_id_counter > 2:
+        if ("internet search required" in result) and ("develop a task list" not in task["task_name"]):
             if (YOUR_GOOGLE_API_KEY == "" or YOUR_SEARCH_ENGINE_ID == ""):
                 print("No search engine access, please provide your Google API key and search engine ID in .env parameters...")
                 write_to_file("No search engine access, please provide your Google API key and search engine ID in .env parameters...\n", 'a')
