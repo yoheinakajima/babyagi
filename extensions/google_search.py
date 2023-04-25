@@ -70,12 +70,18 @@ def extract_relevant_content(url):
 # API: Get top list results and top page content
 def get_toplist(topic, api_key, search_engine_id, num_results, num_pages):
     snippets, links = get_snippets(topic, api_key, search_engine_id, num_results, num_pages)
+    #if snippets == []:
+    #    snippets, links = search_browser(topic)
     if links:
         webpage_content = extract_relevant_content(links[0])
     else:
         webpage_content = str("")
         snippets = []
         links = []
-    #print(f"Topresults: {snippets}\n")
-    #print(str(links[0]) + ": " + webpage_content)
-    return snippets, webpage_content, str(links[0])
+
+    print(f"Topresults: {snippets}\n")
+    print(str(links[0]) + ": " + webpage_content)
+    return snippets, webpage_content, links[0]
+        
+        
+ 
