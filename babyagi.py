@@ -240,6 +240,7 @@ def task_creation_agent(
     Also evaluate the last completed task result regarding the contribution to the objective, and output 'Contribution [%]: ' followed by a number between 0 and 100.
     0 means we are very far away from the objective and 100 means the ulitmate objective has been achieved.
     Always do your best to determine an exact number. If there is any contribution at all, assign a number greater than 0.
+    Always do your best to determine an exact number with one decimal place. If there is any contribution at all, assign a number greater than 0.
     If the contribution output value cannot be determined, output 'Contribution [%]: unclear' and do only set it to 100, if the stop criteria has been met.
     Output the contribution in one line, and only one line. Output the contribution at the end of the response.\n
     If the contribution value is smaller than {threshold} and not unclear, create new tasks for a different subject area than the subject area the last completed task dealt with."""
@@ -412,9 +413,9 @@ while True:
                 search_request = result.split("Internet search required: ")
                 print(f"Internet search: {search_request}.\nAccessing Google search for top results and evaluating task result again...")
                 write_to_file(f"Internet search: {search_request}.\nAccessing Google search for top results and evaluating task result again...\n", 'a')
-                summary, webpage, link = internet_research(search_request, 10, 1)
-                new_objective = task["task_name"] + "\nAn Google internet research has been performed for the previous described task with the following request: " + result + "\nThis is the result from Google top list: " + str(summary) + "\nContent of top result webpage: " + str(webpage) + "\nTake into account that not all the information from internet research might be relevant for the task. Evaluate which information is relevant and which is not and complete the task accordingly, considering also other information available than the internet research."
-                result = execution_agent(OBJECTIVE, new_objective, True)
+                toplist, webpage, link = internet_research(search_request, 10, 1)
+                new_objective = task["task_name"] + "\nAn Google internet research has been performed for the previous described task with the following request: " + result + "\nThis is the result from Google top list: " + str(toplist) + "\nContent of top result webpage: " + str(webpage) + "\nTake into account that not all the information from internet research might be relevant for the task. Evaluate which information is relevant and which is not and complete the task accordingly, considering other information available than the internet research as supplementary."
+		result = execution_agent(OBJECTIVE, new_objective, True)
         print(f"{result}")
         write_to_file(f"{result}\n", 'a')
 
