@@ -277,8 +277,7 @@ def prioritization_agent(this_task_id: int):
     Consider the ultimate objective of your team of agent functions: {OBJECTIVE}.\n
     Your aim is to prioritize the task list in a way that the ultimate objective is achieved with as few tasks as possible, and that the most relevant tasks are completed first.
     Consider the order of the task list, with respect to which task depends on which and the order of creation, for the task list prioritization process.
-    When continuous research on a topic proves inconclusive or the topic been sufficiently researched already, switch to an older incomplete task from the task list dealing with a differing topic.\n
-    Do not remove any tasks. Return the result as a numbered list, like:
+    When continuous research on a subject area proves inconclusive or the subject area been sufficiently researched already, switch to an older incomplete task from the task list dealing with a differing subject area.\nDo not remove any tasks. Return the result as a numbered list, like:
     1. Description of first task
     2. Description of second task
     3. Description of third task
