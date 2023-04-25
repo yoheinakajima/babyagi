@@ -271,8 +271,6 @@ def limit_tokens_from_string(string: str, model: str, limit: int) -> str:
         encoding = tiktoken.encoding_for_model('gpt2')  # Fallback for others.
 
     encoded = encoding.encode(string)
-    print(f"encoded length: {len(encoded)}")
-    print(f"limiting to {limit}")
 
     return encoding.decode(encoded[:limit])
 
