@@ -320,10 +320,9 @@ def execution_agent(objective: str, task: str, internet: bool) -> str:
     prompt = f"""
     You are a task execution AI who performs one task based on the following objective: {objective}\n
     Take into account these previously completed tasks: {context}\n
-    If the objective does not includes internet search results and {YOUR_GOOGLE_API_KEY} is not {""} and {YOUR_SEARCH_ENGINE_ID} is not {""}:\n
-        - Do consider an internet search for performing the one task only, when the relevant approaches without internet search have been ruled out, 
-        or human intervention/assistance/consultation is required, or when an internet search using Google top page results is definitively the best and most relevant approach to achieve the objective, and only in this case, output 'Internet search required: ' at the beginning of the response 
-        and redraft the task for an optimal text for internet search with Google, including the most relevant information only, and finish the response with the search request text, and only the search request text.\n\n
+    If the objective does not includes internet search results and {YOUR_GOOGLE_API_KEY} is not {""} and {YOUR_SEARCH_ENGINE_ID} is not {""}: 
+    Do consider an internet search for performing the one task only, when the relevant approaches without internet search have been ruled out, 
+    or human intervention/assistance/consultation is required, or when an internet search using Google top page results is definitively the best and most relevant approach to achieve the objective, and only in this case, output 'Internet search required: ' at the beginning of the response and redraft the text of the one task to an optimal internet search request text for use with Google, including the most relevant information only, and finish the response with the redrafted search request text, and only the search request text.\n\n
     Your task: {task}\nResponse:"""
     return openai_call(prompt, max_tokens=2000)
 
@@ -457,5 +456,4 @@ while True:
         prioritization_agent(this_task_id)
 
     time.sleep(1)  # Sleep before checking the task list again
-    
-    
+        
