@@ -11,7 +11,6 @@ from dotenv import load_dotenv
 
 from extensions.google_search import get_toplist
 
-
 # Load default environment variables (.env)
 load_dotenv()
 
@@ -363,9 +362,7 @@ def final_prompt():
 
 # Provide internet access via Google API, using google_search.py, and summary of results from snippets
 def internet_research(topic: str, num_results: int, num_pages: int):
-    api_key = YOUR_GOOGLE_API_KEY
-    search_engine_id = YOUR_SEARCH_ENGINE_ID
-    toplist_result, page_content, link = get_toplist(topic, api_key, search_engine_id, num_results, num_pages)
+    toplist_result, page_content, link = get_toplist(topic, YOUR_GOOGLE_API_KEY, YOUR_SEARCH_ENGINE_ID, num_results, num_pages)
     if toplist_result == []:
         toplist_result = "\n *** No data returned from Google custom search API... ***\n"
     print(f"\nGoogle search top results: {str(toplist_result)}")
