@@ -53,17 +53,20 @@ def extract_relevant_content(url):
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
     }
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        soup = BeautifulSoup(response.text, 'html.parser')
-        content_tags = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']
-        content = ' '.join([tag.text for tag in soup.find_all(content_tags)])
-        content = re.sub(r'\t', ' ', content)
-        content = re.sub(r'\s+', ' ', content)
-        content = re.sub(r'\n', ' ', content)
-        return content[:500]
-    else:
-        print(f"Error: {response.status_code}")
+    try:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            content_tags = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']
+            content = ' '.join([tag.text for tag in soup.find_all(content_tags)])
+            content = re.sub(r'\t', ' ', content)
+            content = re.sub(r'\s+', ' ', content)
+            content = re.sub(r'\n', ' ', content)
+            return content[:1000]
+        else:
+            print(f"Error: {response.status_code}")
+            return ""
+    except Exception:
         return ""
     
 
@@ -80,8 +83,8 @@ def get_toplist(topic, api_key, search_engine_id, num_results, num_pages):
         links = []
         links.append("")
 
-    #print(f"Topresults: {snippets}\n")
-    #print(str(links[0]) + ": " + webpage_content)
+    #print(f"Top results: {snippets}\n")
+    #print("Top page: " + webpage_content)
     return snippets, webpage_content, links[0]
 
  
