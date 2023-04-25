@@ -10,6 +10,10 @@ import chromadb
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 from dotenv import load_dotenv
 
+#default opt out of chromadb telemetry.
+from chromadb.config import Settings
+client = chromadb.Client(Settings(anonymized_telemetry=False))
+
 # Load default environment variables (.env)
 load_dotenv()
 
