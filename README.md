@@ -9,6 +9,7 @@
 ## Update: Experimental feature for feasibility evaluation added
   - At start the OBJECTIVE and STOP_CRITERIA are getting assessed, in order to determine figures for feasibility and time until completion. In additon the LLM makes proposals how to optimize both parameters and how to soften the STOP_CRITERIA.
   - The proposals are interesting, giving specific tipps how to adapt the prompts.
+  - The evaluted figures, especially for time to completion, vary from run to run. Still room for improvement...
 
 <<<<<<<<<<<<<<<<<<<<<<<
 
