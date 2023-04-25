@@ -12,11 +12,14 @@
 
 Since I felt approaches involving counters or other "coded" solutions are suboptimal for a finite process with a final result, I tried another route: Definition of a stop criteria and modification of agent function prompts, so that the ultimate objective is followed more closely and the stop criteria is considered. This is how it started...
 
-In the meantime I did modify almost all agent prompts, some extensively, with the goal to optimize the task management for the finite process. Beside the things described above, I tried to instruct the AI to:
-  - Try to spawn as few task as possible for achievement of an objective
+In the meantime I did modify almost all agent prompts, some extensively, with the goal to optimize the task management for the finite process. In addition to what is implemented in the mainn branch, I tried to instruct the AI to:
+  - Keep the ultimate objective in focus at all times and consider the stop criteria
+  - Try to create as few task as possible for achievement of an objective
+  - Create only new tasks which contribute to the ultimate objective
   - Optimize the order based on the dependency of tasks to each other and the chronology
   - Switch to another subject area when the research proves inconclusive
-  - Determine the contribution of each task result to the ultimate objective and consider this for calculation of a plausibility value
+  - Remove tasks which are not longer contributing to the ultimate objective
+  - Determine the contribution of each task result to the objective and consider this for calculation of a plausibility value
   - Make the best use of internet search capabilities by reasoning when/how to access Google search and how to interpret the results and merge with exisiting knowledge
 
 No new agents have been introduced, hence no additional OpenAI API calls required.
