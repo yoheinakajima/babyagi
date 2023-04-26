@@ -39,7 +39,7 @@ class PineconeResultsStorage:
         index_stats_response = self.index.describe_index_stats()
         assert dimension == index_stats_response['dimension'], "Dimension of the index does not match the dimension of the LLM embedding"
 
-    def add(self, task: Dict, result: Dict, result_id: int, vector: List):
+    def add(self, task: Dict, result: Dict, result_id: str, vector: List):
         enriched_result = {
             "data": result
         }
