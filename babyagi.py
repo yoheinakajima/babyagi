@@ -429,7 +429,9 @@ def prioritization_agent():
         if len(task_parts) == 2:
             task_id = ''.join(s for s in task_parts[0] if s.isnumeric())
             task_name = re.sub(r'[^\w\s_]+', '', task_parts[1]).strip()
-            new_tasks_list.append({"task_id": task_id, "task_name": task_name})
+            if task_name.strip():
+                new_tasks_list.append({"task_id": task_id, "task_name": task_name})
+
     tasks_storage.replace(new_tasks_list)
 
 
