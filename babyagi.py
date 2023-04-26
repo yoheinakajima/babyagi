@@ -7,6 +7,7 @@ from typing import Dict, List
 import importlib
 import openai
 import chromadb
+import tiktoken as tiktoken
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 from dotenv import load_dotenv
 
@@ -261,6 +262,19 @@ elif COOPERATIVE_MODE in ['d', 'distributed']:
     pass
 
 
+def limit_tokens_from_string(string: str, model: str, limit: int) -> str:
+    """Limits the string to a number of tokens (estimated)."""
+
+    try:
+        encoding = tiktoken.encoding_for_model(model)
+    except:
+        encoding = tiktoken.encoding_for_model('gpt2')  # Fallback for others.
+
+    encoded = encoding.encode(string)
+
+    return encoding.decode(encoded[:limit])
+
+
 def openai_call(
     prompt: str,
     model: str = LLM_MODEL,
@@ -287,8 +301,13 @@ def openai_call(
                 )
                 return response.choices[0].text.strip()
             else:
+                # Use 4000 instead of the real limit (4097) to give a bit of wiggle room for the encoding of roles.
+                # TODO: different limits for different models.
+
+                trimmed_prompt = limit_tokens_from_string(prompt, model, 4000 - max_tokens)
+
                 # Use chat completion API
-                messages = [{"role": "system", "content": prompt}]
+                messages = [{"role": "system", "content": trimmed_prompt}]
                 response = openai.ChatCompletion.create(
                     model=model,
                     messages=messages,
