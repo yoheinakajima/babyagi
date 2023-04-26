@@ -423,8 +423,8 @@ def execution_agent(objective: str, task: str) -> str:
     # print("\n*******RELEVANT CONTEXT******\n")
     # print(context)
     prompt = f"""
-    You are an AI who performs one task based on the following objective: {objective}\n.
-    Take into account these previously completed tasks: {context}\n.
+    You are an AI who performs one task based on the following objective: {objective}
+    Take into account these previously completed tasks: {context}
     Your task: {task}\nResponse:"""
     return openai_call(prompt, max_tokens=2000)
 
