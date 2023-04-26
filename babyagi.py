@@ -7,8 +7,14 @@ from typing import Dict, List
 import importlib
 import openai
 import chromadb
+import tiktoken as tiktoken
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
+from chromadb.api.types import Documents, EmbeddingFunction, Embeddings
 from dotenv import load_dotenv
+
+#default opt out of chromadb telemetry.
+from chromadb.config import Settings
+client = chromadb.Client(Settings(anonymized_telemetry=False))
 
 # Load default environment variables (.env)
 load_dotenv()
@@ -86,6 +92,7 @@ print(f"Name  : {INSTANCE_NAME}")
 print(f"Mode  : {'alone' if COOPERATIVE_MODE in ['n', 'none'] else 'local' if COOPERATIVE_MODE in ['l', 'local'] else 'distributed' if COOPERATIVE_MODE in ['d', 'distributed'] else 'undefined'}")
 print(f"LLM   : {LLM_MODEL}")
 
+
 # Check if we know what we are doing
 assert OBJECTIVE, "\033[91m\033[1m" + "OBJECTIVE environment variable is missing from .env" + "\033[0m\033[0m"
 assert INITIAL_TASK, "\033[91m\033[1m" + "INITIAL_TASK environment variable is missing from .env" + "\033[0m\033[0m"
@@ -99,15 +106,15 @@ if LLM_MODEL.startswith("llama"):
         assert os.path.exists(LLAMA_MODEL_PATH), "\033[91m\033[1m" + f"Model can't be found." + "\033[0m\033[0m"
 
         CTX_MAX = 2048
-        THREADS_NUM = 16
+        LLAMA_THREADS_NUM = int(os.getenv("LLAMA_THREADS_NUM", 4))
         llm = Llama(
             model_path=LLAMA_MODEL_PATH,
-            n_ctx=CTX_MAX, n_threads=THREADS_NUM,
+            n_ctx=CTX_MAX, n_threads=LLAMA_THREADS_NUM,
             use_mlock=True,
         )
         llm_embed = Llama(
             model_path=LLAMA_MODEL_PATH,
-            n_ctx=CTX_MAX, n_threads=THREADS_NUM,
+            n_ctx=CTX_MAX, n_threads=LLAMA_THREADS_NUM,
             embedding=True, use_mlock=True,
         )
 
@@ -147,6 +154,19 @@ else: print("\033[93m\033[1m" + f"\nJoining to help the objective" + "\033[0m\03
 # Configure OpenAI
 openai.api_key = OPENAI_API_KEY
 
+
+# Llama embedding function
+class LlamaEmbeddingFunction(EmbeddingFunction):
+    def __init__(self):
+        return
+    def __call__(self, texts:Documents) -> Embeddings:
+        embeddings=[]
+        for t in texts:
+            e = llm_embed.embed(t)
+            embeddings.append(e)
+        return embeddings
+
+
 # Results storage using local ChromaDB
 class DefaultResultsStorage:
     def __init__(self):
@@ -161,21 +181,24 @@ class DefaultResultsStorage:
         )
 
         metric = "cosine"
-        embedding_function = OpenAIEmbeddingFunction(api_key=OPENAI_API_KEY)
+        if LLM_MODEL.startswith("llama"):
+            embedding_function = LlamaEmbeddingFunction()
+        else:
+            embedding_function = OpenAIEmbeddingFunction(api_key=OPENAI_API_KEY)
         self.collection = chroma_client.get_or_create_collection(
             name=RESULTS_STORE_NAME,
             metadata={"hnsw:space": metric},
             embedding_function=embedding_function,
         )
 
-    def add(self, task: Dict, result: Dict, result_id: int, vector: List):
+    def add(self, task: Dict, result: str, result_id: str, vector: str):
 
         # Break the function if LLM_MODEL starts with "human" (case-insensitive)
         if LLM_MODEL.startswith("human"):
             return
         # Continue with the rest of the function
 
-        embeddings = [llm_embed.embed(item) for item in vector] if LLM_MODEL.startswith("llama") else None
+        embeddings = llm_embed.embed(vector) if LLM_MODEL.startswith("llama") else None
         if (
             len(self.collection.get(ids=[result_id], include=[])["ids"]) > 0
         ):  # Check if the result already exists
@@ -257,6 +280,19 @@ elif COOPERATIVE_MODE in ['d', 'distributed']:
     pass
 
 
+def limit_tokens_from_string(string: str, model: str, limit: int) -> str:
+    """Limits the string to a number of tokens (estimated)."""
+
+    try:
+        encoding = tiktoken.encoding_for_model(model)
+    except:
+        encoding = tiktoken.encoding_for_model('gpt2')  # Fallback for others.
+
+    encoded = encoding.encode(string)
+
+    return encoding.decode(encoded[:limit])
+
+
 def openai_call(
     prompt: str,
     model: str = LLM_MODEL,
@@ -283,8 +319,13 @@ def openai_call(
                 )
                 return response.choices[0].text.strip()
             else:
+                # Use 4000 instead of the real limit (4097) to give a bit of wiggle room for the encoding of roles.
+                # TODO: different limits for different models.
+
+                trimmed_prompt = limit_tokens_from_string(prompt, model, 4000 - max_tokens)
+
                 # Use chat completion API
-                messages = [{"role": "system", "content": prompt}]
+                messages = [{"role": "system", "content": trimmed_prompt}]
                 response = openai.ChatCompletion.create(
                     model=model,
                     messages=messages,
@@ -301,17 +342,17 @@ def openai_call(
             time.sleep(10)  # Wait 10 seconds and try again
         except openai.error.Timeout:
             print(
-                "   *** OpenAI API timeout occured. Waiting 10 seconds and trying again. ***"
+                "   *** OpenAI API timeout occurred. Waiting 10 seconds and trying again. ***"
             )
             time.sleep(10)  # Wait 10 seconds and try again
         except openai.error.APIError:
             print(
-                "   *** OpenAI API error occured. Waiting 10 seconds and trying again. ***"
+                "   *** OpenAI API error occurred. Waiting 10 seconds and trying again. ***"
             )
             time.sleep(10)  # Wait 10 seconds and try again
         except openai.error.APIConnectionError:
             print(
-                "   *** OpenAI API connection error occured. Check your network settings, proxy configuration, SSL certificates, or firewall rules. Waiting 10 seconds and trying again. ***"
+                "   *** OpenAI API connection error occurred. Check your network settings, proxy configuration, SSL certificates, or firewall rules. Waiting 10 seconds and trying again. ***"
             )
             time.sleep(10)  # Wait 10 seconds and try again
         except openai.error.InvalidRequestError:
@@ -346,7 +387,7 @@ def prioritization_agent():
     task_names = tasks_storage.get_task_names()
     next_task_id = tasks_storage.next_task_id()
     prompt = f"""
-    You are a task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}.
+    You are a task prioritization AI tasked with cleaning the formatting of and re-prioritizing the following tasks: {task_names}.
     Consider the ultimate objective of your team:{OBJECTIVE}.
     Do not remove any tasks. Return the result as a numbered list, like:
     #. First task
@@ -446,7 +487,7 @@ def main ():
 
             results_storage.add(task, result, result_id, vector)
 
-            # Step 3: Create new tasks and reprioritize task list
+            # Step 3: Create new tasks and re-prioritize task list
             # only the main instance in cooperative mode does that
             new_tasks = task_creation_agent(
                 OBJECTIVE,
