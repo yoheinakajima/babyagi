@@ -39,7 +39,7 @@ INSTANCE_NAME = os.getenv("INSTANCE_NAME", os.getenv("BABY_NAME", "BabyAGI"))
 COOPERATIVE_MODE = "none"
 JOIN_EXISTING_OBJECTIVE = False
 
-# Goal configuation
+# Goal configuration
 OBJECTIVE = os.getenv("OBJECTIVE", "")
 INITIAL_TASK = os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", ""))
 
