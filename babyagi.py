@@ -199,28 +199,28 @@ class DefaultResultsStorage:
             embedding_function=embedding_function,
         )
 
-    def add(self, task: Dict, result: str, result_id: str, vector: str):
+    def add(self, task: Dict, result: str, result_id: str):
 
         # Break the function if LLM_MODEL starts with "human" (case-insensitive)
         if LLM_MODEL.startswith("human"):
             return
         # Continue with the rest of the function
 
-        embeddings = llm_embed.embed(vector) if LLM_MODEL.startswith("llama") else None
+        embeddings = llm_embed.embed(result) if LLM_MODEL.startswith("llama") else None
         if (
                 len(self.collection.get(ids=[result_id], include=[])["ids"]) > 0
         ):  # Check if the result already exists
             self.collection.update(
                 ids=result_id,
                 embeddings=embeddings,
-                documents=vector,
+                documents=result,
                 metadatas={"task": task["task_name"], "result": result},
             )
         else:
             self.collection.add(
                 ids=result_id,
                 embeddings=embeddings,
-                documents=vector,
+                documents=result,
                 metadatas={"task": task["task_name"], "result": result},
             )
 
@@ -537,11 +537,11 @@ def main():
             }
             # extract the actual result from the dictionary
             # since we don't do enrichment currently
-            vector = enriched_result["data"]
+            # vector = enriched_result["data"]  
 
             result_id = f"result_{task['task_id']}"
 
-            results_storage.add(task, result, result_id, vector)
+            results_storage.add(task, result, result_id)
 
             # Step 3: Create new tasks and re-prioritize task list
             # only the main instance in cooperative mode does that
