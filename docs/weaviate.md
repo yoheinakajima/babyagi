@@ -1,18 +1,14 @@
 # How to setup
 
-## To do:
-
-1. mention weaviate in main [README.md](../README.md)
-
 ## Setup
 
-install weaviate client:
+1. Install weaviate client:
 
 ```bash
 pip -r extensions/requirements.txt
 ```
 
-Config the following env vars
+2. Configure the following environment variables:
 
 ```bash
 # TABLE_NAME=BabyAGITableInWeaviate
@@ -23,4 +19,4 @@ Config the following env vars
 # WEAVIATE_URL=
 # WEAVIATE_API_KEY=
 ```
-follow step 4 onwards in main readme
+Follow step 4 onwards in main README
