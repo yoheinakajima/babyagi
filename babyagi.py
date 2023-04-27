@@ -11,8 +11,9 @@ import tiktoken as tiktoken
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 from chromadb.api.types import Documents, EmbeddingFunction, Embeddings
 from dotenv import load_dotenv
+import re
 
-#default opt out of chromadb telemetry.
+# default opt out of chromadb telemetry.
 from chromadb.config import Settings
 client = chromadb.Client(Settings(anonymized_telemetry=False))
 
@@ -54,12 +55,13 @@ def can_import(module_name):
     except ImportError:
         return False
 
+
 DOTENV_EXTENSIONS = os.getenv("DOTENV_EXTENSIONS", "").split(" ")
 
 # Command line arguments extension
 # Can override any of the above environment variables
 ENABLE_COMMAND_LINE_ARGS = (
-    os.getenv("ENABLE_COMMAND_LINE_ARGS", "false").lower() == "true"
+        os.getenv("ENABLE_COMMAND_LINE_ARGS", "false").lower() == "true"
 )
 if ENABLE_COMMAND_LINE_ARGS:
     if can_import("extensions.argparseext"):
@@ -80,14 +82,13 @@ if DOTENV_EXTENSIONS:
         from extensions.dotenvext import load_dotenv_extensions
         load_dotenv_extensions(DOTENV_EXTENSIONS)
 
-
 # TODO: There's still work to be done here to enable people to get
 # defaults from dotenv extensions, but also provide command line
 # arguments to override them
 
 # Extensions support end
 
-print("\033[95m\033[1m"+"\n*****CONFIGURATION*****\n"+"\033[0m\033[0m")
+print("\033[95m\033[1m" + "\n*****CONFIGURATION*****\n" + "\033[0m\033[0m")
 print(f"Name  : {INSTANCE_NAME}")
 print(f"Mode  : {'alone' if COOPERATIVE_MODE in ['n', 'none'] else 'local' if COOPERATIVE_MODE in ['l', 'local'] else 'distributed' if COOPERATIVE_MODE in ['d', 'distributed'] else 'undefined'}")
 print(f"LLM   : {LLM_MODEL}")
@@ -106,16 +107,21 @@ if LLM_MODEL.startswith("llama"):
         assert os.path.exists(LLAMA_MODEL_PATH), "\033[91m\033[1m" + f"Model can't be found." + "\033[0m\033[0m"
 
         CTX_MAX = 2048
-        LLAMA_THREADS_NUM = int(os.getenv("LLAMA_THREADS_NUM", 4))
+        LLAMA_THREADS_NUM = int(os.getenv("LLAMA_THREADS_NUM", 8))
         llm = Llama(
             model_path=LLAMA_MODEL_PATH,
-            n_ctx=CTX_MAX, n_threads=LLAMA_THREADS_NUM,
+            n_ctx=CTX_MAX,
+            n_threads=LLAMA_THREADS_NUM,
+            n_batch=512,
             use_mlock=True,
         )
         llm_embed = Llama(
             model_path=LLAMA_MODEL_PATH,
-            n_ctx=CTX_MAX, n_threads=LLAMA_THREADS_NUM,
-            embedding=True, use_mlock=True,
+            n_ctx=CTX_MAX,
+            n_threads=LLAMA_THREADS_NUM,
+            n_batch=512,
+            embedding=True,
+            use_mlock=True,
         )
 
         print(
@@ -148,8 +154,10 @@ if LLM_MODEL.startswith("human"):
 print("\033[94m\033[1m" + "\n*****OBJECTIVE*****\n" + "\033[0m\033[0m")
 print(f"{OBJECTIVE}")
 
-if not JOIN_EXISTING_OBJECTIVE: print("\033[93m\033[1m" + "\nInitial task:" + "\033[0m\033[0m" + f" {INITIAL_TASK}")
-else: print("\033[93m\033[1m" + f"\nJoining to help the objective" + "\033[0m\033[0m")
+if not JOIN_EXISTING_OBJECTIVE:
+    print("\033[93m\033[1m" + "\nInitial task:" + "\033[0m\033[0m" + f" {INITIAL_TASK}")
+else:
+    print("\033[93m\033[1m" + f"\nJoining to help the objective" + "\033[0m\033[0m")
 
 # Configure OpenAI
 openai.api_key = OPENAI_API_KEY
@@ -159,8 +167,8 @@ openai.api_key = OPENAI_API_KEY
 class LlamaEmbeddingFunction(EmbeddingFunction):
     def __init__(self):
         return
-    def __call__(self, texts:Documents) -> Embeddings:
-        embeddings=[]
+    def __call__(self, texts: Documents) -> Embeddings:
+        embeddings = []
         for t in texts:
             e = llm_embed.embed(t)
             embeddings.append(e)
@@ -200,7 +208,7 @@ class DefaultResultsStorage:
 
         embeddings = llm_embed.embed(vector) if LLM_MODEL.startswith("llama") else None
         if (
-            len(self.collection.get(ids=[result_id], include=[])["ids"]) > 0
+                len(self.collection.get(ids=[result_id], include=[])["ids"]) > 0
         ):  # Check if the result already exists
             self.collection.update(
                 ids=result_id,
@@ -227,6 +235,7 @@ class DefaultResultsStorage:
         )
         return [item["task"] for item in results["metadatas"][0]]
 
+
 # Initialize results storage
 results_storage = DefaultResultsStorage()
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
@@ -237,8 +246,11 @@ if PINECONE_API_KEY:
             PINECONE_ENVIRONMENT
         ), "\033[91m\033[1m" + "PINECONE_ENVIRONMENT environment variable is missing from .env" + "\033[0m\033[0m"
         from extensions.pinecone_storage import PineconeResultsStorage
-        results_storage = PineconeResultsStorage(OPENAI_API_KEY, PINECONE_API_KEY, PINECONE_ENVIRONMENT, LLM_MODEL, LLAMA_MODEL_PATH, RESULTS_STORE_NAME, OBJECTIVE)
-        print("\nReplacing results storage: " + "\033[93m\033[1m" +  "Pinecone" + "\033[0m\033[0m")
+
+        results_storage = PineconeResultsStorage(OPENAI_API_KEY, PINECONE_API_KEY, PINECONE_ENVIRONMENT, LLM_MODEL,
+                                                 LLAMA_MODEL_PATH, RESULTS_STORE_NAME, OBJECTIVE)
+        print("\nReplacing results storage: " + "\033[93m\033[1m" + "Pinecone" + "\033[0m\033[0m")
+
 
 # Task storage supporting only a single instance of BabyAGI
 class SingleTaskListStorage:
@@ -275,7 +287,7 @@ if COOPERATIVE_MODE in ['l', 'local']:
         sys.path.append(str(Path(__file__).resolve().parent))
         from extensions.ray_tasks import CooperativeTaskListStorage
         tasks_storage = CooperativeTaskListStorage(OBJECTIVE)
-        print("\nReplacing tasks storage: " + "\033[93m\033[1m" +  "Ray" + "\033[0m\033[0m")
+        print("\nReplacing tasks storage: " + "\033[93m\033[1m" + "Ray" + "\033[0m\033[0m")
 elif COOPERATIVE_MODE in ['d', 'distributed']:
     pass
 
@@ -302,8 +314,8 @@ def openai_call(
     while True:
         try:
             if model.lower().startswith("llama"):
-                result = llm(prompt[:CTX_MAX], stop=["### Human"], echo=True, temperature=0.2)
-                return result['choices'][0]['text'].strip()
+                result = llm(prompt[:CTX_MAX], stop=["### Human"], echo=False, temperature=0.2)
+                return str(result['choices'][0]['text'].strip())
             elif model.lower().startswith("human"):
                 return user_input_await(prompt)
             elif not model.lower().startswith("gpt-"):
@@ -370,38 +382,77 @@ def openai_call(
 
 
 def task_creation_agent(
-    objective: str, result: Dict, task_description: str, task_list: List[str]
+        objective: str, result: Dict, task_description: str, task_list: List[str]
 ):
+
     prompt = f"""
-    You are a task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective},
-    The last completed task has the result: {result}.
-    This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}.
-    Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks.
-    Return the tasks as an array."""
-    response = openai_call(prompt)
-    new_tasks = response.split("\n") if "\n" in response else [response]
-    return [{"task_name": task_name} for task_name in new_tasks]
+You are to use the result from an execution agent to create new tasks with the following objective: {objective}.
+The last completed task has the result: \n{result["data"]}
+This result was based on this task description: {task_description}.\n"""
+
+    if task_list:
+        prompt += f"These are incomplete tasks: {', '.join(task_list)}\n"
+    prompt += "Based on the result, create a list of new tasks to be completed in order to meet the objective. "
+    if task_list:
+        prompt += "These new tasks must not overlap with incomplete tasks. "
+
+    prompt += """
+Return all the new tasks, with one task per line in your response. The result must be a numbered list in the format:
+    
+#. First task
+#. Second task
+        
+The number of each entry must be followed by a period.
+Do not include any headers before your numbered list. Do not follow your numbered list with any other output."""
+
+    print(f'\n************** TASK CREATION AGENT PROMPT *************\n{prompt}\n')
+    response = openai_call(prompt, max_tokens=2000)
+    print(f'\n************* TASK CREATION AGENT RESPONSE ************\n{response}\n')
+    new_tasks = response.split('\n')
+    new_tasks_list = []
+    for task_string in new_tasks:
+        task_parts = task_string.strip().split(".", 1)
+        if len(task_parts) == 2:
+            task_id = ''.join(s for s in task_parts[0] if s.isnumeric())
+            task_name = re.sub(r'[^\w\s_]+', '', task_parts[1]).strip()
+            if task_name.strip() and task_id.isnumeric():
+                new_tasks_list.append(task_name)
+            # print('New task created: ' + task_name)
+
+    out = [{"task_name": task_name} for task_name in new_tasks_list]
+    return out
 
 
 def prioritization_agent():
     task_names = tasks_storage.get_task_names()
     next_task_id = tasks_storage.next_task_id()
+
     prompt = f"""
-    You are a task prioritization AI tasked with cleaning the formatting of and re-prioritizing the following tasks: {task_names}.
-    Consider the ultimate objective of your team:{OBJECTIVE}.
-    Do not remove any tasks. Return the result as a numbered list, like:
-    #. First task
-    #. Second task
-    Start the task list with number {next_task_id}."""
-    response = openai_call(prompt)
+You are tasked with cleaning the format and re-prioritizing the following tasks: {', '.join(task_names)}.
+Consider the ultimate objective of your team: {OBJECTIVE}.
+Tasks should be sorted from highest to lowest priority. 
+Higher-priority tasks are those that act as pre-requisites or are more essential for meeting the objective.
+Do not remove any tasks. Return the result as a numbered list in the format:
+
+#. First task
+#. Second task
+
+The entries are consecutively numbered, starting with 1. The number of each entry must be followed by a period.
+Do not include any headers before your numbered list. Do not follow your numbered list with any other output."""
+
+    print(f'\n************** TASK PRIORITIZATION AGENT PROMPT *************\n{prompt}\n')
+    response = openai_call(prompt, max_tokens=2000)
+    print(f'\n************* TASK PRIORITIZATION AGENT RESPONSE ************\n{response}\n')
     new_tasks = response.split("\n") if "\n" in response else [response]
     new_tasks_list = []
     for task_string in new_tasks:
         task_parts = task_string.strip().split(".", 1)
         if len(task_parts) == 2:
-            task_id = task_parts[0].strip()
-            task_name = task_parts[1].strip()
-            new_tasks_list.append({"task_id": task_id, "task_name": task_name})
+            task_id = ''.join(s for s in task_parts[0] if s.isnumeric())
+            task_name = re.sub(r'[^\w\s_]+', '', task_parts[1]).strip()
+            if task_name.strip():
+                new_tasks_list.append({"task_id": task_id, "task_name": task_name})
+
     tasks_storage.replace(new_tasks_list)
 
 
@@ -422,10 +473,12 @@ def execution_agent(objective: str, task: str) -> str:
     context = context_agent(query=objective, top_results_num=5)
     # print("\n*******RELEVANT CONTEXT******\n")
     # print(context)
-    prompt = f"""
-    You are an AI who performs one task based on the following objective: {objective}\n.
-    Take into account these previously completed tasks: {context}\n.
-    Your task: {task}\nResponse:"""
+    # print('')
+    prompt = f'Perform one task based on the following objective: {objective}.\n'
+    if context:
+        prompt += 'Take into account these previously completed tasks:' + '\n'.join(context)\
+
+    prompt += f'\nYour task: {task}\nResponse:'
     return openai_call(prompt, max_tokens=2000)
 
 
@@ -447,6 +500,7 @@ def context_agent(query: str, top_results_num: int):
     # print(results)
     return results
 
+
 # Add the initial task if starting new objective
 if not JOIN_EXISTING_OBJECTIVE:
     initial_task = {
@@ -455,22 +509,24 @@ if not JOIN_EXISTING_OBJECTIVE:
     }
     tasks_storage.append(initial_task)
 
-def main ():
-    while True:
+
+def main():
+    loop = True
+    while loop:
         # As long as there are tasks in the storage...
         if not tasks_storage.is_empty():
             # Print the task list
             print("\033[95m\033[1m" + "\n*****TASK LIST*****\n" + "\033[0m\033[0m")
             for t in tasks_storage.get_task_names():
-                print(" • "+t)
+                print(" • " + str(t))
 
             # Step 1: Pull the first incomplete task
             task = tasks_storage.popleft()
             print("\033[92m\033[1m" + "\n*****NEXT TASK*****\n" + "\033[0m\033[0m")
-            print(task['task_name'])
+            print(str(task["task_name"]))
 
             # Send to execution function to complete the task based on the context
-            result = execution_agent(OBJECTIVE, task["task_name"])
+            result = execution_agent(OBJECTIVE, str(task["task_name"]))
             print("\033[93m\033[1m" + "\n*****TASK RESULT*****\n" + "\033[0m\033[0m")
             print(result)
 
@@ -478,10 +534,10 @@ def main ():
             # This is where you should enrich the result if needed
             enriched_result = {
                 "data": result
-            }  
+            }
             # extract the actual result from the dictionary
             # since we don't do enrichment currently
-            vector = enriched_result["data"]  
+            vector = enriched_result["data"]
 
             result_id = f"result_{task['task_id']}"
 
@@ -496,14 +552,20 @@ def main ():
                 tasks_storage.get_task_names(),
             )
 
+            print('Adding new tasks to task_storage')
             for new_task in new_tasks:
                 new_task.update({"task_id": tasks_storage.next_task_id()})
+                print(str(new_task))
                 tasks_storage.append(new_task)
 
             if not JOIN_EXISTING_OBJECTIVE: prioritization_agent()
 
         # Sleep a bit before checking the task list again
-        time.sleep(5) 
+            time.sleep(5)
+        else:
+            print('Done.')
+            loop = False
+
 
 if __name__ == "__main__":
     main()
