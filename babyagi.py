@@ -270,11 +270,21 @@ def try_pinecone():
         return PineconeResultsStorage(OPENAI_API_KEY, PINECONE_API_KEY, PINECONE_ENVIRONMENT, LLM_MODEL, LLAMA_MODEL_PATH, RESULTS_STORE_NAME, OBJECTIVE)
     return None
 
+def try_milvus():
+    MILVUS_URI = os.getenv("MILVUS_URI", "")
+    MILVUS_VECTOR_FIELD = os.getenv("MILVUS_VECTOR_FIELD", "")
+    if MILVUS_URI and MILVUS_VECTOR_FIELD and can_import("extensions.milvus_storage"):
+        from extensions.milvus_storage import MilvusResultsStorage
+        print("\nUsing results storage: " + "\033[93m\033[1m" + "Milvus" + "\033[0m\033[0m")
+        return MilvusResultsStorage(OPENAI_API_KEY, LLM_MODEL, LLAMA_MODEL_PATH, MILVUS_URI, RESULTS_STORE_NAME, MILVUS_VECTOR_FIELD)
+    return None
+
 def use_chroma():
     print("\nUsing results storage: " + "\033[93m\033[1m" + "Chroma (Default)" + "\033[0m\033[0m")
     return DefaultResultsStorage()
 
-results_storage = try_weaviate() or try_pinecone() or use_chroma()
+results_storage = try_milvus() or try_weaviate() or try_pinecone() or use_chroma()
+
 
 # Task storage supporting only a single instance of BabyAGI
 class SingleTaskListStorage:
