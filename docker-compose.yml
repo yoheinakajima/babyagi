@@ -11,3 +11,5 @@ services:
       - "./:/app"
     stdin_open: true
     tty: true
+    ulimits:
+      memlock: -1
