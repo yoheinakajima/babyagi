@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+from dotenv import load_dotenv
+# Load default environment variables (.env)
+load_dotenv()
+
 import os
 import time
 import logging
@@ -10,15 +14,12 @@ import chromadb
 import tiktoken as tiktoken
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 from chromadb.api.types import Documents, EmbeddingFunction, Embeddings
-from dotenv import load_dotenv
 import re
 
 # default opt out of chromadb telemetry.
 from chromadb.config import Settings
 client = chromadb.Client(Settings(anonymized_telemetry=False))
 
-# Load default environment variables (.env)
-load_dotenv()
 
 # Engine configuration
 
