@@ -17,7 +17,7 @@ from serpapi import GoogleSearch
 
 # Add your API keys here
 OPENAI_API_KEY = ""
-SERPAPI_API_KEY = "" #If you include SERPAPI KEY, this will enable web-search. If you don't, it will autoatically remove web-search capability.
+SERPAPI_API_KEY = "" #If you include SERPAPI KEY, this will enable web-search. If you don't, it will automatically remove web-search capability.
 
 # Set variables
 OBJECTIVE = "You are an AI. Make the world a better place."
