@@ -1,10 +1,10 @@
-# Babycoder: AI-Powered Task Management for Code Generation
+# Babycoder: Recipe for using BabyAgi to write code
 
-Babycoder is a work in progress AI system that streamlines the software development process by generating code for small projects consisting of a few files. As a part of the BabyAgi system, Babycoder's goal is to lay the foundation for creating increasingly powerful AI agents capable of managing larger and more complex projects.
+Babycoder is a work in progress AI system that is able to write code for small programs given a simple objective. As a part of the BabyAgi system, Babycoder's goal is to lay the foundation for creating increasingly powerful AI agents capable of managing larger and more complex projects.
 
 ## Objective
 
-The primary objective of Babycoder is to provide a recipe for developing AI agent systems capable of running code. By starting with a simple system and iterating on it, Babycoder aims to improve over time and eventually handle more extensive projects.
+The primary objective of Babycoder is to provide a recipe for developing AI agent systems capable of writing and editing code. By starting with a simple system and iterating on it, Babycoder aims to improve over time and eventually handle more extensive projects.
 
 ## How It Works
 
