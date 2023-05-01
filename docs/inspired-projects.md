@@ -95,3 +95,7 @@ This document highlights a curated selection of remarkable projects inspired by 
     - Description: Chippr-AGI is an open-source framework that uses AI models to automate task creation and prioritization. NodeJS, Redis, OpenAI/LLAMA
     - Author: [Cody Burns](https://github.com/realcodywburns)
     - Twitter: https://twitter.com/DontPanicBurns
+1. [sharpagi](https://github.com/sathyarajv/sharpagi)
+    - Description: C# dotnet implementation of BabyAGI.
+    - Author: [Sathyaraj Vadivel](https://github.com/sathyarajv)
+    - Twitter: https://twitter.com/sathyarajv
