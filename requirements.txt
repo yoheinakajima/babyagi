@@ -3,3 +3,4 @@ chromadb==0.3.21
 pre-commit>=3.2.0
 python-dotenv==1.0.0
 llama-cpp-python>=0.1.36
+InstructorEmbedding>=1.0.0

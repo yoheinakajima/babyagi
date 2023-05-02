@@ -7,8 +7,8 @@ import importlib
 import chromadb
 from dotenv import load_dotenv
 from chromadb.api.types import Documents, EmbeddingFunction, Embeddings
+from chromadb.utils.embedding_functions import InstructorEmbeddingFunction
 from llama_cpp import Llama
-
 
 # Load default environment variables (.env)
 load_dotenv()
@@ -62,16 +62,11 @@ assert os.path.exists(MODEL_PATH), "\033[91m\033[1m" + f"Model can't be found." 
 CTX_MAX = 16384
 #THREADS_NUM = 16
 THREADS_NUM = 4
+
 llm = Llama(
     model_path=MODEL_PATH,
     n_ctx=CTX_MAX, n_threads=THREADS_NUM,
     use_mlock=True,
-    verbose=False,
-)
-llm_embed = Llama(
-    model_path=MODEL_PATH,
-    n_ctx=CTX_MAX, n_threads=THREADS_NUM,
-    embedding=True, use_mlock=True,
     verbose=False,
 )
 
@@ -80,16 +75,6 @@ print(f"{OBJECTIVE}")
 
 if not JOIN_EXISTING_OBJECTIVE: print("\033[93m\033[1m" + "\nInitial task:" + "\033[0m\033[0m" + f" {INITIAL_TASK}")
 else: print("\033[93m\033[1m" + f"\nJoining to help the objective" + "\033[0m\033[0m")
-
-class LlamaEmbeddingFunction(EmbeddingFunction):
-    def __init__(self, model: Llama):
-        self._model = model
-
-    def __call__(self, texts: Documents) -> Embeddings:
-        # replace newlines, which can negatively affect performance.
-        texts = [t.replace("\n", " ") for t in texts]
-        embeddings = [self._model.embed(item) for item in texts]
-        return embeddings
 
 # Results storage using local ChromaDB
 class DefaultResultsStorage:
@@ -105,7 +90,7 @@ class DefaultResultsStorage:
         )
 
         metric = "cosine"
-        embedding_function = LlamaEmbeddingFunction(model=llm_embed)
+        embedding_function = InstructorEmbeddingFunction()
         self.collection = chroma_client.get_or_create_collection(
             name=RESULTS_STORE_NAME,
             metadata={"hnsw:space": metric},
@@ -113,7 +98,7 @@ class DefaultResultsStorage:
         )
 
     def add(self, task: Dict, result: Dict, result_id: str, vector: List):        
-        embeddings = llm_embed.embed(vector)        
+        embeddings = self.collection._embedding_function([vector])
 
         if (len(self.collection.get(ids=[result_id], include=[])["ids"]) > 0):  # Check if the result already exists
             self.collection.update(
@@ -138,19 +123,14 @@ class DefaultResultsStorage:
             query_texts=query,
             n_results=min(top_results_num, count),
             include=["metadatas"]
-        )
-        #return [item["task"] for item in results["metadatas"][0]]
-        tasks = []        
+        )        
+        tasks = []
         count = len(results["ids"][0])
-        for i in range(count):
-            item = results["metadatas"][0][i]
-            resultidstr = results["ids"][0][i]
-            resultid = resultidstr[7:]
-            id = int(resultid)
-
-            task = {}
-            task['task_name'] = item["task"]
-            task['task_id'] = id
+        for i in range(count):            
+            resultidstr = results["ids"][0][i]            
+            id = int(resultidstr[7:])
+            item = results["metadatas"][0][i]            
+            task = {'task_id': id, 'task_name': item["task"]}
             tasks.append(task)            
         return tasks
    
@@ -187,7 +167,7 @@ class SingleTaskListStorage:
 # Initialize tasks storage
 tasks_storage = SingleTaskListStorage()
 
-def gpt_call(prompt: str, temperature: float = TEMPERATURE, max_tokens: int = 256):    
+def gpt_call(prompt: str, temperature: float = TEMPERATURE, max_tokens: int = 256):
     result = llm(prompt[:CTX_MAX], echo=True, temperature=temperature, max_tokens=max_tokens)
     return result['choices'][0]['text'][len(prompt):].strip()
 
