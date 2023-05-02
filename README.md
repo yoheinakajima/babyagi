@@ -113,6 +113,9 @@ To help the BabyAGI community stay informed about the project's progress, [Bluep
 
 To view the BabyAGI 7-day activity report, go here: [https://app.blueprint.ai/github/yoheinakajima/babyagi](https://app.blueprint.ai/github/yoheinakajima/babyagi)
 
+[<img width="293" alt="image" src="https://user-images.githubusercontent.com/334530/235789974-f49d3cbe-f4df-4c3d-89e9-bfb60eea6308.png">](https://app.blueprint.ai/github/yoheinakajima/babyagi)
+
+
 # Inspired projects
 
 In the short time since it was release, BabyAGI inspired many projects. You can see them all [here](docs/inspired-projects.md).
