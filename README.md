@@ -16,9 +16,8 @@ Runs on CPU with the [GPT4All](https://github.com/nomic-ai/gpt4all) model by Nom
 3. Download a model file (see below)
 4. Copy the file *.env.example* to *.env*
 4. Edit the model-path and other preferences in the file *.env*
-</br>
 
-# Model Downloads
+## Model Downloads
 
 The following model files have been tested successfully:
 
@@ -26,10 +25,12 @@ The following model files have been tested successfully:
 * *ggml-wizardLM-7B.q4_2.bin*
 * *ggml-vicuna-7b-1.1-q4_2.bin*
 
-Some of these model files can be downloaded from [here](https://github.com/nomic-ai/gpt4all-chat#manual-download-of-models)
+Some of these model files can be downloaded from [here](https://github.com/nomic-ai/gpt4all-chat#manual-download-of-models).
+</br>
 </br>
 
 Then run *python babyagi.py*
+</br>
 
 Have fun!
 </br>
