@@ -109,7 +109,7 @@ I am new to GitHub and open source, so please be patient as I learn to manage th
 
 # BabyAGI Activity Report
 
-To help the BabyAGI community stay informed about the project's progress, [Blueprint AI](https://blueprint.ai) has developed a Github activity summarizer for BabyAGI. This concise report displays a summary of all contributions to the BabyAGI repository over the past 7 days (continuously updated), making it easy for you to keep track of the latest developments.
+To help the BabyAGI community stay informed about the project's progress, Blueprint AI has developed a Github activity summarizer for BabyAGI. This concise report displays a summary of all contributions to the BabyAGI repository over the past 7 days (continuously updated), making it easy for you to keep track of the latest developments.
 
 To view the BabyAGI 7-day activity report, go here: [https://app.blueprint.ai/github/yoheinakajima/babyagi](https://app.blueprint.ai/github/yoheinakajima/babyagi)
 
