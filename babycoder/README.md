@@ -8,18 +8,24 @@ The primary objective of Babycoder is to provide a recipe for developing AI agen
 
 ## How It Works
 
-Babycoder's task management system consists of several AI agents working together to create, prioritize, and execute tasks based on a predefined objective and the results of previous tasks. The process consists of the following steps:
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/115842157/235815563-8e7a9082-f8d7-48fa-b062-59b585944f1b.png" />
+</p>
+
+Babycoder's task management system consists of several AI agents working together to create, prioritize, and execute tasks based on a predefined objective and the current state of the project being worked on. The process consists of the following steps:
 
 1. **Task Definition**: Four task agents define tasks in a JSON list, which includes all tasks to be executed by the system.
 
-2. **Agent Assignment**: For each task, two agents collaborate to determine the agent responsible for executing the task. The possible executor agents are:
+2. **(Optional) Human feedback**: If enabled, allows to provide feedback for each task before it is executed. The feedback is processed by an agent responsible for applying it to improve the task.
+
+3. **Agent Assignment**: For each task, two agents collaborate to determine the agent responsible for executing the task. The possible executor agents are:
     - `command_executor_agent`
     - `code_writer_agent`
     - `code_refactor_agent`
 
-3. **File Management**: The `files_management_agent` scans files in the project directory to determine which files or folders will be used by the executor agents to accomplish their tasks.
+4. **File Management**: The `files_management_agent` scans files in the project directory to determine which files or folders will be used by the executor agents to accomplish their tasks.
 
-4. **Task Execution**: The executor agents perform their assigned tasks using the following capabilities:
+5. **Task Execution**: The executor agents perform their assigned tasks using the following capabilities:
     - The `command_executor_agent` runs OS commands, such as installing dependencies or creating files and folders.
     - The `code_writer_agent` writes new code or updates existing code, using embeddings of the current codebase to retrieve relevant code sections and ensure compatibility with other parts of the codebase.
     - The `code_refactor_agent` edits existing code according to the specified task, with the help of a `code_relevance_agent` that analyzes code chunks and identifies the most relevant section for editing.
