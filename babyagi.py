@@ -27,7 +27,7 @@ client = chromadb.Client(Settings(anonymized_telemetry=False))
 LLM_MODEL = os.getenv("LLM_MODEL", os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo")).lower()
 
 # API Keys
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_API_KEY = os.getenv(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, "")
 if not (LLM_MODEL.startswith("llama") or LLM_MODEL.startswith("human")):
     assert OPENAI_API_KEY, "\033[91m\033[1m" + "OPENAI_API_KEY environment variable is missing from .env" + "\033[0m\033[0m"
 
