@@ -14,6 +14,10 @@ env/
 models
 llama/
 
+babycoder/playground/*
+babycoder/playground_data/*
+babycoder/objective.txt
+
 # for node
 chroma/
 node_modules/
