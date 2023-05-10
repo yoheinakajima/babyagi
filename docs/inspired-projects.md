@@ -12,6 +12,10 @@ This document highlights a curated selection of remarkable projects inspired by 
    - Description: Assemble, configure, and deploy autonomous AI Agents in your browser.
    - Author: [Asim Shrestha](https://github.com/asim-shrestha)
    - Twitter: https://twitter.com/asimdotshrestha
+1. [AgentLLM](https://github.com/idosal/AgentLLM)
+   - Description: AgentGPT that uses a browser-native LLM instead of ChatGPT.
+   - Author: [Ido Salomon](https://github.com/idosal)
+   - Twitter: https://twitter.com/idosal1
 1. [BabyAGI-asi](https://github.com/oliveirabruno01/babyagi-asi)
    - Description: A modification that runs arbitrary python code to perform tasks -  It manages to create routines for pyautogui, webscrapping, manages to execute actions on the computer and even controls its own memory
    - Author: [Bruno De Oliveira](https://github.com/oliveirabruno01)
@@ -91,3 +95,14 @@ This document highlights a curated selection of remarkable projects inspired by 
     - Description: Chippr-AGI is an open-source framework that uses AI models to automate task creation and prioritization. NodeJS, Redis, OpenAI/LLAMA
     - Author: [Cody Burns](https://github.com/realcodywburns)
     - Twitter: https://twitter.com/DontPanicBurns
+1. [Agent-LLM](https://github.com/Josh-XT/Agent-LLM)
+
+    - Description: Agent-LLM is a dynamic AI task management assistant with adaptive memory, web browsing, code evaluation, and a versatile plugin system for seamless integration with various AI providers and models both locally and remotely hosted.
+
+    - Author: [Josh XT](https://github.com/Josh-XT)
+
+    - Twitter: https://twitter.com/Josh_XT
+1. [sharpagi](https://github.com/sathyarajv/sharpagi)
+    - Description: C# dotnet implementation of BabyAGI.
+    - Author: [Sathyaraj Vadivel](https://github.com/sathyarajv)
+    - Twitter: https://twitter.com/sathyarajv
