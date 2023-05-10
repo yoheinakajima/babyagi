@@ -427,18 +427,18 @@ This result was based on this task description: {task_description}.\n"""
 
     if task_list:
         prompt += f"These are incomplete tasks: {', '.join(task_list)}\n"
-    prompt += "Based on the result, create a list of new tasks to be completed in order to meet the objective. "
+    prompt += "Based on the result, return a list of tasks to be completed in order to meet the objective. "
     if task_list:
         prompt += "These new tasks must not overlap with incomplete tasks. "
 
     prompt += """
-Return all the new tasks, with one task per line in your response. The result must be a numbered list in the format:
-    
+Return one task per line in your response. The result must be a numbered list in the format:
+
 #. First task
 #. Second task
-        
-The number of each entry must be followed by a period.
-Do not include any headers before your numbered list. Do not follow your numbered list with any other output."""
+
+The number of each entry must be followed by a period. If your list is empty, write "There are no tasks to add at this time."
+Unless your list is empty, do not include any headers before your numbered list or follow your numbered list with any other output."""
 
     print(f'\n*****TASK CREATION AGENT PROMPT****\n{prompt}\n')
     response = openai_call(prompt, max_tokens=2000)
@@ -460,20 +460,19 @@ Do not include any headers before your numbered list. Do not follow your numbere
 
 def prioritization_agent():
     task_names = tasks_storage.get_task_names()
-    next_task_id = tasks_storage.next_task_id()
+    bullet_string = '\n'
 
     prompt = f"""
-You are tasked with cleaning the format and re-prioritizing the following tasks: {', '.join(task_names)}.
+You are tasked with prioritizing the following tasks: {bullet_string + bullet_string.join(task_names)}
 Consider the ultimate objective of your team: {OBJECTIVE}.
-Tasks should be sorted from highest to lowest priority. 
-Higher-priority tasks are those that act as pre-requisites or are more essential for meeting the objective.
-Do not remove any tasks. Return the result as a numbered list in the format:
+Tasks should be sorted from highest to lowest priority, where higher-priority tasks are those that act as pre-requisites or are more essential for meeting the objective.
+Do not remove any tasks. Return the ranked tasks as a numbered list in the format:
 
 #. First task
 #. Second task
 
-The entries are consecutively numbered, starting with 1. The number of each entry must be followed by a period.
-Do not include any headers before your numbered list. Do not follow your numbered list with any other output."""
+The entries must be consecutively numbered, starting with 1. The number of each entry must be followed by a period.
+Do not include any headers before your ranked list or follow your list with any other output."""
 
     print(f'\n****TASK PRIORITIZATION AGENT PROMPT****\n{prompt}\n')
     response = openai_call(prompt, max_tokens=2000)
