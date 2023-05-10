@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from dotenv import load_dotenv
+
 # Load default environment variables (.env)
 load_dotenv()
 
@@ -18,8 +19,8 @@ import re
 
 # default opt out of chromadb telemetry.
 from chromadb.config import Settings
-client = chromadb.Client(Settings(anonymized_telemetry=False))
 
+client = chromadb.Client(Settings(anonymized_telemetry=False))
 
 # Engine configuration
 
@@ -47,6 +48,7 @@ INITIAL_TASK = os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", ""))
 # Model configuration
 OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", 0.0))
 
+
 # Extensions support begin
 
 def can_import(module_name):
@@ -67,6 +69,7 @@ ENABLE_COMMAND_LINE_ARGS = (
 if ENABLE_COMMAND_LINE_ARGS:
     if can_import("extensions.argparseext"):
         from extensions.argparseext import parse_arguments
+
         OBJECTIVE, INITIAL_TASK, LLM_MODEL, DOTENV_EXTENSIONS, INSTANCE_NAME, COOPERATIVE_MODE, JOIN_EXISTING_OBJECTIVE = parse_arguments()
 
 # Human mode extension
@@ -81,6 +84,7 @@ if LLM_MODEL.startswith("human"):
 if DOTENV_EXTENSIONS:
     if can_import("extensions.dotenvext"):
         from extensions.dotenvext import load_dotenv_extensions
+
         load_dotenv_extensions(DOTENV_EXTENSIONS)
 
 # TODO: There's still work to be done here to enable people to get
@@ -107,22 +111,26 @@ if LLM_MODEL.startswith("llama"):
         print(f"LLAMA : {LLAMA_MODEL_PATH}" + "\n")
         assert os.path.exists(LLAMA_MODEL_PATH), "\033[91m\033[1m" + f"Model can't be found." + "\033[0m\033[0m"
 
-        CTX_MAX = 2048
+        CTX_MAX = 1024
         LLAMA_THREADS_NUM = int(os.getenv("LLAMA_THREADS_NUM", 8))
+
+        print('Initialize model for evaluation')
         llm = Llama(
             model_path=LLAMA_MODEL_PATH,
             n_ctx=CTX_MAX,
             n_threads=LLAMA_THREADS_NUM,
             n_batch=512,
-            use_mlock=True,
+            use_mlock=False,
         )
+
+        print('\nInitialize model for embedding')
         llm_embed = Llama(
             model_path=LLAMA_MODEL_PATH,
             n_ctx=CTX_MAX,
             n_threads=LLAMA_THREADS_NUM,
             n_batch=512,
             embedding=True,
-            use_mlock=True,
+            use_mlock=False,
         )
 
         print(
@@ -168,6 +176,8 @@ openai.api_key = OPENAI_API_KEY
 class LlamaEmbeddingFunction(EmbeddingFunction):
     def __init__(self):
         return
+
+
     def __call__(self, texts: Documents) -> Embeddings:
         embeddings = []
         for t in texts:
@@ -298,8 +308,10 @@ if COOPERATIVE_MODE in ['l', 'local']:
     if can_import("extensions.ray_tasks"):
         import sys
         from pathlib import Path
+
         sys.path.append(str(Path(__file__).resolve().parent))
         from extensions.ray_tasks import CooperativeTaskListStorage
+
         tasks_storage = CooperativeTaskListStorage(OBJECTIVE)
         print("\nReplacing tasks storage: " + "\033[93m\033[1m" + "Ray" + "\033[0m\033[0m")
 elif COOPERATIVE_MODE in ['d', 'distributed']:
@@ -328,8 +340,18 @@ def openai_call(
     while True:
         try:
             if model.lower().startswith("llama"):
-                result = llm(prompt[:CTX_MAX], stop=["### Human"], echo=False, temperature=0.2)
-                return str(result['choices'][0]['text'].strip())
+                result = llm(prompt[:CTX_MAX],
+                             stop=["### Human"],
+                             echo=False,
+                             temperature=0.2,
+                             top_k=40,
+                             top_p=0.95,
+                             repeat_penalty=1.05,
+                             max_tokens=200)
+                # print('\n*****RESULT JSON DUMP*****\n')
+                # print(json.dumps(result))
+                # print('\n')
+                return result['choices'][0]['text'].strip()
             elif model.lower().startswith("human"):
                 return user_input_await(prompt)
             elif not model.lower().startswith("gpt-"):
@@ -398,7 +420,6 @@ def openai_call(
 def task_creation_agent(
         objective: str, result: Dict, task_description: str, task_list: List[str]
 ):
-
     prompt = f"""
 You are to use the result from an execution agent to create new tasks with the following objective: {objective}.
 The last completed task has the result: \n{result["data"]}
@@ -419,9 +440,9 @@ Return all the new tasks, with one task per line in your response. The result mu
 The number of each entry must be followed by a period.
 Do not include any headers before your numbered list. Do not follow your numbered list with any other output."""
 
-    print(f'\n************** TASK CREATION AGENT PROMPT *************\n{prompt}\n')
+    print(f'\n*****TASK CREATION AGENT PROMPT****\n{prompt}\n')
     response = openai_call(prompt, max_tokens=2000)
-    print(f'\n************* TASK CREATION AGENT RESPONSE ************\n{response}\n')
+    print(f'\n****TASK CREATION AGENT RESPONSE****\n{response}\n')
     new_tasks = response.split('\n')
     new_tasks_list = []
     for task_string in new_tasks:
@@ -454,9 +475,12 @@ Do not remove any tasks. Return the result as a numbered list in the format:
 The entries are consecutively numbered, starting with 1. The number of each entry must be followed by a period.
 Do not include any headers before your numbered list. Do not follow your numbered list with any other output."""
 
-    print(f'\n************** TASK PRIORITIZATION AGENT PROMPT *************\n{prompt}\n')
+    print(f'\n****TASK PRIORITIZATION AGENT PROMPT****\n{prompt}\n')
     response = openai_call(prompt, max_tokens=2000)
-    print(f'\n************* TASK PRIORITIZATION AGENT RESPONSE ************\n{response}\n')
+    print(f'\n****TASK PRIORITIZATION AGENT RESPONSE****\n{response}\n')
+    if not response:
+        print('Received empty response from priotritization agent. Keeping task list unchanged.')
+        return
     new_tasks = response.split("\n") if "\n" in response else [response]
     new_tasks_list = []
     for task_string in new_tasks:
@@ -467,7 +491,7 @@ Do not include any headers before your numbered list. Do not follow your numbere
             if task_name.strip():
                 new_tasks_list.append({"task_id": task_id, "task_name": task_name})
 
-    tasks_storage.replace(new_tasks_list)
+    return new_tasks_list
 
 
 # Execute a task based on the objective and five previous tasks
@@ -483,15 +507,14 @@ def execution_agent(objective: str, task: str) -> str:
         str: The response generated by the AI for the given task.
 
     """
-    
+
     context = context_agent(query=objective, top_results_num=5)
-    # print("\n*******RELEVANT CONTEXT******\n")
+    # print("\n****RELEVANT CONTEXT****\n")
     # print(context)
     # print('')
     prompt = f'Perform one task based on the following objective: {objective}.\n'
     if context:
-        prompt += 'Take into account these previously completed tasks:' + '\n'.join(context)\
-
+        prompt += 'Take into account these previously completed tasks:' + '\n'.join(context)
     prompt += f'\nYour task: {task}\nResponse:'
     return openai_call(prompt, max_tokens=2000)
 
@@ -510,7 +533,7 @@ def context_agent(query: str, top_results_num: int):
 
     """
     results = results_storage.query(query=query, top_results_num=top_results_num)
-    # print("***** RESULTS *****")
+    # print("****RESULTS****")
     # print(results)
     return results
 
@@ -551,7 +574,7 @@ def main():
             }
             # extract the actual result from the dictionary
             # since we don't do enrichment currently
-            # vector = enriched_result["data"]  
+            # vector = enriched_result["data"]
 
             result_id = f"result_{task['task_id']}"
 
@@ -572,9 +595,12 @@ def main():
                 print(str(new_task))
                 tasks_storage.append(new_task)
 
-            if not JOIN_EXISTING_OBJECTIVE: prioritization_agent()
+            if not JOIN_EXISTING_OBJECTIVE:
+                prioritized_tasks = prioritization_agent()
+                if prioritized_tasks:
+                    tasks_storage.replace(prioritized_tasks)
 
-        # Sleep a bit before checking the task list again
+            # Sleep a bit before checking the task list again
             time.sleep(5)
         else:
             print('Done.')
