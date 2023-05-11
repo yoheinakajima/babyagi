@@ -260,11 +260,31 @@ def try_pinecone():
         return PineconeResultsStorage(OPENAI_API_KEY, PINECONE_API_KEY, PINECONE_ENVIRONMENT, LLM_MODEL, LLAMA_MODEL_PATH, RESULTS_STORE_NAME, OBJECTIVE)
     return None
 
+def try_deeplake():
+    ACTIVELOOP_TOKEN = os.getenv("ACTIVELOOP_TOKEN", None)
+    ACTIVELOOP_DATASET = os.getenv("ACTIVELOOP_DATASET", "")
+
+    if (ACTIVELOOP_TOKEN or ACTIVELOOP_DATASET) and can_import("extensions.deeplake"):
+        print(
+            "\nUsing results storage: "
+            + "\033[93m\033[1m"
+            + "Deep Lake"
+            + "\033[0m\033[0m"
+        )
+
+        from extensions.deeplake import DeepLakeStorage
+
+        return DeepLakeStorage(
+            ACTIVELOOP_DATASET, ACTIVELOOP_TOKEN, LLM_MODEL, LLAMA_MODEL_PATH
+        )
+    else:
+        return False
+
 def use_chroma():
     print("\nUsing results storage: " + "\033[93m\033[1m" + "Chroma (Default)" + "\033[0m\033[0m")
     return DefaultResultsStorage()
 
-results_storage = try_weaviate() or try_pinecone() or use_chroma()
+results_storage = try_weaviate() or try_pinecone() or try_deeplake() or use_chroma()
 
 # Task storage supporting only a single instance of BabyAGI
 class SingleTaskListStorage:
