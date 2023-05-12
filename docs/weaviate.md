@@ -46,25 +46,3 @@ If you want to use BabyAGI with Docker, and use Weaviate as the object store, yo
 ```bash
 weaviate-client>=3.16.1
 ```
-- And in case you are running Weaviate through Docker-Compose, change its port so it is different from that used by babyAgi. For example, specify in `.env`:
-
-```bash
-WEAVIATE_URL=http://localhost:8099
-```
-
-And edit Weaviate's Docker-Compose file to change the ports as below
-
-```
-services:
-  weaviate:
-    command:
-    - --host
-    - 0.0.0.0
-    - --port
-    - '8099'  # Specify different port to avoid conflict
-    - --scheme
-    - http
-    image: semitechnologies/weaviate:1.19.2
-    ports:
-    - 8099:8099
-```
