@@ -17,7 +17,6 @@ except:
 class CooperativeTaskListStorageActor:
     def __init__(self):
         self.tasks = deque([])
-        self.task_id_counter = 0
 
     def append(self, task: Dict):
         self.tasks.append(task)
@@ -31,16 +30,12 @@ class CooperativeTaskListStorageActor:
     def is_empty(self):
         return False if self.tasks else True
 
-    def next_task_id(self):
-        self.task_id_counter += 1
-        return self.task_id_counter
-
     def get_task_names(self):
         return [t["task_name"] for t in self.tasks]
 
 class CooperativeTaskListStorage:
-    def __init__(self, name: str):
-        self.name = name
+    def __init__(self, name: str, type: str):
+        self.name = name + "_" + type
 
         try:
             self.actor = ray.get_actor(name=self.name, namespace="babyagi")
@@ -48,7 +43,7 @@ class CooperativeTaskListStorage:
             self.actor = CooperativeTaskListStorageActor.options(name=self.name, namespace="babyagi", lifetime="detached").remote()
 
         objectives = CooperativeObjectivesListStorage()
-        objectives.append(self.name)
+        objectives.append(name)
 
     def append(self, task: Dict):
         self.actor.append.remote(task)
@@ -61,9 +56,6 @@ class CooperativeTaskListStorage:
 
     def is_empty(self):
         return ray.get(self.actor.is_empty.remote())
-
-    def next_task_id(self):
-        return ray.get(self.actor.next_task_id.remote())
 
     def get_task_names(self):
         return ray.get(self.actor.get_task_names.remote())

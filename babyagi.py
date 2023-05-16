@@ -5,22 +5,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import os
+import hashlib
+import pickle
 import time
 import logging
 from collections import deque
 from typing import Dict, List
 import importlib
 import openai
-import chromadb
 import tiktoken as tiktoken
-from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
-from chromadb.api.types import Documents, EmbeddingFunction, Embeddings
 import re
-
-# default opt out of chromadb telemetry.
-from chromadb.config import Settings
-
-client = chromadb.Client(Settings(anonymized_telemetry=False))
 
 # Engine configuration
 
@@ -37,7 +31,7 @@ RESULTS_STORE_NAME = os.getenv("RESULTS_STORE_NAME", os.getenv("TABLE_NAME", "")
 assert RESULTS_STORE_NAME, "\033[91m\033[1m" + "RESULTS_STORE_NAME environment variable is missing from .env" + "\033[0m\033[0m"
 
 # Run configuration
-INSTANCE_NAME = os.getenv("INSTANCE_NAME", os.getenv("BABY_NAME", "BabyAGI"))
+INSTANCE_NAME = os.getenv("INSTANCE_NAME", os.getenv("BABY_NAME", "BabyCommandAGI"))
 COOPERATIVE_MODE = "none"
 JOIN_EXISTING_OBJECTIVE = False
 
@@ -98,10 +92,16 @@ print(f"Name  : {INSTANCE_NAME}")
 print(f"Mode  : {'alone' if COOPERATIVE_MODE in ['n', 'none'] else 'local' if COOPERATIVE_MODE in ['l', 'local'] else 'distributed' if COOPERATIVE_MODE in ['d', 'distributed'] else 'undefined'}")
 print(f"LLM   : {LLM_MODEL}")
 
-
 # Check if we know what we are doing
 assert OBJECTIVE, "\033[91m\033[1m" + "OBJECTIVE environment variable is missing from .env" + "\033[0m\033[0m"
 assert INITIAL_TASK, "\033[91m\033[1m" + "INITIAL_TASK environment variable is missing from .env" + "\033[0m\033[0m"
+
+#Set Variables
+hash_object = hashlib.sha1(OBJECTIVE.encode())
+hex_dig = hash_object.hexdigest()
+table_name = f"{hex_dig[:8]}-{RESULTS_STORE_NAME}"
+TASK_LIST_FILE = f"data/{table_name}_task_list.pkl"
+EXECUTED_TASK_LIST_FILE = f"data/{table_name}_executed_task_list.pkl"
 
 LLAMA_MODEL_PATH = os.getenv("LLAMA_MODEL_PATH", "models/llama-13B/ggml-model.bin")
 if LLM_MODEL.startswith("llama"):
@@ -123,16 +123,6 @@ if LLM_MODEL.startswith("llama"):
             use_mlock=False,
         )
 
-        print('\nInitialize model for embedding')
-        llm_embed = Llama(
-            model_path=LLAMA_MODEL_PATH,
-            n_ctx=CTX_MAX,
-            n_threads=LLAMA_THREADS_NUM,
-            n_batch=512,
-            embedding=True,
-            use_mlock=False,
-        )
-
         print(
             "\033[91m\033[1m"
             + "\n*****USING LLAMA.CPP. POTENTIALLY SLOW.*****"
@@ -144,7 +134,7 @@ if LLM_MODEL.startswith("llama"):
             + "\nLlama LLM requires package llama-cpp. Falling back to GPT-3.5-turbo."
             + "\033[0m\033[0m"
         )
-        LLM_MODEL = "gpt-3.5-turbo"
+        LLM_MODEL = "gpt-4"
 
 if LLM_MODEL.startswith("gpt-4"):
     print(
@@ -171,116 +161,10 @@ else:
 # Configure OpenAI
 openai.api_key = OPENAI_API_KEY
 
-
-# Llama embedding function
-class LlamaEmbeddingFunction(EmbeddingFunction):
-    def __init__(self):
-        return
-
-
-    def __call__(self, texts: Documents) -> Embeddings:
-        embeddings = []
-        for t in texts:
-            e = llm_embed.embed(t)
-            embeddings.append(e)
-        return embeddings
-
-
-# Results storage using local ChromaDB
-class DefaultResultsStorage:
-    def __init__(self):
-        logging.getLogger('chromadb').setLevel(logging.ERROR)
-        # Create Chroma collection
-        chroma_persist_dir = "chroma"
-        chroma_client = chromadb.Client(
-            settings=chromadb.config.Settings(
-                chroma_db_impl="duckdb+parquet",
-                persist_directory=chroma_persist_dir,
-            )
-        )
-
-        metric = "cosine"
-        if LLM_MODEL.startswith("llama"):
-            embedding_function = LlamaEmbeddingFunction()
-        else:
-            embedding_function = OpenAIEmbeddingFunction(api_key=OPENAI_API_KEY)
-        self.collection = chroma_client.get_or_create_collection(
-            name=RESULTS_STORE_NAME,
-            metadata={"hnsw:space": metric},
-            embedding_function=embedding_function,
-        )
-
-    def add(self, task: Dict, result: str, result_id: str):
-
-        # Break the function if LLM_MODEL starts with "human" (case-insensitive)
-        if LLM_MODEL.startswith("human"):
-            return
-        # Continue with the rest of the function
-
-        embeddings = llm_embed.embed(result) if LLM_MODEL.startswith("llama") else None
-        if (
-                len(self.collection.get(ids=[result_id], include=[])["ids"]) > 0
-        ):  # Check if the result already exists
-            self.collection.update(
-                ids=result_id,
-                embeddings=embeddings,
-                documents=result,
-                metadatas={"task": task["task_name"], "result": result},
-            )
-        else:
-            self.collection.add(
-                ids=result_id,
-                embeddings=embeddings,
-                documents=result,
-                metadatas={"task": task["task_name"], "result": result},
-            )
-
-    def query(self, query: str, top_results_num: int) -> List[dict]:
-        count: int = self.collection.count()
-        if count == 0:
-            return []
-        results = self.collection.query(
-            query_texts=query,
-            n_results=min(top_results_num, count),
-            include=["metadatas"]
-        )
-        return [item["task"] for item in results["metadatas"][0]]
-
-
-# Initialize results storage
-def try_weaviate():
-    WEAVIATE_URL = os.getenv("WEAVIATE_URL", "")
-    WEAVIATE_USE_EMBEDDED = os.getenv("WEAVIATE_USE_EMBEDDED", "False").lower() == "true"
-    if (WEAVIATE_URL or WEAVIATE_USE_EMBEDDED) and can_import("extensions.weaviate_storage"):
-        WEAVIATE_API_KEY = os.getenv("WEAVIATE_API_KEY", "")
-        from extensions.weaviate_storage import WeaviateResultsStorage
-        print("\nUsing results storage: " + "\033[93m\033[1m" + "Weaviate" + "\033[0m\033[0m")
-        return WeaviateResultsStorage(OPENAI_API_KEY, WEAVIATE_URL, WEAVIATE_API_KEY, WEAVIATE_USE_EMBEDDED, LLM_MODEL, LLAMA_MODEL_PATH, RESULTS_STORE_NAME, OBJECTIVE)
-    return None
-
-def try_pinecone():
-    PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
-    if PINECONE_API_KEY and can_import("extensions.pinecone_storage"):
-        PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "")
-        assert (
-            PINECONE_ENVIRONMENT
-        ), "\033[91m\033[1m" + "PINECONE_ENVIRONMENT environment variable is missing from .env" + "\033[0m\033[0m"
-        from extensions.pinecone_storage import PineconeResultsStorage
-        print("\nUsing results storage: " + "\033[93m\033[1m" + "Pinecone" + "\033[0m\033[0m")
-        return PineconeResultsStorage(OPENAI_API_KEY, PINECONE_API_KEY, PINECONE_ENVIRONMENT, LLM_MODEL, LLAMA_MODEL_PATH, RESULTS_STORE_NAME, OBJECTIVE)
-    return None
-
-def use_chroma():
-    print("\nUsing results storage: " + "\033[93m\033[1m" + "Chroma (Default)" + "\033[0m\033[0m")
-    return DefaultResultsStorage()
-
-results_storage = try_weaviate() or try_pinecone() or use_chroma()
-
 # Task storage supporting only a single instance of BabyAGI
 class SingleTaskListStorage:
-    def __init__(self):
-        self.tasks = deque([])
-        self.task_id_counter = 0
+    def __init__(self, task_list: deque):
+        self.tasks =  task_list
 
     def append(self, task: Dict):
         self.tasks.append(task)
@@ -294,16 +178,13 @@ class SingleTaskListStorage:
     def is_empty(self):
         return False if self.tasks else True
 
-    def next_task_id(self):
-        self.task_id_counter += 1
-        return self.task_id_counter
-
     def get_task_names(self):
         return [t["task_name"] for t in self.tasks]
 
 
 # Initialize tasks storage
 tasks_storage = SingleTaskListStorage()
+executed_tasks_storage = SingleTaskListStorage()
 if COOPERATIVE_MODE in ['l', 'local']:
     if can_import("extensions.ray_tasks"):
         import sys
@@ -312,8 +193,10 @@ if COOPERATIVE_MODE in ['l', 'local']:
         sys.path.append(str(Path(__file__).resolve().parent))
         from extensions.ray_tasks import CooperativeTaskListStorage
 
-        tasks_storage = CooperativeTaskListStorage(OBJECTIVE)
+        tasks_storage = CooperativeTaskListStorage(OBJECTIVE, "tasks_storage")
         print("\nReplacing tasks storage: " + "\033[93m\033[1m" + "Ray" + "\033[0m\033[0m")
+        executed_tasks_storage = CooperativeTaskListStorage(OBJECTIVE, "executed_tasks_storage")
+        print("\nReplacing executed tasks storage: " + "\033[93m\033[1m" + "Ray" + "\033[0m\033[0m")
 elif COOPERATIVE_MODE in ['d', 'distributed']:
     pass
 
@@ -335,7 +218,7 @@ def openai_call(
     prompt: str,
     model: str = LLM_MODEL,
     temperature: float = OPENAI_TEMPERATURE,
-    max_tokens: int = 100,
+    max_tokens: int = 5000,
 ):
     while True:
         try:
@@ -367,10 +250,10 @@ def openai_call(
                 )
                 return response.choices[0].text.strip()
             else:
-                # Use 4000 instead of the real limit (4097) to give a bit of wiggle room for the encoding of roles.
+                # Use 8000 instead of the real limit (8194) to give a bit of wiggle room for the encoding of roles.
                 # TODO: different limits for different models.
 
-                trimmed_prompt = limit_tokens_from_string(prompt, model, 4000 - max_tokens)
+                trimmed_prompt = limit_tokens_from_string(prompt, model, 8000 - max_tokens)
 
                 # Use chat completion API
                 messages = [{"role": "system", "content": trimmed_prompt}]
@@ -420,25 +303,51 @@ def openai_call(
 def task_creation_agent(
         objective: str, result: Dict, task_description: str, task_list: List[str]
 ):
-    prompt = f"""
-You are to use the result from an execution agent to create new tasks with the following objective: {objective}.
-The last completed task has the result: \n{result["data"]}
-This result was based on this task description: {task_description}.\n"""
+    prompt = f"""You are an AI that manages tasks to achieve the desired "{objective}" based on the results of the last plan you created. Remove the tasks you've executed and create new tasks if necessary. Please make the tasks you generate executable in a terminal with a single command, if possible. If that's difficult, generate planned tasks with reduced granularity.
 
-    if task_list:
-        prompt += f"These are incomplete tasks: {', '.join(task_list)}\n"
-    prompt += "Based on the result, return a list of tasks to be completed in order to meet the objective. "
-    if task_list:
-        prompt += "These new tasks must not overlap with incomplete tasks. "
+Afterwards, organize the tasks, remove any unnecessary tasks for the objective, and output them as a JSON array following the example below. Please never output anything other than a JSON array.
 
+# Example of JSON array output"""
     prompt += """
-Return one task per line in your response. The result must be a numbered list in the format:
+[
+    {
+        "type": "command",
+        "content": "echo 'import os\\n# HOW TO USE*\\n# 1. Fork this into a private Repl\\n# 2. Add your OpenAI API Key and Pinecone API Key\\n# 4. Update the OBJECTIVE variable\\n# 5. Press \\"Run\\" at the top.\\n# NOTE: the first time you run, it will initiate the table first - which may take a few minutes, you'\\\\''ll be waiting at the initial OBJECTIVE phase. If it fails, try again.)\\n#\\n# WARNING: THIS CODE WILL KEEP RUNNING UNTIL YOU STOP IT. BE MINDFUL OF OPENAI API BILLS. DELETE PINECONE INDEX AFTER USE.\\n\\nimport subprocess\\nimport openai\\n#import pinecone\\nimport time\\nimport json\\nfrom collections import deque\\nfrom typing import Dict, List\\n\\n#Set API Keys\\nOPENAI_API_KEY = os.environ['\\\\''OPEN_API_KEY'\\\\'']\\n#PINECONE_API_KEY = os.environ['\\\\''PINECONE_API_KEY'\\\\'']\\n#PINECONE_ENVIRONMENT = os.environ['\\\\''PINECONE_ENVIRONMENT'\\\\''] #Pinecone Environment (eg. \\"us-east1-gcp\\")\\n\\n#Set Variables\\nYOUR_TABLE_NAME = \\"test-table\\"\\nOBJECTIVE = \\"Implement a game of Minesweeper in python and run it in python.\\"\\nYOUR_FIRST_TASK = \\"Develop a task list.\\"\\n\\nMODEL = \\"gpt-4\\"\\nMAX_TOKEN = 7000\\n\\n#Print OBJECTIVE\\nprint(\\"\\\\033[96m\\\\033[1m\\" + \\"OBJECTIVE\\\\n\\\\n\\" + \\"\\\\033[0m\\\\033[0m\\")\\nprint(OBJECTIVE + \\"\\\\n\\\\n\\")\\n\\n# Configure OpenAI and Pinecone\\nopenai.api_key = OPENAI_API_KEY\\n#pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_ENVIRONMENT)\\n\\n# Create Pinecone index\\n#table_name = YOUR_TABLE_NAME' > ./output/sample.py"
+    },
+    {
+        "type": "plan",
+        "content": "Develop a task list."
+    },
+    {
+        "type": "command",
+        "content": "cd /dir1/dir2/"
+    },
+    {
+        "type": "command",
+        "content": "mkdir ./dir3/dir4"
+    }
+]"""
+    prompt += f"""
 
-#. First task
-#. Second task
+The following is the execution result of the last planned task.
 
-The number of each entry must be followed by a period. If your list is empty, write "There are no tasks to add at this time."
-Unless your list is empty, do not include any headers before your numbered list or follow your numbered list with any other output."""
+# Last executed planned task
+{task_description}
+
+# Result of the last executed planned task.
+{result}
+
+# List of most recently executed command results
+{json.dumps(list(executed_task_list))}
+
+# Uncompleted tasks
+{json.dumps(list(task_list))}"""
+
+    prompt = prompt[:MAX_STRING_LENGTH]
+    prompt += """
+
+# Absolute Rule
+Please never output anything other than a JSON array."""
 
     print(f'\n*****TASK CREATION AGENT PROMPT****\n{prompt}\n')
     response = openai_call(prompt, max_tokens=2000)
