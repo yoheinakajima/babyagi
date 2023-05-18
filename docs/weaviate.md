@@ -5,7 +5,7 @@
 1. Install weaviate client:
 
 ```bash
-pip -r extensions/requirements.txt
+pip install -r extensions/requirements.txt
 ```
 
 2. Configure the following environment variables:
