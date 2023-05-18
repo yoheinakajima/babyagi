@@ -33,7 +33,8 @@ assert RESULTS_STORE_NAME, "\033[91m\033[1m" + "RESULTS_STORE_NAME environment v
 # Run configuration
 INSTANCE_NAME = os.getenv("INSTANCE_NAME", os.getenv("BABY_NAME", "BabyCommandAGI"))
 COOPERATIVE_MODE = "none"
-JOIN_EXISTING_OBJECTIVE = False
+MAX_TOKEN = 5000
+MAX_STRING_LENGTH = 6000
 
 # Goal configuration
 OBJECTIVE = os.getenv("OBJECTIVE", "")
@@ -64,7 +65,7 @@ if ENABLE_COMMAND_LINE_ARGS:
     if can_import("extensions.argparseext"):
         from extensions.argparseext import parse_arguments
 
-        OBJECTIVE, INITIAL_TASK, LLM_MODEL, DOTENV_EXTENSIONS, INSTANCE_NAME, COOPERATIVE_MODE, JOIN_EXISTING_OBJECTIVE = parse_arguments()
+        OBJECTIVE, INITIAL_TASK, LLM_MODEL, DOTENV_EXTENSIONS, INSTANCE_NAME, COOPERATIVE_MODE = parse_arguments()
 
 # Human mode extension
 # Gives human input to babyagi
@@ -74,7 +75,7 @@ if LLM_MODEL.startswith("human"):
 
 # Load additional environment variables for enabled extensions
 # TODO: This might override the following command line arguments as well:
-#    OBJECTIVE, INITIAL_TASK, LLM_MODEL, INSTANCE_NAME, COOPERATIVE_MODE, JOIN_EXISTING_OBJECTIVE
+#    OBJECTIVE, INITIAL_TASK, LLM_MODEL, INSTANCE_NAME, COOPERATIVE_MODE
 if DOTENV_EXTENSIONS:
     if can_import("extensions.dotenvext"):
         from extensions.dotenvext import load_dotenv_extensions
@@ -100,8 +101,6 @@ assert INITIAL_TASK, "\033[91m\033[1m" + "INITIAL_TASK environment variable is m
 hash_object = hashlib.sha1(OBJECTIVE.encode())
 hex_dig = hash_object.hexdigest()
 table_name = f"{hex_dig[:8]}-{RESULTS_STORE_NAME}"
-TASK_LIST_FILE = f"data/{table_name}_task_list.pkl"
-EXECUTED_TASK_LIST_FILE = f"data/{table_name}_executed_task_list.pkl"
 
 LLAMA_MODEL_PATH = os.getenv("LLAMA_MODEL_PATH", "models/llama-13B/ggml-model.bin")
 if LLM_MODEL.startswith("llama"):
@@ -153,10 +152,10 @@ if LLM_MODEL.startswith("human"):
 print("\033[94m\033[1m" + "\n*****OBJECTIVE*****\n" + "\033[0m\033[0m")
 print(f"{OBJECTIVE}")
 
-if not JOIN_EXISTING_OBJECTIVE:
+if len(task_list) == 0:
     print("\033[93m\033[1m" + "\nInitial task:" + "\033[0m\033[0m" + f" {INITIAL_TASK}")
 else:
-    print("\033[93m\033[1m" + f"\nJoining to help the objective" + "\033[0m\033[0m")
+    print("\033[93m\033[1m" + f"\nContinue task" + "\033[0m\033[0m")
 
 # Configure OpenAI
 openai.api_key = OPENAI_API_KEY
@@ -164,13 +163,22 @@ openai.api_key = OPENAI_API_KEY
 # Task storage supporting only a single instance of BabyAGI
 class SingleTaskListStorage:
     def __init__(self, task_list: deque):
-        self.tasks =  task_list
+        self.tasks = task_list
 
     def append(self, task: Dict):
         self.tasks.append(task)
 
+    def appendleft(self, task: Dict):
+        self.tasks.appendleft(task)
+
     def replace(self, tasks: List[Dict]):
         self.tasks = deque(tasks)
+
+    def reference(self, index: int):
+        return self.tasks[index]
+
+    def pop(self):
+        return self.tasks.pop()
 
     def popleft(self):
         return self.tasks.popleft()
@@ -178,8 +186,8 @@ class SingleTaskListStorage:
     def is_empty(self):
         return False if self.tasks else True
 
-    def get_task_names(self):
-        return [t["task_name"] for t in self.tasks]
+    def tasks(self):
+        return self.tasks
 
 
 # Initialize tasks storage
@@ -218,7 +226,7 @@ def openai_call(
     prompt: str,
     model: str = LLM_MODEL,
     temperature: float = OPENAI_TEMPERATURE,
-    max_tokens: int = 5000,
+    max_tokens: int = MAX_TOKEN,
 ):
     while True:
         try:
@@ -299,9 +307,8 @@ def openai_call(
         else:
             break
 
-
 def task_creation_agent(
-        objective: str, result: Dict, task_description: str, task_list: List[str]
+        objective: str, result: str, task_description: str, task_list: List[Dict], executed_task_list: List[Dict]
 ):
     prompt = f"""You are an AI that manages tasks to achieve the desired "{objective}" based on the results of the last plan you created. Remove the tasks you've executed and create new tasks if necessary. Please make the tasks you generate executable in a terminal with a single command, if possible. If that's difficult, generate planned tasks with reduced granularity.
 
@@ -350,170 +357,278 @@ The following is the execution result of the last planned task.
 Please never output anything other than a JSON array."""
 
     print(f'\n*****TASK CREATION AGENT PROMPT****\n{prompt}\n')
-    response = openai_call(prompt, max_tokens=2000)
-    print(f'\n****TASK CREATION AGENT RESPONSE****\n{response}\n')
-    new_tasks = response.split('\n')
-    new_tasks_list = []
-    for task_string in new_tasks:
-        task_parts = task_string.strip().split(".", 1)
-        if len(task_parts) == 2:
-            task_id = ''.join(s for s in task_parts[0] if s.isnumeric())
-            task_name = re.sub(r'[^\w\s_]+', '', task_parts[1]).strip()
-            if task_name.strip() and task_id.isnumeric():
-                new_tasks_list.append(task_name)
-            # print('New task created: ' + task_name)
+    response = openai_call(prompt)
+    jsonValue = response.choices[0].message.content.strip()
+    print(f'\n****TASK CREATION AGENT RESPONSE****\n{jsonValue}\n')
+    try:
+        return json.loads(jsonValue)
+    except Exception as error:
+        print("json parse error:")
+        print(error)
+        print("\nRetry\n\n")
+        return task_creation_agent(objective, result, task_description, task_list, executed_task_list)
 
-    out = [{"task_name": task_name} for task_name in new_tasks_list]
-    return out
+def check_completion_agent(
+        objective: str, result: str, task_description: str, task_list: List[str], executed_task_list: List[Dict]
+):
+    prompt = f"""You are an AI that checks whether the "{objective}" has been achieved based on the results, and if not, manages the remaining tasks. Please generate tasks that can be executed in a terminal with one command as much as possible when necessary. If that is difficult, generate planned tasks with reduced granularity.
 
+If the objective is achieved based on the results, output only the string "Complete" instead of an array. In that case, never output anything other than "Complete".
 
-def prioritization_agent():
-    task_names = tasks_storage.get_task_names()
-    bullet_string = '\n'
+If the objective is not achieved based on the results, remove the executed tasks, and create new tasks if needed. Then, organize the tasks, delete unnecessary tasks for the objective, and output only a JSON array referring to the example below. In that case, never output anything other than the JSON array.
 
-    prompt = f"""
-You are tasked with prioritizing the following tasks: {bullet_string + bullet_string.join(task_names)}
-Consider the ultimate objective of your team: {OBJECTIVE}.
-Tasks should be sorted from highest to lowest priority, where higher-priority tasks are those that act as pre-requisites or are more essential for meeting the objective.
-Do not remove any tasks. Return the ranked tasks as a numbered list in the format:
+# Example of JSON array output"""
+    prompt += """
+[
+    {
+        "type": "command",
+        "content": "echo 'import os\\n# HOW TO USE*\\n# 1. Fork this into a private Repl\\n# 2. Add your OpenAI API Key and Pinecone API Key\\n# 4. Update the OBJECTIVE variable\\n# 5. Press \\"Run\\" at the top.\\n# NOTE: the first time you run, it will initiate the table first - which may take a few minutes, you'\\\\''ll be waiting at the initial OBJECTIVE phase. If it fails, try again.)\\n#\\n# WARNING: THIS CODE WILL KEEP RUNNING UNTIL YOU STOP IT. BE MINDFUL OF OPENAI API BILLS. DELETE PINECONE INDEX AFTER USE.\\n\\nimport subprocess\\nimport openai\\n#import pinecone\\nimport time\\nimport json\\nfrom collections import deque\\nfrom typing import Dict, List\\n\\n#Set API Keys\\nOPENAI_API_KEY = os.environ['\\\\''OPEN_API_KEY'\\\\'']\\n#PINECONE_API_KEY = os.environ['\\\\''PINECONE_API_KEY'\\\\'']\\n#PINECONE_ENVIRONMENT = os.environ['\\\\''PINECONE_ENVIRONMENT'\\\\''] #Pinecone Environment (eg. \\"us-east1-gcp\\")\\n\\n#Set Variables\\nYOUR_TABLE_NAME = \\"test-table\\"\\nOBJECTIVE = \\"Implement a game of Minesweeper in python and run it in python.\\"\\nYOUR_FIRST_TASK = \\"Develop a task list.\\"\\n\\nMODEL = \\"gpt-4\\"\\nMAX_TOKEN = 7000\\n\\n#Print OBJECTIVE\\nprint(\\"\\\\033[96m\\\\033[1m\\" + \\"OBJECTIVE\\\\n\\\\n\\" + \\"\\\\033[0m\\\\033[0m\\")\\nprint(OBJECTIVE + \\"\\\\n\\\\n\\")\\n\\n# Configure OpenAI and Pinecone\\nopenai.api_key = OPENAI_API_KEY\\n#pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_ENVIRONMENT)\\n\\n# Create Pinecone index\\n#table_name = YOUR_TABLE_NAME' > ./output/sample.py"
+    },
+    {
+        "type": "plan",
+        "content": "Develop a task list."
+    },
+    {
+        "type": "command",
+        "content": "cd /dir1/dir2/"
+    },
+    {
+        "type": "command",
+        "content": "mkdir ./dir3/dir4"
+    }
+]"""
+    prompt += f"""          
 
-#. First task
-#. Second task
+Below is the result of the last execution.
 
-The entries must be consecutively numbered, starting with 1. The number of each entry must be followed by a period.
-Do not include any headers before your ranked list or follow your list with any other output."""
+# Command executed most recently
+{task_description}
 
-    print(f'\n****TASK PRIORITIZATION AGENT PROMPT****\n{prompt}\n')
-    response = openai_call(prompt, max_tokens=2000)
-    print(f'\n****TASK PRIORITIZATION AGENT RESPONSE****\n{response}\n')
-    if not response:
-        print('Received empty response from priotritization agent. Keeping task list unchanged.')
-        return
-    new_tasks = response.split("\n") if "\n" in response else [response]
-    new_tasks_list = []
-    for task_string in new_tasks:
-        task_parts = task_string.strip().split(".", 1)
-        if len(task_parts) == 2:
-            task_id = ''.join(s for s in task_parts[0] if s.isnumeric())
-            task_name = re.sub(r'[^\w\s_]+', '', task_parts[1]).strip()
-            if task_name.strip():
-                new_tasks_list.append({"task_id": task_id, "task_name": task_name})
+# Result of last command executed
+{result}
 
-    return new_tasks_list
+# List of most recently executed command results
+{json.dumps(list(executed_task_list))}
 
+# Uncompleted tasks
+{json.dumps(list(task_list))}"""
+
+    prompt = prompt[:MAX_STRING_LENGTH]
+    prompt += """
+
+# Absolute Rule
+If the output is anything other than "Complete", please never output anything other than a JSON array."""
+
+    print(f'\n*****CHECK COMPLETION AGENT PROMPT****\n{prompt}\n')
+    response = openai_call(prompt)
+    jsonValue = response.choices[0].message.content.strip()
+    print(f'\n****CHECK COMPLETION AGENT RESPONSE****\n{jsonValue}\n')
+    if jsonValue == "Complete":
+        return jsonValue
+    try:
+        return json.loads(jsonValue)
+    except Exception as error:
+        print("json parse error:")
+        print(error)
+        print("\nRetry\n\n")
+        return check_completion_agent(objective, result, task_description, task_list, executed_task_list)
+
+def plan_agent(objective: str, task: str,
+               executed_task_list: List[Dict]) -> str:
+  #context = context_agent(index=YOUR_TABLE_NAME, query=objective, n=5)
+    prompt = f"""You are a Lead Engineer.
+You will perform one task based on the following objectives
+
+# OBJECTIVE
+{objective}
+
+# Task to be performed.
+{task}
+
+# List of most recently executed command results
+{json.dumps(list(executed_task_list))}"""
+
+    prompt = prompt[:MAX_STRING_LENGTH]
+    print(f'\n*****PLAN AGENT PROMPT****\n{prompt}\n')
+    response = openai_call(prompt)
+    result = response.choices[0].message.content.strip()
+    print(f'\n****PLAN AGENT RESPONSE****\n{result}\n')
+    return result
 
 # Execute a task based on the objective and five previous tasks
-def execution_agent(objective: str, task: str) -> str:
-    """
-    Executes a task based on the given objective and previous context.
+def execution_agent(objective: str, command: str, task_list: List[Dict],
+                      executed_task_list: List[Dict]) -> str:
 
-    Args:
-        objective (str): The objective or goal for the AI to perform the task.
-        task (str): The task to be executed by the AI.
+    pty_master, slave = pty.openpty()
+    process = subprocess.Popen(command,
+                             stdin=slave,
+                             stdout=slave,
+                             stderr=slave,
+                             shell=True,
+                             text=True,
+                             bufsize=1)
 
-    Returns:
-        str: The response generated by the AI for the given task.
+    os.close(slave)
 
-    """
+    std_blocks = []
 
-    context = context_agent(query=objective, top_results_num=5)
-    # print("\n****RELEVANT CONTEXT****\n")
-    # print(context)
-    # print('')
-    prompt = f'Perform one task based on the following objective: {objective}.\n'
-    if context:
-        prompt += 'Take into account these previously completed tasks:' + '\n'.join(context)
-    prompt += f'\nYour task: {task}\nResponse:'
-    return openai_call(prompt, max_tokens=2000)
+    while process.poll() is None:
+        # Check for output with a timeout of 5 seconds
+        reads, _, _ = select.select([pty_master], [], [], 10)
+        if reads:
+            for read in reads:
+                try:
+                    output_block = os.read(read, 1024).decode()
+                except OSError:
+                    # Break the loop if OSError occurs
+                    break
 
+                if output_block:
+                    print(output_block, end="")
+                    std_blocks.append(output_block)
+        else:
+            # Concatenate the output and split it by lines
+            stdout_lines = "".join(std_blocks).splitlines()
 
-# Get the top n completed tasks for the objective
-def context_agent(query: str, top_results_num: int):
-    """
-    Retrieves context for a given query from an index of tasks.
+            # No output received within 5 seconds, call the check_wating_for_response function with the last 3 lines or the entire content
+            lastlines = stdout_lines[-3:] if len(stdout_lines) >= 3 else stdout_lines
+            lastlines = "\n".join(lastlines)
+            input = user_input_for_waiting(objective, lastlines, command,
+                                     "".join(std_blocks), task_list,
+                                     executed_task_list)
+            if input == 'BabyCommandAGI: Complete':
+                return input
+            elif input == 'BabyCommandAGI: Interruption':
+                break
+            elif input == 'BabyCommandAGI: Continue':
+                pass
+            else:
+                input += '\n'
+                os.write(pty_master, input.encode())
 
-    Args:
-        query (str): The query or objective for retrieving context.
-        top_results_num (int): The number of top results to retrieve.
+    os.close(pty_master)
+    out = "".join(std_blocks)
 
-    Returns:
-        list: A list of tasks as context for the given query, sorted by relevance.
+    result = f"The Return Code for the command is {process.returncode}:\n{out}"
 
-    """
-    results = results_storage.query(query=query, top_results_num=top_results_num)
-    # print("****RESULTS****")
-    # print(results)
-    return results
+    print("\n" + "\033[33m\033[1m" + "[[Output]]" + "\033[0m\033[0m" + "\n\n" +
+        result + "\n\n")
 
+    return result
+
+def user_input_for_waiting(objective: str, lastlines: str, command: str,
+                           all_output_for_command: str, task_list: List[Dict],
+                           executed_task_list: List[Dict]) -> bool:
+    prompt = f"""You are an expert in shell commands to achieve the "{objective}".
+Based on the information below, if the objective has been achieved, please output only 'BabyCommandAGI: Complete'.
+Based on the information below, if the objective cannot be achieved and it seems that the objective can be achieved by inputting while waiting for the user's input, please output only the input content for the waiting input content to achieve the objective.
+Based on the information below, if the objective cannot be achieved and it seems better to interrupt the execution of the command to achieve the objective, please output only 'BabyCommandAGI: Interruption'.
+Otherwise, please output only 'BabyCommandAGI: Continue'.
+
+# All output content so far for the command being executed
+{all_output_for_command}
+
+# List of most recently executed command results
+{json.dumps(list(executed_task_list))}
+
+# Uncompleted tasks
+{json.dumps(list(task_list))}"""
+
+    prompt = prompt[:MAX_STRING_LENGTH]
+    prompt += f"""
+
+# Command being executed
+{command}
+
+# The last 3 lines of the terminal
+{lastlines}
+
+# Absolute rule
+Please output only the following relevant content. Never output anything else.
+
+If the objective has been achieved: 'BabyCommandAGI: Complete'
+If the objective cannot be achieved and it seems that the objective can be achieved by inputting while waiting for the user's input: Input content for the waiting input content to achieve the objective
+If the objective cannot be achieved and it seems better to interrupt the execution of the command to achieve the objective: 'BabyCommandAGI: Interruption'
+In cases other than the above: 'BabyCommandAGI: Continue'"""
+
+    print("\n\n")
+    print("\033[34m\033[1m" + "[[Prompt]]" + "\033[0m\033[0m" + "\n\n" + prompt +
+        "\n\n")
+    response = openai_call(prompt)
+    result = response.choices[0].message.content.strip()
+    print("\033[31m\033[1m" + "[[Response]]" + "\033[0m\033[0m" + "\n\n" +
+        result + "\n\n")
+    return result
 
 # Add the initial task if starting new objective
-if not JOIN_EXISTING_OBJECTIVE:
-    initial_task = {
-        "task_id": tasks_storage.next_task_id(),
-        "task_name": INITIAL_TASK
-    }
+if len(task_list) == 0:
+    initial_task = {"type": "plan", "content": INITIAL_TASK}
     tasks_storage.append(initial_task)
-
 
 def main():
     loop = True
     while loop:
         # As long as there are tasks in the storage...
-        if not tasks_storage.is_empty():
-            # Print the task list
-            print("\033[95m\033[1m" + "\n*****TASK LIST*****\n" + "\033[0m\033[0m")
-            for t in tasks_storage.get_task_names():
-                print(" • " + str(t))
-
-            # Step 1: Pull the first incomplete task
+        if tasks_storage:
+            # Step 1: Pull the first task
             task = tasks_storage.popleft()
-            print("\033[92m\033[1m" + "\n*****NEXT TASK*****\n" + "\033[0m\033[0m")
-            print(str(task["task_name"]))
+            print("\033[92m\033[1m" + "*****NEXT TASK*****\n\n" + "\033[0m\033[0m")
+            print(str(task['type']) + ": " + task['content'] + "\n\n")
 
-            # Send to execution function to complete the task based on the context
-            result = execution_agent(OBJECTIVE, str(task["task_name"]))
-            print("\033[93m\033[1m" + "\n*****TASK RESULT*****\n" + "\033[0m\033[0m")
-            print(result)
+            # Check executable command
+            if task['type'] == "command":
+                print("\033[33m\033[1m" + "*****EXCUTE COMMAND TASK*****\n\n" +
+                "\033[0m\033[0m")
 
-            # Step 2: Enrich result and store in the results storage
-            # This is where you should enrich the result if needed
-            enriched_result = {
-                "data": result
-            }
-            # extract the actual result from the dictionary
-            # since we don't do enrichment currently
-            # vector = enriched_result["data"]
+                while True:
 
-            result_id = f"result_{task['task_id']}"
+                    result = execution_command(OBJECTIVE, task['content'], tasks_storage.tasks(),
+                                   executed_tasks_storage.tasks())
 
-            results_storage.add(task, result, result_id)
+                    # Step 2: Enrich result and store
+                    enriched_result = {"command": task['content'], "result": result}
+                    executed_tasks_storage.appendleft(enriched_result)
 
-            # Step 3: Create new tasks and re-prioritize task list
-            # only the main instance in cooperative mode does that
-            new_tasks = task_creation_agent(
-                OBJECTIVE,
-                enriched_result,
-                task["task_name"],
-                tasks_storage.get_task_names(),
-            )
+                    # Keep only the most recent 30 tasks
+                    if len(executed_tasks_storage.tasks()) > 30:
+                        executed_tasks_storage.pop()
 
-            print('Adding new tasks to task_storage')
-            for new_task in new_tasks:
-                new_task.update({"task_id": tasks_storage.next_task_id()})
-                print(str(new_task))
-                tasks_storage.append(new_task)
+                    if result != "The Return Code for the command is 0:\n":
+                        break
 
-            if not JOIN_EXISTING_OBJECTIVE:
-                prioritized_tasks = prioritization_agent()
-                if prioritized_tasks:
-                    tasks_storage.replace(prioritized_tasks)
+                    if tasks_storage.is_empty():
+                        break
+                    else:
+                        next_task = tasks_storage.reference(0)
+                        if next_task['type'] == "command":
+                            task = tasks_storage.popleft()
+                        else:
+                            break
 
-            # Sleep a bit before checking the task list again
-            time.sleep(5)
-        else:
-            print('Done.')
-            loop = False
+                print("\033[32m\033[1m" + "*****TASK RESULT*****\n\n" + "\033[0m\033[0m")
 
+                # Step 3: Create new tasks and reprioritize task list
+                new_tasks_list = check_completion_agent(OBJECTIVE, result,
+                                             task['content'], tasks_storage.tasks(),
+                                             executed_tasks_storage.tasks())
+                if new_tasks_list == "Complete":
+                    print("\033[92m\033[1m" + "*****TASK COMPLETE*****\n\n" +
+                        "\033[0m\033[0m")
+                    break
+
+            else:
+                print("\033[33m\033[1m" + "*****PLAN TASK*****\n\n" + "\033[0m\033[0m")
+                result = plan_agent(OBJECTIVE, task['content'], executed_tasks_storage.tasks())
+
+                # Send to execution function to complete the task based on the context
+                print("\033[32m\033[1m" + "*****TASK RESULT*****\n\n" + "\033[0m\033[0m")
+
+                # Step 3: Create new tasks and reprioritize task list
+                new_tasks_list = task_creation_agent(OBJECTIVE, result, task['content'],
+                                          tasks_storage.tasks(), executed_tasks_storage.tasks())
+
+        tasks_storage.replace(new_tasks_list)
+        time.sleep(1)
 
 if __name__ == "__main__":
     main()
