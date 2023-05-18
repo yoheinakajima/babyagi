@@ -6,7 +6,6 @@ from typing import Dict, List
 
 from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
-from extensions.ray_objectives import CooperativeObjectivesListStorage
 
 try:
     ray.init(address="auto", namespace="babyagi", logging_level=logging.FATAL, ignore_reinit_error=True)
@@ -15,8 +14,8 @@ except:
 
 @ray.remote
 class CooperativeTaskListStorageActor:
-    def __init__(self):
-        self.tasks = deque([])
+    def __init__(self, task_list: deque):
+        self.tasks = task_list
 
     def append(self, task: Dict):
         self.tasks.append(task)
@@ -39,20 +38,17 @@ class CooperativeTaskListStorageActor:
     def is_empty(self):
         return False if self.tasks else True
 
-    def tasks(self):
+    def get_tasks(self):
         return self.tasks
 
 class CooperativeTaskListStorage:
-    def __init__(self, name: str, type: str):
-        self.name = name + "_" + type
+    def __init__(self, name: str, task_list: deque):
+        self.name = name
 
         try:
             self.actor = ray.get_actor(name=self.name, namespace="babyagi")
         except ValueError:
-            self.actor = CooperativeTaskListStorageActor.options(name=self.name, namespace="babyagi", lifetime="detached").remote()
-
-        objectives = CooperativeObjectivesListStorage()
-        objectives.append(name)
+            self.actor = CooperativeTaskListStorageActor(task_list).options(name=self.name, namespace="babyagi", lifetime="detached").remote()
 
     def append(self, task: Dict):
         self.actor.append.remote(task)
@@ -75,5 +71,5 @@ class CooperativeTaskListStorage:
     def is_empty(self):
         return ray.get(self.actor.is_empty.remote())
 
-    def tasks(self):
-        return ray.get(self.actor.tasks.remote())
+    def get_tasks(self):
+        return ray.get(self.actor.get_tasks.remote())
