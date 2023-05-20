@@ -226,7 +226,7 @@ def execute_task(task, task_list, OBJECTIVE):
     elif task["tool"] == "web-search":
         task_output = web_search_tool(str(task['task']))
     elif task["tool"] == "web-scrape":
-        task_output = web_scrape_tool(str(task['task']))
+        task_output = web_scrape_tool(str(task['task']), "Scrape this link: "+str(task['task']))
 
     # Find task index in the task_list
     task_index = next((i for i, t in enumerate(task_list) if t["id"] == task["id"]), None)
@@ -254,7 +254,7 @@ def task_creation_agent(objective: str) -> List[Dict]:
     prompt = (
         f"You are a task creation AI tasked with creating a list of tasks as a JSON array, considering the ultimate objective of your team: {OBJECTIVE}. "
         f"Create new tasks based on the objective. Limit tasks types to those that can be completed with the available tools listed below. Task description should be detailed."
-        f"Current tool option is [text-completion] {websearch_var} and only." # web-search is added automatically if SERPAPI exists
+        f"Current tool option is [text-completion] [web-scrape] {websearch_var} and only." # web-search is added automatically if SERPAPI exists
         f"For tasks using [web-search], provide the search query, and only the search query to use (eg. not 'research waterproof shoes, but 'waterproof shoes')"
         f"dependent_task_ids should always be an empty array, or an array of numbers representing the task ID it should pull results from."
         f"Make sure all task IDs are in chronological order.\n"
