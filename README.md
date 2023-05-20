@@ -56,19 +56,20 @@ Finally, the script uses Chroma/Weaviate to store and retrieve task results for 
 
 # How to Use<a name="how-to-use"></a>
 
-To use the script, you will need to follow these steps:
+To use the script first time, you will need to follow these steps:
 
 1. Clone the repository via `git clone https://github.com/yoheinakajima/babyagi.git` and `cd` into the cloned repository.
-2. Install the required packages: `pip install -r requirements.txt`
-3. Copy the .env.example file to .env: `cp .env.example .env`. This is where you will set the following variables.
-4. Set your OpenAI API key in the OPENAI_API_KEY and OPENAPI_API_MODEL variables. In order to use with Weaviate you will also need to setup additional variables detailed [here](docs/weaviate.md).
-5. Set the name of the table where the task results will be stored in the TABLE_NAME variable.
-6. (Optional) Set the name of the BabyAGI instance in the BABY_NAME variable.
-7. (Optional) Set the objective of the task management system in the OBJECTIVE variable.
-8. (Optional) Set the first task of the system in the INITIAL_TASK variable.
-9. Run the script: `python babyagi.py`
+2. Copy the .env.example file to .env: `cp .env.example .env`. This is where you will set the following variables.
+3. Set your OpenAI API key in the OPENAI_API_KEY and OPENAPI_API_MODEL variables. In order to use with Weaviate you will also need to setup additional variables detailed [here](docs/weaviate.md).
+4. Set the name of the table where the task results will be stored in the TABLE_NAME variable.
+5. (Optional) Set the name of the BabyAGI instance in the BABY_NAME variable.
+6. (Optional) Set the objective of the task management system in the OBJECTIVE variable.
+7. (Optional) Set the first task of the system in the INITIAL_TASK variable.
+8. Run the script: `./run.sh` on Unix Machine
 
 All optional values above can also be specified on the command line.
+
+If you want to start again this app just run `./run.sh`
 
 # Running inside a docker container
 
