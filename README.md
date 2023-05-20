@@ -65,11 +65,11 @@ To use the script first time, you will need to follow these steps:
 5. (Optional) Set the name of the BabyAGI instance in the BABY_NAME variable.
 6. (Optional) Set the objective of the task management system in the OBJECTIVE variable.
 7. (Optional) Set the first task of the system in the INITIAL_TASK variable.
-8. Run the script: `./run.sh` on Unix Machine
+8. Run the script: `./run.sh` on Unix Machine OR `run.bat` on Windows Machine 
 
 All optional values above can also be specified on the command line.
 
-If you want to start again this app just run `./run.sh`
+If you want to start again this app just run `./run.sh` OR `run.bat`
 
 # Running inside a docker container
 
