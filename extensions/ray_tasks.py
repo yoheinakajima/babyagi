@@ -23,8 +23,8 @@ class CooperativeTaskListStorageActor:
     def appendleft(self, task: Dict):
         self.tasks.appendleft(task)
 
-    def replace(self, tasks: List[Dict]):
-        self.tasks = deque(tasks)
+    def replace(self, task_list: deque):
+        self.tasks = task_list
 
     def reference(self, index: int):
         return self.tasks[index]
@@ -56,8 +56,8 @@ class CooperativeTaskListStorage:
     def appendleft(self, task: Dict):
         self.actor.appendleft.remote(task)
 
-    def replace(self, tasks: List[Dict]):
-        self.actor.replace.remote(tasks)
+    def replace(self, task_list: deque):
+        self.actor.replace.remote(task_list)
 
     def reference(self, index: int):
         return ray.get(self.actor.reference(index).remote())

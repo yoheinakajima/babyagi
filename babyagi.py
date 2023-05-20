@@ -37,6 +37,7 @@ assert RESULTS_STORE_NAME, "\033[91m\033[1m" + "RESULTS_STORE_NAME environment v
 # Run configuration
 INSTANCE_NAME = os.getenv("INSTANCE_NAME", os.getenv("BABY_NAME", "BabyCommandAGI"))
 COOPERATIVE_MODE = "none"
+JOIN_EXISTING_OBJECTIVE = False
 MAX_TOKEN = 5000
 MAX_STRING_LENGTH = 6000
 
@@ -68,7 +69,7 @@ if ENABLE_COMMAND_LINE_ARGS:
     if can_import("extensions.argparseext"):
         from extensions.argparseext import parse_arguments
 
-        OBJECTIVE, INITIAL_TASK, LLM_MODEL, DOTENV_EXTENSIONS, INSTANCE_NAME, COOPERATIVE_MODE = parse_arguments()
+        OBJECTIVE, INITIAL_TASK, LLM_MODEL, DOTENV_EXTENSIONS, INSTANCE_NAME, COOPERATIVE_MODE, JOIN_EXISTING_OBJECTIVE = parse_arguments()
 
 # Human mode extension
 # Gives human input to babyagi
@@ -78,7 +79,7 @@ if LLM_MODEL.startswith("human"):
 
 # Load additional environment variables for enabled extensions
 # TODO: This might override the following command line arguments as well:
-#    OBJECTIVE, INITIAL_TASK, LLM_MODEL, INSTANCE_NAME, COOPERATIVE_MODE
+#    OBJECTIVE, INITIAL_TASK, LLM_MODEL, INSTANCE_NAME, COOPERATIVE_MODE, JOIN_EXISTING_OBJECTIVE
 if DOTENV_EXTENSIONS:
     if can_import("extensions.dotenvext"):
         from extensions.dotenvext import load_dotenv_extensions
@@ -178,8 +179,8 @@ openai.api_key = OPENAI_API_KEY
 
 # Task storage supporting only a single instance of BabyAGI
 class SingleTaskListStorage:
-    def __init__(self, task_list: List[Dict]):
-        self.tasks = deque(task_list)
+    def __init__(self, task_list: deque):
+        self.tasks = task_list
 
     def append(self, task: Dict):
         self.tasks.append(task)
@@ -187,8 +188,8 @@ class SingleTaskListStorage:
     def appendleft(self, task: Dict):
         self.tasks.appendleft(task)
 
-    def replace(self, tasks: List[Dict]):
-        self.tasks = deque(tasks)
+    def replace(self, task_list: deque):
+        self.tasks = task_list
 
     def reference(self, index: int):
         return self.tasks[index]
@@ -204,7 +205,6 @@ class SingleTaskListStorage:
 
     def get_tasks(self):
         return self.tasks
-
 
 # Initialize tasks storage
 tasks_storage = SingleTaskListStorage(temp_task_list)
@@ -225,7 +225,7 @@ elif COOPERATIVE_MODE in ['d', 'distributed']:
     pass
 
 
-if tasks_storage.is_empty():
+if tasks_storage.is_empty() or JOIN_EXISTING_OBJECTIVE:
     print("\033[93m\033[1m" + "\nInitial task:" + "\033[0m\033[0m" + f" {INITIAL_TASK}")
 else:
     print("\033[93m\033[1m" + f"\nContinue task" + "\033[0m\033[0m")
@@ -331,7 +331,7 @@ def openai_call(
             break
 
 def task_creation_agent(
-        objective: str, result: str, task_description: str, task_list: List[Dict], executed_task_list: List[Dict]
+        objective: str, result: str, task_description: str, task_list: deque, executed_task_list: deque
 ):
     prompt = f"""You are an AI that manages tasks to achieve the desired "{objective}" based on the results of the last plan you created. Remove the tasks you've executed and create new tasks if necessary. Please make the tasks you generate executable in a terminal with a single command, if possible. If that's difficult, generate planned tasks with reduced granularity.
 
@@ -393,7 +393,7 @@ Please never output anything other than a JSON array."""
         return task_creation_agent(objective, result, task_description, task_list, executed_task_list)
 
 def check_completion_agent(
-        objective: str, result: str, task_description: str, task_list: List[str], executed_task_list: List[Dict]
+        objective: str, result: str, task_description: str, task_list: deque, executed_task_list: deque
 ):
     prompt = f"""You are an AI that checks whether the "{objective}" has been achieved based on the results, and if not, manages the remaining tasks. Please generate tasks that can be executed in a terminal with one command as much as possible when necessary. If that is difficult, generate planned tasks with reduced granularity.
 
@@ -459,7 +459,7 @@ If the output is anything other than "Complete", please never output anything ot
         return check_completion_agent(objective, result, task_description, task_list, executed_task_list)
 
 def plan_agent(objective: str, task: str,
-               executed_task_list: List[Dict]) -> str:
+               executed_task_list: deque) -> str:
   #context = context_agent(index=YOUR_TABLE_NAME, query=objective, n=5)
     prompt = f"""You are a Lead Engineer.
 You will perform one task based on the following objectives
@@ -482,8 +482,8 @@ You will perform one task based on the following objectives
     return result
 
 # Execute a task based on the objective and five previous tasks
-def execution_agent(objective: str, command: str, task_list: List[Dict],
-                      executed_task_list: List[Dict]) -> str:
+def execution_command(objective: str, command: str, task_list: deque,
+                      executed_task_list: deque) -> str:
 
     print("\033[33m\033[1m" + "[[Input]]" + "\033[0m\033[0m" + "\n\n" + command +
         "\n")
@@ -546,8 +546,8 @@ def execution_agent(objective: str, command: str, task_list: List[Dict],
     return result
 
 def user_input_for_waiting(objective: str, lastlines: str, command: str,
-                           all_output_for_command: str, task_list: List[Dict],
-                           executed_task_list: List[Dict]) -> bool:
+                           all_output_for_command: str, task_list: deque,
+                           executed_task_list: deque):
     prompt = f"""You are an expert in shell commands to achieve the "{objective}".
 Based on the information below, if the objective has been achieved, please output only 'BabyCommandAGI: Complete'.
 Based on the information below, if the objective cannot be achieved and it seems that the objective can be achieved by inputting while waiting for the user's input, please output only the input content for the waiting input content to achieve the objective.
@@ -589,12 +589,13 @@ In cases other than the above: 'BabyCommandAGI: Continue'"""
     return result
 
 # Add the initial task if starting new objective
-if tasks_storage.is_empty():
+if tasks_storage.is_empty() or JOIN_EXISTING_OBJECTIVE:
     initial_task = {"type": "plan", "content": INITIAL_TASK}
     tasks_storage.append(initial_task)
 
 def main():
     loop = True
+    new_tasks_list = []
     while loop:
         # As long as there are tasks in the storage...
         if tasks_storage:
@@ -655,7 +656,7 @@ def main():
                 new_tasks_list = task_creation_agent(OBJECTIVE, result, task['content'],
                                           tasks_storage.get_tasks(), executed_tasks_storage.get_tasks())
 
-        tasks_storage.replace(new_tasks_list)
+        tasks_storage.replace(deque(new_tasks_list))
         time.sleep(1)
 
 if __name__ == "__main__":
