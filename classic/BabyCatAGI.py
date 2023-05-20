@@ -88,15 +88,18 @@ def web_search_tool(query: str):
         "api_key": SERPAPI_API_KEY,
         "num":5 #edit this up or down for more results, though higher often results in OpenAI rate limits
     }
-    search_results = GoogleSearch(search_params)
-    search_results = search_results.get_dict()
-    try:
-      search_results = search_results["organic_results"]
-    except:
-      search_results = {}
+    if SERPAPI_API_KEY:
+        search_results = GoogleSearch(search_params)
+        search_results = search_results.get_dict()
+        try:
+            search_results = search_results["organic_results"]
+        except:
+            search_results = {}
+    else:
+        search_results = {}
     search_results = simplify_search_results(search_results)
     print("\033[90m\033[3m" + "Completed search. Now scraping results.\n" + "\033[0m")
-    results = "";
+    results = ""
     # Loop through the search results
     for result in search_results:
         # Extract the URL from the result
@@ -301,18 +304,19 @@ print("\033[96m\033[1m"+"\n*****OBJECTIVE*****\n"+"\033[0m\033[0m")
 print(OBJECTIVE)
 
 # Initialize task_id_counter
-task_id_counter = 1
+task_id_counter = 0
 
 # Run the task_creation_agent to create initial tasks
 task_list = task_creation_agent(OBJECTIVE)
 print_tasklist()
 
 # Execute tasks in order
-while len(task_list) > 0:
+while len(task_list) > task_id_counter:
     for task in task_list:
         if task["status"] == "incomplete":
             execute_task(task, task_list, OBJECTIVE)
             print_tasklist()
+            task_id_counter += 1
             break
 
 # Print session summary
