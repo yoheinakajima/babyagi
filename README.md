@@ -58,4 +58,5 @@ BabyCommandAGI is still in the early stages, determining its direction and the s
 Note from @saten-private (May 21, 2023):
 
 I am not used to contributing to open source. I work another job during the day and I don't know if I can check PRs and issues frequently. However, I cherish this idea and hope it will be useful for everyone. Please feel free to let me know if there's anything. I am looking forward to learning a lot from you all.
-I am a novice, I cannot speak
+I am a novice, I cannot speak English, and I hardly understand cultures outside of Japan. However, I cherish my ideas, and I hope they will be of use to many people.
+(I'm sure I will continue to come up with many boring ideas in the future)
