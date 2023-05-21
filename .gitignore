@@ -18,6 +18,10 @@ babycoder/playground/*
 babycoder/playground_data/*
 babycoder/objective.txt
 
+# for BabyAGICommand
+data/*
+!data/.gitkeep
+
 # for node
 chroma/
 node_modules/

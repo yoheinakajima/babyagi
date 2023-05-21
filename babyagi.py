@@ -105,8 +105,8 @@ assert INITIAL_TASK, "\033[91m\033[1m" + "INITIAL_TASK environment variable is m
 hash_object = hashlib.sha1(OBJECTIVE.encode())
 hex_dig = hash_object.hexdigest()
 table_name = f"{hex_dig[:8]}-{RESULTS_STORE_NAME}"
-TASK_LIST_FILE = f"{table_name}_task_list.pkl"
-EXECUTED_TASK_LIST_FILE = f"{table_name}_executed_task_list.pkl"
+TASK_LIST_FILE = f"data/{table_name}_task_list.pkl"
+EXECUTED_TASK_LIST_FILE = f"data/{table_name}_executed_task_list.pkl"
 
 # Save and load functions for task_list and executed_task_list
 def save_data(data, filename):
