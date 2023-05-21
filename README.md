@@ -51,7 +51,9 @@ docker-compose up
 **Note: The agent might loop indefinitely if it cannot achieve its objective. Please be aware of the cost of OpenAI API usage.**
 
 If the execution fails, you can restart it from where you left off by running it again. If you want to execute from the initial state, please change the RESULTS_STORE_NAME in the ```.env``` file.
+
 Different tasks will be stored separately when the OBJECTIVE is different.
+
 The tasks that have been executed up to a certain point are saved under the ```data``` folder.
 
 # Contributing
