@@ -16,7 +16,6 @@
 The overall speed is a bit slow with a 7B-Llama, but it works. The smart internet search is a great improvement and helps the 7B-Llama not to get stuck.
 
 ********************
-## from here main branch documentation...
 
 # Translations:
 
