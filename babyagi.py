@@ -119,11 +119,6 @@ def load_data(filename):
       return pickle.load(f)
   return deque([])
 
-# Task list
-temp_task_list = load_data(TASK_LIST_FILE)
-temp_executed_task_list = load_data(EXECUTED_TASK_LIST_FILE)
-
-
 LLAMA_MODEL_PATH = os.getenv("LLAMA_MODEL_PATH", "models/llama-13B/ggml-model.bin")
 if LLM_MODEL.startswith("llama"):
     if can_import("llama_cpp"):
@@ -205,6 +200,10 @@ class SingleTaskListStorage:
 
     def get_tasks(self):
         return self.tasks
+
+# Task list
+temp_task_list = load_data(TASK_LIST_FILE) #deque([])
+temp_executed_task_list = load_data(EXECUTED_TASK_LIST_FILE) #deque([])
 
 # Initialize tasks storage
 tasks_storage = SingleTaskListStorage(temp_task_list)
@@ -612,11 +611,14 @@ def main():
                 while True:
 
                     result = execution_command(OBJECTIVE, task['content'], tasks_storage.get_tasks(),
-                                   executed_tasks_storage.get_tasks())
+                                    executed_tasks_storage.get_tasks())
+                    
 
                     # Step 2: Enrich result and store
                     enriched_result = {"command": task['content'], "result": result}
                     executed_tasks_storage.appendleft(enriched_result)
+                    save_data(executed_tasks_storage.get_tasks(), EXECUTED_TASK_LIST_FILE)
+                    
 
                     # Keep only the most recent 30 tasks
                     if len(executed_tasks_storage.get_tasks()) > 30:
@@ -638,8 +640,9 @@ def main():
 
                 # Step 3: Create new tasks and reprioritize task list
                 new_tasks_list = check_completion_agent(OBJECTIVE, result,
-                                             task['content'], tasks_storage.get_tasks(),
-                                             executed_tasks_storage.get_tasks())
+                                                     task['content'], tasks_storage.get_tasks(),
+                                                     executed_tasks_storage.get_tasks())
+                
                 if new_tasks_list == "Complete":
                     print("\033[92m\033[1m" + "*****TASK COMPLETE*****\n\n" +
                         "\033[0m\033[0m")
@@ -654,9 +657,11 @@ def main():
 
                 # Step 3: Create new tasks and reprioritize task list
                 new_tasks_list = task_creation_agent(OBJECTIVE, result, task['content'],
-                                          tasks_storage.get_tasks(), executed_tasks_storage.get_tasks())
-
+                                              tasks_storage.get_tasks(), executed_tasks_storage.get_tasks())
+                
         tasks_storage.replace(deque(new_tasks_list))
+        save_data(tasks_storage.get_tasks(), TASK_LIST_FILE)
+        
         time.sleep(1)
 
 if __name__ == "__main__":
