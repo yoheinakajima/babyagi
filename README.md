@@ -1,5 +1,5 @@
 ************************************************************
-## BabyAGI-Llama: Optimized for running completely local...
+# BabyAGI-Llama: Optimized for running completely local...
 #### ***Does run continuously with a 7B-lama (wizardLM-7B), processing the task list, and (mostly) not getting stuck in loops or aborting prematurely***
 #### ***With extensions for smart internet search and document embedding***
 ************************************************************
