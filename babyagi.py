@@ -48,13 +48,22 @@ INITIAL_TASK = os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", ""))
 # Model configuration
 OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", 0.0))
 
-# logger
-handlers = [logging.FileHandler(f"log/{INSTANCE_NAME}.log"), logging.StreamHandler()]
+#Set Variables
+hash_object = hashlib.sha1(OBJECTIVE.encode())
+hex_dig = hash_object.hexdigest()
+table_name = f"{hex_dig[:8]}-{RESULTS_STORE_NAME}"
+TASK_LIST_FILE = f"data/{table_name}_task_list.pkl"
+EXECUTED_TASK_LIST_FILE = f"data/{table_name}_executed_task_list.pkl"
 
-logging.basicConfig(format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
-                    datefmt='%H:%M:%S',
-                    handlers=handlers,
+# logger
+logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                    datefmt='%m-%d %H:%M',
+                    filename=f"log/{table_name}.log",
+                    filemode='a',
                     level=logging.DEBUG)
+def log(message):
+    print(message)
+    logging.info(message)
 
 # Extensions support begin
 
@@ -99,21 +108,14 @@ if DOTENV_EXTENSIONS:
 
 # Extensions support end
 
-print("\033[95m\033[1m" + "\n*****CONFIGURATION*****\n" + "\033[0m\033[0m")
-print(f"Name  : {INSTANCE_NAME}")
-print(f"Mode  : {'alone' if COOPERATIVE_MODE in ['n', 'none'] else 'local' if COOPERATIVE_MODE in ['l', 'local'] else 'distributed' if COOPERATIVE_MODE in ['d', 'distributed'] else 'undefined'}")
-print(f"LLM   : {LLM_MODEL}")
+log("\033[95m\033[1m" + "\n*****CONFIGURATION*****\n" + "\033[0m\033[0m")
+log(f"Name  : {INSTANCE_NAME}")
+log(f"Mode  : {'alone' if COOPERATIVE_MODE in ['n', 'none'] else 'local' if COOPERATIVE_MODE in ['l', 'local'] else 'distributed' if COOPERATIVE_MODE in ['d', 'distributed'] else 'undefined'}")
+log(f"LLM   : {LLM_MODEL}")
 
 # Check if we know what we are doing
 assert OBJECTIVE, "\033[91m\033[1m" + "OBJECTIVE environment variable is missing from .env" + "\033[0m\033[0m"
 assert INITIAL_TASK, "\033[91m\033[1m" + "INITIAL_TASK environment variable is missing from .env" + "\033[0m\033[0m"
-
-#Set Variables
-hash_object = hashlib.sha1(OBJECTIVE.encode())
-hex_dig = hash_object.hexdigest()
-table_name = f"{hex_dig[:8]}-{RESULTS_STORE_NAME}"
-TASK_LIST_FILE = f"data/{table_name}_task_list.pkl"
-EXECUTED_TASK_LIST_FILE = f"data/{table_name}_executed_task_list.pkl"
 
 # Save and load functions for task_list and executed_task_list
 def save_data(data, filename):
@@ -131,13 +133,13 @@ if LLM_MODEL.startswith("llama"):
     if can_import("llama_cpp"):
         from llama_cpp import Llama
 
-        print(f"LLAMA : {LLAMA_MODEL_PATH}" + "\n")
+        log(f"LLAMA : {LLAMA_MODEL_PATH}" + "\n")
         assert os.path.exists(LLAMA_MODEL_PATH), "\033[91m\033[1m" + f"Model can't be found." + "\033[0m\033[0m"
 
         CTX_MAX = 1024
         LLAMA_THREADS_NUM = int(os.getenv("LLAMA_THREADS_NUM", 8))
 
-        print('Initialize model for evaluation')
+        log('Initialize model for evaluation')
         llm = Llama(
             model_path=LLAMA_MODEL_PATH,
             n_ctx=CTX_MAX,
@@ -146,13 +148,13 @@ if LLM_MODEL.startswith("llama"):
             use_mlock=False,
         )
 
-        print(
+        log(
             "\033[91m\033[1m"
             + "\n*****USING LLAMA.CPP. POTENTIALLY SLOW.*****"
             + "\033[0m\033[0m"
         )
     else:
-        print(
+        log(
             "\033[91m\033[1m"
             + "\nLlama LLM requires package llama-cpp. Falling back to GPT-3.5-turbo."
             + "\033[0m\033[0m"
@@ -160,21 +162,21 @@ if LLM_MODEL.startswith("llama"):
         LLM_MODEL = "gpt-4"
 
 if LLM_MODEL.startswith("gpt-4"):
-    print(
+    log(
         "\033[91m\033[1m"
         + "\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"
         + "\033[0m\033[0m"
     )
 
 if LLM_MODEL.startswith("human"):
-    print(
+    log(
         "\033[91m\033[1m"
         + "\n*****USING HUMAN INPUT*****"
         + "\033[0m\033[0m"
     )
 
-print("\033[94m\033[1m" + "\n*****OBJECTIVE*****\n" + "\033[0m\033[0m")
-print(f"{OBJECTIVE}")
+log("\033[94m\033[1m" + "\n*****OBJECTIVE*****\n" + "\033[0m\033[0m")
+log(f"{OBJECTIVE}")
 
 # Configure OpenAI
 openai.api_key = OPENAI_API_KEY
@@ -224,19 +226,19 @@ if COOPERATIVE_MODE in ['l', 'local']:
         from extensions.ray_tasks import CooperativeTaskListStorage
 
         tasks_storage = CooperativeTaskListStorage(OBJECTIVE, temp_task_list)
-        print("\nReplacing tasks storage: " + "\033[93m\033[1m" + "Ray" + "\033[0m\033[0m")
+        log("\nReplacing tasks storage: " + "\033[93m\033[1m" + "Ray" + "\033[0m\033[0m")
         executed_tasks_storage = CooperativeTaskListStorage(OBJECTIVE, temp_executed_task_list)
-        print("\nReplacing executed tasks storage: " + "\033[93m\033[1m" + "Ray" + "\033[0m\033[0m")
+        log("\nReplacing executed tasks storage: " + "\033[93m\033[1m" + "Ray" + "\033[0m\033[0m")
 elif COOPERATIVE_MODE in ['d', 'distributed']:
     pass
 
 
 if tasks_storage.is_empty() or JOIN_EXISTING_OBJECTIVE:
-    print("\033[93m\033[1m" + "\nInitial task:" + "\033[0m\033[0m" + f" {INITIAL_TASK}")
+    log("\033[93m\033[1m" + "\nInitial task:" + "\033[0m\033[0m" + f" {INITIAL_TASK}")
 else:
-    print("\033[93m\033[1m" + f"\nContinue task" + "\033[0m\033[0m")
+    log("\033[93m\033[1m" + f"\nContinue task" + "\033[0m\033[0m")
 
-print("\n")
+log("\n")
 
 def limit_tokens_from_string(string: str, model: str, limit: int) -> str:
     """Limits the string to a number of tokens (estimated)."""
@@ -268,9 +270,9 @@ def openai_call(
                              top_p=0.95,
                              repeat_penalty=1.05,
                              max_tokens=200)
-                # print('\n*****RESULT JSON DUMP*****\n')
-                # print(json.dumps(result))
-                # print('\n')
+                # log('\n*****RESULT JSON DUMP*****\n')
+                # log(json.dumps(result))
+                # log('\n')
                 return result['choices'][0]['text'].strip()
             elif model.lower().startswith("human"):
                 return user_input_await(prompt)
@@ -304,32 +306,32 @@ def openai_call(
                 )
                 return response.choices[0].message.content.strip()
         except openai.error.RateLimitError:
-            print(
+            log(
                 "   *** The OpenAI API rate limit has been exceeded. Waiting 10 seconds and trying again. ***"
             )
             time.sleep(10)  # Wait 10 seconds and try again
         except openai.error.Timeout:
-            print(
+            log(
                 "   *** OpenAI API timeout occurred. Waiting 10 seconds and trying again. ***"
             )
             time.sleep(10)  # Wait 10 seconds and try again
         except openai.error.APIError:
-            print(
+            log(
                 "   *** OpenAI API error occurred. Waiting 10 seconds and trying again. ***"
             )
             time.sleep(10)  # Wait 10 seconds and try again
         except openai.error.APIConnectionError:
-            print(
+            log(
                 "   *** OpenAI API connection error occurred. Check your network settings, proxy configuration, SSL certificates, or firewall rules. Waiting 10 seconds and trying again. ***"
             )
             time.sleep(10)  # Wait 10 seconds and try again
         except openai.error.InvalidRequestError:
-            print(
+            log(
                 "   *** OpenAI API invalid request. Check the documentation for the specific API method you are calling and make sure you are sending valid and complete parameters. Waiting 10 seconds and trying again. ***"
             )
             time.sleep(10)  # Wait 10 seconds and try again
         except openai.error.ServiceUnavailableError:
-            print(
+            log(
                 "   *** OpenAI API service unavailable. Waiting 10 seconds and trying again. ***"
             )
             time.sleep(10)  # Wait 10 seconds and try again
@@ -385,17 +387,17 @@ The following is the execution result of the last planned task.
 # Absolute Rule
 Please never output anything other than a JSON array."""
 
-    print("\033[34m\033[1m" + "[[Prompt]]" + "\033[0m\033[0m" + "\n\n" + prompt +
+    log("\033[34m\033[1m" + "[[Prompt]]" + "\033[0m\033[0m" + "\n\n" + prompt +
         "\n\n")
     jsonValue = openai_call(prompt)
-    print("\033[31m\033[1m" + "[[Response]]" + "\033[0m\033[0m" + "\n\n" +
+    log("\033[31m\033[1m" + "[[Response]]" + "\033[0m\033[0m" + "\n\n" +
         jsonValue + "\n\n")
     try:
         return json.loads(jsonValue)
     except Exception as error:
-        print("json parse error:")
-        print(error)
-        print("\nRetry\n\n")
+        log("json parse error:")
+        log(error)
+        log("\nRetry\n\n")
         return task_creation_agent(objective, result, task_description, task_list, executed_task_list)
 
 def check_completion_agent(
@@ -449,19 +451,19 @@ Below is the result of the last execution.
 # Absolute Rule
 If the output is anything other than "Complete", please never output anything other than a JSON array."""
 
-    print("\033[34m\033[1m" + "[[Prompt]]" + "\033[0m\033[0m" + "\n\n" + prompt +
+    log("\033[34m\033[1m" + "[[Prompt]]" + "\033[0m\033[0m" + "\n\n" + prompt +
         "\n\n")
     jsonValue = openai_call(prompt)
-    print("\033[31m\033[1m" + "[[Response]]" + "\033[0m\033[0m" + "\n\n" +
+    log("\033[31m\033[1m" + "[[Response]]" + "\033[0m\033[0m" + "\n\n" +
         jsonValue + "\n\n")
     if jsonValue == "Complete":
         return jsonValue
     try:
         return json.loads(jsonValue)
     except Exception as error:
-        print("json parse error:")
-        print(error)
-        print("\nRetry\n\n")
+        log("json parse error:")
+        log(error)
+        log("\nRetry\n\n")
         return check_completion_agent(objective, result, task_description, task_list, executed_task_list)
 
 def plan_agent(objective: str, task: str,
@@ -480,10 +482,10 @@ You will perform one task based on the following objectives
 {json.dumps(list(executed_task_list))}"""
 
     prompt = prompt[:MAX_STRING_LENGTH]
-    print("\033[34m\033[1m" + "[[Prompt]]" + "\033[0m\033[0m" + "\n\n" + prompt +
+    log("\033[34m\033[1m" + "[[Prompt]]" + "\033[0m\033[0m" + "\n\n" + prompt +
         "\n\n")
     result = openai_call(prompt)
-    print("\033[31m\033[1m" + "[[Response]]" + "\033[0m\033[0m" + "\n\n" +
+    log("\033[31m\033[1m" + "[[Response]]" + "\033[0m\033[0m" + "\n\n" +
         result + "\n\n")
     return result
 
@@ -491,7 +493,7 @@ You will perform one task based on the following objectives
 def execution_command(objective: str, command: str, task_list: deque,
                       executed_task_list: deque) -> str:
 
-    print("\033[33m\033[1m" + "[[Input]]" + "\033[0m\033[0m" + "\n\n" + command +
+    log("\033[33m\033[1m" + "[[Input]]" + "\033[0m\033[0m" + "\n\n" + command +
         "\n")
 
     pty_master, slave = pty.openpty()
@@ -546,7 +548,7 @@ def execution_command(objective: str, command: str, task_list: deque,
 
     result = f"The Return Code for the command is {process.returncode}:\n{out}"
 
-    print("\n" + "\033[33m\033[1m" + "[[Output]]" + "\033[0m\033[0m" + "\n\n" +
+    log("\n" + "\033[33m\033[1m" + "[[Output]]" + "\033[0m\033[0m" + "\n\n" +
         result + "\n\n")
 
     return result
@@ -586,11 +588,11 @@ If the objective cannot be achieved and it seems that the objective can be achie
 If the objective cannot be achieved and it seems better to interrupt the execution of the command to achieve the objective: 'BabyCommandAGI: Interruption'
 In cases other than the above: 'BabyCommandAGI: Continue'"""
 
-    print("\n\n")
-    print("\033[34m\033[1m" + "[[Prompt]]" + "\033[0m\033[0m" + "\n\n" + prompt +
+    log("\n\n")
+    log("\033[34m\033[1m" + "[[Prompt]]" + "\033[0m\033[0m" + "\n\n" + prompt +
         "\n\n")
     result = openai_call(prompt)
-    print("\033[31m\033[1m" + "[[Response]]" + "\033[0m\033[0m" + "\n\n" +
+    log("\033[31m\033[1m" + "[[Response]]" + "\033[0m\033[0m" + "\n\n" +
         result + "\n\n")
     return result
 
@@ -607,12 +609,12 @@ def main():
         if tasks_storage:
             # Step 1: Pull the first task
             task = tasks_storage.popleft()
-            print("\033[92m\033[1m" + "*****NEXT TASK*****\n\n" + "\033[0m\033[0m")
-            print(str(task['type']) + ": " + task['content'] + "\n\n")
+            log("\033[92m\033[1m" + "*****NEXT TASK*****\n\n" + "\033[0m\033[0m")
+            log(str(task['type']) + ": " + task['content'] + "\n\n")
 
             # Check executable command
             if task['type'] == "command":
-                print("\033[33m\033[1m" + "*****EXCUTE COMMAND TASK*****\n\n" +
+                log("\033[33m\033[1m" + "*****EXCUTE COMMAND TASK*****\n\n" +
                 "\033[0m\033[0m")
 
                 while True:
@@ -643,7 +645,7 @@ def main():
                         else:
                             break
 
-                print("\033[32m\033[1m" + "*****TASK RESULT*****\n\n" + "\033[0m\033[0m")
+                log("\033[32m\033[1m" + "*****TASK RESULT*****\n\n" + "\033[0m\033[0m")
 
                 # Step 3: Create new tasks and reprioritize task list
                 new_tasks_list = check_completion_agent(OBJECTIVE, result,
@@ -651,16 +653,16 @@ def main():
                                                      executed_tasks_storage.get_tasks())
                 
                 if new_tasks_list == "Complete":
-                    print("\033[92m\033[1m" + "*****TASK COMPLETE*****\n\n" +
+                    log("\033[92m\033[1m" + "*****TASK COMPLETE*****\n\n" +
                         "\033[0m\033[0m")
                     break
 
             else:
-                print("\033[33m\033[1m" + "*****PLAN TASK*****\n\n" + "\033[0m\033[0m")
+                log("\033[33m\033[1m" + "*****PLAN TASK*****\n\n" + "\033[0m\033[0m")
                 result = plan_agent(OBJECTIVE, task['content'], executed_tasks_storage.get_tasks())
 
                 # Send to execution function to complete the task based on the context
-                print("\033[32m\033[1m" + "*****TASK RESULT*****\n\n" + "\033[0m\033[0m")
+                log("\033[32m\033[1m" + "*****TASK RESULT*****\n\n" + "\033[0m\033[0m")
 
                 # Step 3: Create new tasks and reprioritize task list
                 new_tasks_list = task_creation_agent(OBJECTIVE, result, task['content'],
