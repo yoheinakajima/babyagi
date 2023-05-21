@@ -1,19 +1,25 @@
 ************************************************************
 # BabyAGI-Llama: Optimized for running completely local...
 #### ***Does run continuously with a 7B-lama (wizardLM-7B), processing the task list, and (mostly) not getting stuck in loops or aborting prematurely***
-#### ***With extensions for smart internet search and document embedding***
+#### ***With extensions for smart internet search and experimental document embedding***
 ************************************************************
 - Enhancement for Llama models with several new parameters, safety mechanisms and context truncation
   - Refinement of Llama setup with new parameters (added to .env file)
   - Enhancement of agent prompts for Llama with limited context and optimizations as e.g. limtation of context length
 - With smart internet search and document embedding vector storage functionalities as extensions
   - Smart search is based on BabyCatAGI implementation, Llama support has been added
-  - Document embedding & similiarity search can run locally with Llama as well
+  - Document embedding & similiarity search can run locally with Llama as well, the functionality is still experimental and does not fully work
 - Adding of simple write functionality for continuous terminal output to txt-file
 - Many minor optimizations/beautifications to the original code
 ************************************************************
 
-The overall speed is a bit slow with a 7B-Llama, but it works. The smart internet search is a great improvement and helps the 7B-Llama not to get stuck. The failsafe mechanisms for Llama (see parameter LLAMA_FAILSAFE) are still experimental, but help to keep the system running when context is lost.
+The overall speed is a bit slow with a 7B-Llama, but it works. The smart internet search is a great improvement and helps the 7B-Llama not to get stuck. The failsafe mechanisms for Llama (see parameter LLAMA_FAILSAFE) are still experimental, but help to keep the system running when context is lost by re-iterating step(s).
+
+Try for yourself...
+
+You might ask the question: "Why using a Llama when OpenAI and its excellent models are available?"
+
+I did tinker a lot with agents like BabyAGI or AutoGPT and its derivates using gpt-3.5-turbo. With functions like smart internet search, involving summarization in chunks by LLM, or other langchain tools my API rate went ballistic. And that's where I started looking for alternatives. Of course GPT is much more powerful and has bigger context length, but the using Llama purely local has its own merits.
 
 ********************
 
