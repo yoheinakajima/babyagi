@@ -5,6 +5,7 @@ import openai
 import time
 import requests
 from bs4 import BeautifulSoup
+from urllib.parse import urlparse, parse_qs
 from collections import deque
 from typing import Dict, List
 import re
@@ -16,7 +17,7 @@ from serpapi import GoogleSearch
 
 # Add your API keys here
 OPENAI_API_KEY = ""
-SERPAPI_API_KEY = "" #If you include SERPAPI KEY, this will enable web-search. If you don't, it will autoatically remove web-search capability.
+SERPAPI_API_KEY = "" #If you include SERPAPI KEY, this will enable web-search using SERP Index. If you don't, it will autoatically using Google Scrape.
 
 # Set variables
 OBJECTIVE = "Research experts at scaling NextJS and their Twitter accounts."
@@ -26,11 +27,6 @@ YOUR_FIRST_TASK = "Develop a task list." #you can provide additional instruction
 
 # Configure OpenAI and SerpAPI client
 openai.api_key = OPENAI_API_KEY
-if SERPAPI_API_KEY:
-  serpapi_client = GoogleSearch({"api_key": SERPAPI_API_KEY})
-  websearch_var = "[web-search] "
-else:
-  websearch_var = ""
 
 # Initialize task list
 task_list = []
@@ -82,22 +78,26 @@ def text_completion_tool(prompt: str):
 
 
 def web_search_tool(query: str):
-    search_params = {
-        "engine": "google",
-        "q": query,
-        "api_key": SERPAPI_API_KEY,
-        "num":5 #edit this up or down for more results, though higher often results in OpenAI rate limits
-    }
+    search_results = {}
     if SERPAPI_API_KEY:
+        # USING SERP API
+        search_params = {
+            "engine": "google",
+            "q": query,
+            "api_key": SERPAPI_API_KEY,
+            "num":5 #edit this up or down for more results, though higher often results in OpenAI rate limits
+        }
         search_results = GoogleSearch(search_params)
         search_results = search_results.get_dict()
         try:
             search_results = search_results["organic_results"]
         except:
             search_results = {}
+        search_results = simplify_search_results(search_results)
     else:
-        search_results = {}
-    search_results = simplify_search_results(search_results)
+        # USING GOOGLE SCRAPER
+        search_results = scrape_google_results(query)
+    
     print("\033[90m\033[3m" + "Completed search. Now scraping results.\n" + "\033[0m")
     results = ""
     # Loop through the search results
@@ -110,7 +110,6 @@ def web_search_tool(query: str):
         print("\033[90m\033[3m" +str(content[0:100])[0:100]+"...\n" + "\033[0m")
         results += str(content)+". "
     
-
     return results
 
 
@@ -126,6 +125,46 @@ def simplify_search_results(search_results):
         simplified_results.append(simplified_result)
     return simplified_results
 
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36"
+}
+
+def scrape_google_results(search_query):
+    url = f"https://www.google.com/search?q={search_query}"
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
+    }
+    response = requests.get(url, headers=headers, timeout=10)
+    soup = BeautifulSoup(response.text, 'html.parser')
+
+    search_results = []
+    # Find the main div element
+    main_div = soup.find('div', id='main')
+    nested_div = main_div.find_all('div')
+    for div in nested_div:
+        a_tags = div.find_all('a')
+        for a_tag in a_tags:
+            href = a_tag.get('href')
+            if href and href.startswith('/url?esrc=s&q=&rct=j&sa=U&url='):
+                # Parse the URL and extract the query parameters
+                parsed_url = urlparse(href)
+                query_params = parse_qs(parsed_url.query)
+                # Extract the value after 'url='
+                if 'url' in query_params:
+                    url_value = query_params['url'][0]
+                    search_results.append(url_value)
+                else:
+                    print("No 'url' parameter found in the URL.")
+    unique_results = list(set(search_results))
+    # simplify the results to match the format of the SERP API results
+    simplified_results = []
+    for result in unique_results:
+        simplified_result = {
+            "link": result,
+        }
+        simplified_results.append(simplified_result)
+    
+    return simplified_results
 
 def web_scrape_tool(url: str, task:str):
     content = fetch_url_content(url)
@@ -141,10 +180,6 @@ def web_scrape_tool(url: str, task:str):
     result = info
     
     return result
-
-headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36"
-}
 
 def fetch_url_content(url: str):
     try:
@@ -164,8 +199,6 @@ def extract_text(content: str):
     soup = BeautifulSoup(content, "html.parser")
     text = soup.get_text(strip=True)
     return text
-
-
 
 def extract_relevant_info(objective, large_string, task):
     chunk_size = 3000
@@ -254,7 +287,7 @@ def task_creation_agent(objective: str) -> List[Dict]:
     prompt = (
         f"You are a task creation AI tasked with creating a list of tasks as a JSON array, considering the ultimate objective of your team: {OBJECTIVE}. "
         f"Create new tasks based on the objective. Limit tasks types to those that can be completed with the available tools listed below. Task description should be detailed."
-        f"Current tool option is [text-completion] [web-scrape] {websearch_var} and only." # web-search is added automatically if SERPAPI exists
+        f"Current tool option is [text-completion] [web-scrape] [web-search] and only."
         f"For tasks using [web-search], provide the search query, and only the search query to use (eg. not 'research waterproof shoes, but 'waterproof shoes')"
         f"dependent_task_ids should always be an empty array, or an array of numbers representing the task ID it should pull results from."
         f"Make sure all task IDs are in chronological order.\n"
