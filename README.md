@@ -1,19 +1,19 @@
 ************************************************************
 ## BabyAGI-Llama: Optimized for running completely local...
 #### ***Does run continuously with a 7B-lama (wizardLM-7B), processing the task list, and (mostly) not getting stuck in loops or aborting prematurely***
+#### ***With extensions for smart internet search and document embedding***
 ************************************************************
 - Enhancement for Llama models with several new parameters, safety mechanisms and context truncation
   - Refinement of Llama setup with new parameters (added to .env file)
-  - Optimization and enhancement of agent prompts for Llama with limited context
+  - Enhancement of agent prompts for Llama with limited context and optimizations as e.g. limtation of context length
 - With smart internet search and document embedding vector storage functionalities as extensions
-  - see new parameters in .env file
-  - Smart search is derived from BabyCatAGI implementation, optimized for usage with Llama
-  - Document embedding & search can run locally with Llama as well
+  - Smart search is based on BabyCatAGI implementation, Llama support has been added
+  - Document embedding & similiarity search can run locally with Llama as well
 - Adding of simple write functionality for continuous terminal output to txt-file
 - Many minor optimizations/beautifications to the original code
 ************************************************************
 
-The overall speed is a bit slow with a 7B-Llama, but it works. The smart internet search is a great improvement and helps the 7B-Llama not to get stuck.
+The overall speed is a bit slow with a 7B-Llama, but it works. The smart internet search is a great improvement and helps the 7B-Llama not to get stuck. The failsafe mechanisms for Llama (see parameter LLAMA_FAILSAFE) are still experimental, but help to keep the system running when context is lost.
 
 ********************
 
