@@ -22,6 +22,10 @@ You might ask the question: "Why using a Llama when OpenAI and its excellent mod
 I did tinker a lot with agents like BabyAGI or AutoGPT and its derivates, using gpt-3.5-turbo. With new functions and concepts like smart internet search, involving summarization in chunks by LLM, or other langchain tools my API rate went ballistic. And that's where I started looking for alternatives. Of course GPT is much more powerful and has bigger context length, but using Llamas 100% locally has its own merits...
 
 You can find precompiled .bin files of popular Llamas for example here (nomic-ai/gpt4all-chat): https://github.com/nomic-ai/gpt4all/tree/main/gpt4all-chat
+- https://gpt4all.io/models/ggml-wizardLM-7B.q4_2.bin (md5sum 99e6d129745a3f1fb1121abed747b05a) An non-commercially licensable model based on Llama 7b and trained by Microsoft and Peking University.
+- https://gpt4all.io/models/ggml-vicuna-7b-1.1-q4_2.bin (md5sum 29119f8fa11712704c6b22ac5ab792ea) An non-commercially licensable model based on Llama 7b and trained by teams from UC Berkeley, CMU, Stanford, MBZUAI, and UC San Diego.
+- https://gpt4all.io/models/ggml-mpt-7b-instruct.bin (md5sum 1cfa4958f489f0a0d1ffdf6b37322809) A commercially licensable instruct model based on MPT and trained by Mosaic ML.
+- https://gpt4all.io/models/ggml-mpt-7b-base.bin (md5sum 120c32a51d020066288df045ef5d52b9) A commercially licensable model base pre-trained by Mosaic ML.
 
 The models wizardLM-7B and vicuna-7B do work best for me on MacBook M1 with 16GB RAM. Unfortunately I am not able to persuade a 13B model to run with a reasonable token rate. Runs at something like 1 token per minute.
 
