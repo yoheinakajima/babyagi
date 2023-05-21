@@ -56,6 +56,11 @@ Different tasks will be stored separately when the OBJECTIVE is different.
 
 The tasks that have been executed up to a certain point are saved under the ```data``` folder.
 
+# Logs
+
+The logs during execution are saved under the ```log``` folder.
+The log file name is determined by the OBJECTIVE identifier and the RESULTS_STORE_NAME.
+
 # Contributing
 
 BabyCommandAGI is still in the early stages, determining its direction and the steps to get there. Currently, BabyCommandAGI is aiming for simplicity. To maintain this simplicity, when submitting PRs, we kindly ask you to follow the guidelines below:
