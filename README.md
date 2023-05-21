@@ -1,14 +1,19 @@
 ************************************************************
 # BabyAGI-Llama: Optimized for running completely local...
 #### ***Does run continuously with a 7B-lama (e.g. wizardLM-7B), processing the task list, and (mostly) not getting stuck in loops or aborting prematurely***
-#### ***With extensions for smart internet search and experimental document embedding***
+#### ***Extensions for smart internet search with LLM summary creation and document embedding with Q&A retrieval in langchain***
 ************************************************************
 - Enhancement for Llama models with several new parameters, safety mechanisms and context truncation
   - Refinement of Llama setup with new parameters (added to .env file)
   - Enhancement of agent prompts for Llama with limited context and optimizations as e.g. limtation of context length
-- With smart internet search and document embedding vector storage functionalities as extensions
-  - Smart search is based on BabyCatAGI implementation, Llama support has been added
-  - Document embedding & similiarity search can run locally with Llama as well, the functionality is still experimental and does not fully work
+- With smart internet search as extensions
+  - Smart search is based on BabyCatAGI implementation
+  - Llama support has been added
+- New document embedding with Q&A retrieval functionality from: https://github.com/imartinez/privateGPT.git
+  - The main functionality from file privateGPT.py has been integrated in BabyAGI
+  - Document loader as separate script (document-loader.py)
+  - Documents in subfolder "source_documents" are loaded and embedded in chromadb
+  - Many thanks to https://github.com/imartinez for the great work!
 - Adding of simple write functionality for continuous terminal output to txt-file
 - Many minor optimizations/beautifications to the original code
 ************************************************************
@@ -21,7 +26,7 @@ You might ask the question: "Why using a Llama when OpenAI and its excellent mod
 
 I did tinker a lot with agents like BabyAGI or AutoGPT and its derivates, using gpt-3.5-turbo. With new functions and concepts like smart internet search, involving summarization in chunks by LLM, or other langchain tools my API rate went ballistic. And that's where I started looking for alternatives. Of course GPT is much more powerful and has bigger context length, but using Llamas 100% locally has its own merits...
 
-You can find precompiled .bin files of popular Llamas for example here (nomic-ai/gpt4all-chat): https://github.com/nomic-ai/gpt4all/tree/main/gpt4all-chat
+You can find precompiled .bin files of popular Llamas for example in this repo: https://github.com/nomic-ai/gpt4all/tree/main/gpt4all-chat
 - https://gpt4all.io/models/ggml-wizardLM-7B.q4_2.bin (md5sum 99e6d129745a3f1fb1121abed747b05a) An non-commercially licensable model based on Llama 7b and trained by Microsoft and Peking University.
 - https://gpt4all.io/models/ggml-vicuna-7b-1.1-q4_2.bin (md5sum 29119f8fa11712704c6b22ac5ab792ea) An non-commercially licensable model based on Llama 7b and trained by teams from UC Berkeley, CMU, Stanford, MBZUAI, and UC San Diego.
 - https://gpt4all.io/models/ggml-mpt-7b-instruct.bin (md5sum 1cfa4958f489f0a0d1ffdf6b37322809) A commercially licensable instruct model based on MPT and trained by Mosaic ML.
