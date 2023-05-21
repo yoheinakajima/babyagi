@@ -1,6 +1,14 @@
 import os
 import sys
+import importlib
 import argparse
+
+def can_import(module_name):
+    try:
+        importlib.import_module(module_name)
+        return True
+    except ImportError:
+        return False
 
 # Extract the env filenames in the -e flag only
 # Ignore any other arguments
@@ -39,15 +47,27 @@ def parse_arguments():
     main objective description. Doesn\'t need to be quoted.
     if not specified, get objective from environment.
     ''', default=[os.getenv("OBJECTIVE", "")])
-    parser.add_argument('-t', '--task', metavar='<initial task>', help='''
+    parser.add_argument('-n', '--name', required=False, help='''
+    instance name.
+    if not specified, get the instance name from environment.
+    ''', default=os.getenv("INSTANCE_NAME", os.getenv("BABY_NAME", "BabyAGI")))
+    parser.add_argument('-m', '--mode', choices=['n', 'none', 'l', 'local', 'd', 'distributed'], help='''
+    cooperative mode type
+    ''', default='none')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-t', '--task', metavar='<initial task>', help='''
     initial task description. must be quoted.
     if not specified, get initial_task from environment.
     ''', default=os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", "")))
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('-4', '--gpt-4', dest='openai_api_model', action='store_const', const="gpt-4", help='''
+    group.add_argument('-j', '--join', action='store_true', help='''
+    join an existing objective.
+    install cooperative requirements.
+    ''')
+    group2 = parser.add_mutually_exclusive_group()
+    group2.add_argument('-4', '--gpt-4', dest='llm_model', action='store_const', const="gpt-4", help='''
     use GPT-4 instead of the default model.
-    ''', default=os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo"))
-    group.add_argument('-l', '--llama', dest='openai_api_model', action='store_const', const="llama", help='''
+    ''')
+    group2.add_argument('-l', '--llama', dest='llm_model', action='store_const', const="llama", help='''
     use LLaMa instead of the default model. Requires llama.cpp.
     ''')
     # This will parse -e again, which we want, because we need
@@ -61,20 +81,43 @@ def parse_arguments():
 
     args = parser.parse_args()
 
-    openai_api_model = args.openai_api_model
+    llm_model = args.llm_model if args.llm_model else os.getenv("LLM_MODEL", os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo")).lower()
 
     dotenv_extensions = args.env
 
+    instance_name = args.name
+    if not instance_name:
+        print("\033[91m\033[1m" + "BabyAGI instance name missing\n" + "\033[0m\033[0m")
+        parser.print_help()
+        parser.exit()
+
+    module_name = "ray"
+    cooperative_mode = args.mode
+    if cooperative_mode in ['l', 'local'] and not can_import(module_name):
+        print("\033[91m\033[1m"+f"Local cooperative mode requires package {module_name}\nInstall:  pip install -r extensions/requirements.txt\n" + "\033[0m\033[0m")
+        parser.print_help()
+        parser.exit()
+    elif cooperative_mode in ['d', 'distributed']:
+        print("\033[91m\033[1m" + "Distributed cooperative mode is not implemented yet\n" + "\033[0m\033[0m")
+        parser.print_help()
+        parser.exit()
+
+    join_existing_objective = args.join
+    if join_existing_objective and cooperative_mode in ['n', 'none']:
+        print("\033[91m\033[1m"+f"Joining existing objective requires local or distributed cooperative mode\n" + "\033[0m\033[0m")
+        parser.print_help()
+        parser.exit()
+
     objective = ' '.join(args.objective).strip()
     if not objective:
-        print("\033[91m\033[1m"+"No objective specified or found in environment.\n"+"\033[0m\033[0m")
+        print("\033[91m\033[1m" + "No objective specified or found in environment.\n" + "\033[0m\033[0m")
         parser.print_help()
         parser.exit()
 
     initial_task = args.task
-    if not initial_task:
-        print("\033[91m\033[1m"+"No initial task specified or found in environment.\n"+"\033[0m\033[0m")
+    if not initial_task and not join_existing_objective:
+        print("\033[91m\033[1m" + "No initial task specified or found in environment.\n" + "\033[0m\033[0m")
         parser.print_help()
         parser.exit()
 
-    return objective, initial_task, openai_api_model, dotenv_extensions
+    return objective, initial_task, llm_model, dotenv_extensions, instance_name, cooperative_mode, join_existing_objective

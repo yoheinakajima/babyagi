@@ -6,10 +6,19 @@ __pycache__/
 .env.*
 env/
 .venv
-venv/
+*venv/
 
 .vscode/
 .idea/
 
 models
 llama/
+
+babycoder/playground/*
+babycoder/playground_data/*
+babycoder/objective.txt
+
+# for node
+chroma/
+node_modules/
+.DS_Store
