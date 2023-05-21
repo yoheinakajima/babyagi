@@ -1,99 +1,61 @@
+# Precautions
+
+- There is a risk of inadvertently damaging the environment. Please execute primarily in a virtual environment such as Docker.
+- The objective may not be achieved and it may continue to loop. The amount of API usage may increase in such cases, so please use responsibly.
+- It is recommended to use GPT-4 or higher as it has been mainly verified with GPT-4 or higher.
+
 # Objective
 
-This Python script is an example of a system in which AI executes commands while planning. This system uses OpenAI's GPT-4 or higher to plan, create tasks and execute commands. The main idea of this system is to test how the ability of AI to plan, as in [BabyAGI](https://github.com/yoheinakajima/babyagi), might be combined with the CLI, a system for interacting with computers that is older than the GUI. The thinking part of [BabyAGI](https://github.com/yoheinakajima/babyagi) has been simplified considerably in order to make the commands more efficient. (This may be changed later.)
+This Python script is an example of a system in which AI executes commands while planning. This system uses OpenAI's GPT-4 or higher to plan task creation and command execution. The main idea of this system is to see what happens when you combine the ability of AI to plan, like [BabyAGI](https://github.com/yoheinakajima/babyagi), with the CLI, a computer interaction system older than GUI. The idea comes from the possibility that LLM may be compatible with CLI. The part that was the thinking part of [BabyAGI](https://github.com/yoheinakajima/babyagi) has been greatly simplified for efficient command execution. (We may change this in the future)
 
-# How It Works
+# Mechanism
 
+This script works by executing the following continuous loop:
 
+1. Retrieve the first task from the task list.
+2. Determine if that task is a command task or a planning task.
+3. If it's a command task:
+    1. Execute the command.
+    2. If the command execution result has a Status Code of 0 and no response:
+        Proceed to the next task.
+    3. Otherwise:
+        Analyze the result of the command execution with LLM, check if the objective is complete, and if not, create a new task list.
+4. If it's a planning task:
+    1. Execute the plan with LLM.
+    2. Analyze the executed plan with LLM and create a new task list.
 
-The script works by running an infinite loop that does the following steps:
+![Architecture](docs/Architecture.png)
 
-1. Pulls the first task from the task list.
-2. Sends the task to the execution agent, which uses OpenAI's API to complete the task based on the context.
-3. Enriches the result and stores it in [Chroma](https://docs.trychroma.com)/[Weaviate](https://weaviate.io/).
-4. Creates new tasks and reprioritizes the task list based on the objective and the result of the previous task.
-   </br>
+# Setup
 
-![image](https://user-images.githubusercontent.com/21254008/235015461-543a897f-70cc-4b63-941a-2ae3c9172b11.png)
+Please follow the steps below:
 
-The `execution_agent()` function is where the OpenAI API is used. It takes two parameters: the objective and the task. It then sends a prompt to OpenAI's API, which returns the result of the task. The prompt consists of a description of the AI system's task, the objective, and the task itself. The result is then returned as a string.
+1. ```git clone https://github.com/saten-private/BabyCommandAGI.git```
+2. Enter the BabyCommandAGI directory with ```cd```.
+3. Create a file to insert environment variables with ```cp .env.example .env```.
+4. Set the OpenAI key to OPENAI_API_KEY.
+5. Set the name of the table where the task results are saved to the TABLE_NAME variable.
+6. (Optional) Set the objective of the task management system to the OBJECTIVE variable.
+7. (Optional) Set the system's first task to the INITIAL_TASK variable.
 
-The `task_creation_agent()` function is where OpenAI's API is used to create new tasks based on the objective and the result of the previous task. The function takes four parameters: the objective, the result of the previous task, the task description, and the current task list. It then sends a prompt to OpenAI's API, which returns a list of new tasks as strings. The function then returns the new tasks as a list of dictionaries, where each dictionary contains the name of the task.
+# Execution (Docker)
 
-The `prioritization_agent()` function is where OpenAI's API is used to reprioritize the task list. The function takes one parameter, the ID of the current task. It sends a prompt to OpenAI's API, which returns the reprioritized task list as a numbered list.
+As a prerequisite, docker and docker-compose must be installed. Docker desktop is the simplest option https://www.docker.com/products/docker-desktop/
 
-Finally, the script uses Chroma/Weaviate to store and retrieve task results for context. The script creates a Chroma/Weaviate collection based on the table name specified in the TABLE_NAME variable. Chroma/Weaviate is then used to store the results of the task in the collection, along with the task name and any additional metadata.
-
-# How to Use<a name="how-to-use"></a>
-
-To use the script, you will need to follow these steps:
-
-1. Clone the repository via `git clone https://github.com/yoheinakajima/babyagi.git` and `cd` into the cloned repository.
-2. Install the required packages: `pip install -r requirements.txt`
-3. Copy the .env.example file to .env: `cp .env.example .env`. This is where you will set the following variables.
-4. Set your OpenAI API key in the OPENAI_API_KEY and OPENAPI_API_MODEL variables. In order to use with Weaviate you will also need to setup additional variables detailed [here](docs/weaviate.md).
-5. Set the name of the table where the task results will be stored in the TABLE_NAME variable.
-6. (Optional) Set the name of the BabyAGI instance in the BABY_NAME variable.
-7. (Optional) Set the objective of the task management system in the OBJECTIVE variable.
-8. (Optional) Set the first task of the system in the INITIAL_TASK variable.
-9. Run the script: `python babyagi.py`
-
-All optional values above can also be specified on the command line.
-
-# Running inside a docker container
-
-As a prerequisite, you will need docker and docker-compose installed. Docker desktop is the simplest option https://www.docker.com/products/docker-desktop/
-
-To run the system inside a docker container, setup your .env file as per steps above and then run the following:
+Please execute the following:
 
 ```
 docker-compose up
 ```
 
-# Supported Models<a name="supported-models"></a>
+# Contributing
 
-This script works with all OpenAI models, as well as Llama and its variations through Llama.cpp. Default model is **gpt-3.5-turbo**. To use a different model, specify it through LLM_MODEL or use the command line.
+BabyCommandAGI is still in the early stages, determining its direction and the steps to get there. Currently, BabyCommandAGI is aiming for simplicity. To maintain this simplicity, when submitting PRs, we kindly ask you to follow the guidelines below:
 
-## Llama
+- Focus on small, modularized fixes rather than large-scale refactoring.
+- When introducing new features, provide a detailed explanation of the corresponding specific use cases.
 
-Llama integration requires llama-cpp package. You will also need the Llama model weights. 
+Note from @saten-private (May 21, 2023):
 
-- **Under no circumstances share IPFS, magnet links, or any other links to model downloads anywhere in this repository, including in issues, discussions or pull requests. They will be immediately deleted.**
-
-Once you have them, set LLAMA_MODEL_PATH to the path of the specific model to use. For convenience, you can link `models` in BabyAGI repo to the folder where you have the Llama model weights. Then run the script with `LLM_MODEL=llama` or `-l` argument.
-
-# Warning<a name="continous-script-warning"></a>
-
-This script is designed to be run continuously as part of a task management system. Running this script continuously can result in high API usage, so please use it responsibly. Additionally, the script requires the OpenAI API to be set up correctly, so make sure you have set up the API before running the script.
-
-# Contribution
-
-Needless to say, BabyAGI is still in its infancy and thus we are still determining its direction and the steps to get there. Currently, a key design goal for BabyAGI is to be _simple_ such that it's easy to understand and build upon. To maintain this simplicity, we kindly request that you adhere to the following guidelines when submitting PRs:
-
-- Focus on small, modular modifications rather than extensive refactoring.
-- When introducing new features, provide a detailed description of the specific use case you are addressing.
-
-A note from @yoheinakajima (Apr 5th, 2023):
-
-> I know there are a growing number of PRs, appreciate your patience - as I am both new to GitHub/OpenSource, and did not plan my time availability accordingly this week. Re:direction, I've been torn on keeping it simple vs expanding - currently leaning towards keeping a core Baby AGI simple, and using this as a platform to support and promote different approaches to expanding this (eg. BabyAGIxLangchain as one direction). I believe there are various opinionated approaches that are worth exploring, and I see value in having a central place to compare and discuss. More updates coming shortly.
-
-I am new to GitHub and open source, so please be patient as I learn to manage this project properly. I run a VC firm by day, so I will generally be checking PRs and issues at night after I get my kids down - which may not be every night. Open to the idea of bringing in support, will be updating this section soon (expectations, visions, etc). Talking to lots of people and learning - hang tight for updates!
-
-# BabyAGI Activity Report
-
-To help the BabyAGI community stay informed about the project's progress, Blueprint AI has developed a Github activity summarizer for BabyAGI. This concise report displays a summary of all contributions to the BabyAGI repository over the past 7 days (continuously updated), making it easy for you to keep track of the latest developments.
-
-To view the BabyAGI 7-day activity report, go here: [https://app.blueprint.ai/github/yoheinakajima/babyagi](https://app.blueprint.ai/github/yoheinakajima/babyagi)
-
-[<img width="293" alt="image" src="https://user-images.githubusercontent.com/334530/235789974-f49d3cbe-f4df-4c3d-89e9-bfb60eea6308.png">](https://app.blueprint.ai/github/yoheinakajima/babyagi)
-
-
-# Inspired projects
-
-In the short time since it was release, BabyAGI inspired many projects. You can see them all [here](docs/inspired-projects.md).
-
-# Backstory
-
-BabyAGI is a pared-down version of the original [Task-Driven Autonomous Agent](https://twitter.com/yoheinakajima/status/1640934493489070080?s=20) (Mar 28, 2023) shared on Twitter. This version is down to 140 lines: 13 comments, 22 blanks, and 105 code. The name of the repo came up in the reaction to the original autonomous agent - the author does not mean to imply that this is AGI.
-
-Made with love by [@yoheinakajima](https://twitter.com/yoheinakajima), who happens to be a VC (would love to see what you're building!)
+I am not used to contributing to open source. I work another job during the day and I don't know if I can check PRs and issues frequently. However, I cherish this idea and hope it will be useful for everyone. Please feel free to let me know if there's anything. I am looking forward to learning a lot from you all.
+I am a novice, I cannot speak
