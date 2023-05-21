@@ -24,7 +24,7 @@ Try for yourself... :-)
 
 You might ask the question: "Why using a Llama when OpenAI and its excellent models are available?"
 
-I did tinker a lot with agents like BabyAGI or AutoGPT and its derivates, using gpt-3.5-turbo. With new functions and concepts like smart internet search, involving summarization in chunks by LLM, or other langchain tools my API rate went ballistic. And that's where I started looking for alternatives. Of course GPT is much more powerful and has bigger context length, but using Llamas 100% locally has its own merits...
+I did tinker a lot with agents like BabyAGI or AutoGPT and its derivates, using gpt-3.5-turbo. With new functions and concepts like smart internet search, involving summarization in chunks by LLM, or document embedding with Q&A retrieval my API rate went ballistic. And that's where I started looking for alternatives. Of course GPT is far more powerful and has bigger context length, but using Llamas 100% locally has its own merits...
 
 You can find precompiled .bin files of popular Llamas for example in this repo: https://github.com/nomic-ai/gpt4all/tree/main/gpt4all-chat
 - https://gpt4all.io/models/ggml-wizardLM-7B.q4_2.bin (md5sum 99e6d129745a3f1fb1121abed747b05a) An non-commercially licensable model based on Llama 7b and trained by Microsoft and Peking University.
