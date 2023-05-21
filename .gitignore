@@ -21,6 +21,8 @@ babycoder/objective.txt
 # for BabyAGICommand
 data/*
 !data/.gitkeep
+log/*
+!log/.gitkeep
 
 # for node
 chroma/

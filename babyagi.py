@@ -48,6 +48,13 @@ INITIAL_TASK = os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", ""))
 # Model configuration
 OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", 0.0))
 
+# logger
+handlers = [logging.FileHandler(f"log/{INSTANCE_NAME}.log"), logging.StreamHandler()]
+
+logging.basicConfig(format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                    datefmt='%H:%M:%S',
+                    handlers=handlers,
+                    level=logging.DEBUG)
 
 # Extensions support begin
 
