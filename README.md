@@ -1,6 +1,6 @@
 ************************************************************
 # BabyAGI-Llama: Optimized for running completely local...
-#### ***Does run continuously with a 7B-lama (wizardLM-7B), processing the task list, and (mostly) not getting stuck in loops or aborting prematurely***
+#### ***Does run continuously with a 7B-lama (e.g. wizardLM-7B), processing the task list, and (mostly) not getting stuck in loops or aborting prematurely***
 #### ***With extensions for smart internet search and experimental document embedding***
 ************************************************************
 - Enhancement for Llama models with several new parameters, safety mechanisms and context truncation
@@ -13,13 +13,17 @@
 - Many minor optimizations/beautifications to the original code
 ************************************************************
 
-The overall speed is a bit slow with a 7B-Llama, but it works. The smart internet search is a great improvement and helps the 7B-Llama not to get stuck. The failsafe mechanisms for Llama (see parameter LLAMA_FAILSAFE) are still experimental, but help to keep the system running when context is lost by re-iterating step(s).
+The overall speed is a bit slow with a 7B-Llama, but it works. The task processing speed is not so bad, what takes time is the summarization of internet search results. But the smart internet search is a great improvement in general and helps the 7B-Llama not to get stuck. The failsafe mechanisms for Llama (see parameter LLAMA_FAILSAFE) are still experimental, but help to keep the system running when context is lost by re-iterating step(s).
 
-Try for yourself...
+Try for yourself... :-)
 
 You might ask the question: "Why using a Llama when OpenAI and its excellent models are available?"
 
-I did tinker a lot with agents like BabyAGI or AutoGPT and its derivates using gpt-3.5-turbo. With functions like smart internet search, involving summarization in chunks by LLM, or other langchain tools my API rate went ballistic. And that's where I started looking for alternatives. Of course GPT is much more powerful and has bigger context length, but using Llama 100% locally has its own merits...
+I did tinker a lot with agents like BabyAGI or AutoGPT and its derivates, using gpt-3.5-turbo. With new functions and concepts like smart internet search, involving summarization in chunks by LLM, or other langchain tools my API rate went ballistic. And that's where I started looking for alternatives. Of course GPT is much more powerful and has bigger context length, but using Llamas 100% locally has its own merits...
+
+You can find precompiled .bin files of popular Llamas for example here (nomic-ai/gpt4all-chat): https://github.com/nomic-ai/gpt4all/tree/main/gpt4all-chat
+
+The models wizardLM-7B and vicuna-7B do work best for me on MacBook M1 with 16GB RAM. Unfortunately I am not able to persuade a 13B model to run with a reasonable token rate. Runs at something like 1 token per minute.
 
 ********************
 
