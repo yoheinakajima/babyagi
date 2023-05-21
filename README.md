@@ -19,7 +19,7 @@ Try for yourself...
 
 You might ask the question: "Why using a Llama when OpenAI and its excellent models are available?"
 
-I did tinker a lot with agents like BabyAGI or AutoGPT and its derivates using gpt-3.5-turbo. With functions like smart internet search, involving summarization in chunks by LLM, or other langchain tools my API rate went ballistic. And that's where I started looking for alternatives. Of course GPT is much more powerful and has bigger context length, but the using Llama purely local has its own merits.
+I did tinker a lot with agents like BabyAGI or AutoGPT and its derivates using gpt-3.5-turbo. With functions like smart internet search, involving summarization in chunks by LLM, or other langchain tools my API rate went ballistic. And that's where I started looking for alternatives. Of course GPT is much more powerful and has bigger context length, but using Llama 100% locally has its own merits...
 
 ********************
 
