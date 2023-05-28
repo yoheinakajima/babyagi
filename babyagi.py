@@ -505,19 +505,29 @@ def execution_command(objective: str, command: str, task_list: deque,
     #[Test]
     #command = "export PATH=$PATH:$PWD/flutter/bin"
 
-    log("\033[33m\033[1m" + "[[Input]]" + "\033[0m\033[0m" + "\n\n" + command +
-        "\n")
-    
     #log("saburo:")
     # output environment variables
     #for key, value in os.environ.items():
     #    log(f"{key}: {value}")
 
-    current_dir = "."
+    # After the subprocess completes, read the dumped environment variables
+    if os.path.isfile(ENV_DUMP_FILE):
+        with open(ENV_DUMP_FILE, "r") as env_file:
+            for line in env_file:
+                name, _, value = line.partition("=")
+                #log(f"new environment:{value.strip()}")
+                os.environ[name] = value.strip()  # Set the environment variable in the parent process
+                #log(f"set environment:{os.environ[name]}")
 
+    current_dir = "."
     if os.path.isfile(PWD_FILE):
         with open(PWD_FILE, "r") as pwd_file:
             current_dir = pwd_file.read().strip()
+
+    log(f"current_dir:\n{current_dir}\n")
+
+    log("\033[33m\033[1m" + "[[Input]]" + "\033[0m\033[0m" + "\n\n" + command +
+        "\n")
 
     # Add an extra command to dump environment variables to a file
     command_to_execute = f"cd {current_dir}; {command}; echo $? > /tmp/cmd_exit_status; pwd > {PWD_FILE}; env > {ENV_DUMP_FILE}"
@@ -582,15 +592,6 @@ def execution_command(objective: str, command: str, task_list: deque,
     log("\n" + "\033[33m\033[1m" + "[[Output]]" + "\033[0m\033[0m" + "\n\n" +
         result + "\n\n")
     
-    # After the subprocess completes, read the dumped environment variables
-    with open(ENV_DUMP_FILE, "r") as env_file:
-        for line in env_file:
-            name, _, value = line.partition("=")
-            #log(f"new environment:{value.strip()}")
-            os.environ[name] = value.strip()  # Set the environment variable in the parent process
-            #log(f"set environment:{os.environ[name]}")
-            
-
     return result
 
 def user_input_for_waiting(objective: str, lastlines: str, command: str,
