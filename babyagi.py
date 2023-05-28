@@ -20,6 +20,10 @@ import tiktoken as tiktoken
 import re
 import json
 
+#[Test]
+#while True:
+#    time.sleep(100)
+
 # Engine configuration
 
 # Model: GPT, LLAMA, HUMAN, etc.
@@ -37,6 +41,7 @@ assert RESULTS_STORE_NAME, "\033[91m\033[1m" + "RESULTS_STORE_NAME environment v
 # Run configuration
 INSTANCE_NAME = os.getenv("INSTANCE_NAME", os.getenv("BABY_NAME", "BabyCommandAGI"))
 COOPERATIVE_MODE = "none"
+USER_INPUT_LLM = False
 JOIN_EXISTING_OBJECTIVE = False
 MAX_TOKEN = 5000
 MAX_STRING_LENGTH = 6000
@@ -491,27 +496,38 @@ You will perform one task based on the following objectives
 
 # Execute a task based on the objective and five previous tasks
 def execution_command(objective: str, command: str, task_list: deque,
-                      executed_task_list: deque) -> str:
+                      executed_task_list: deque, pty_master: int, slave: int) -> str:
+    #[Test]
+    #command = "export PATH=$PATH:$PWD/flutter/bin"
 
     log("\033[33m\033[1m" + "[[Input]]" + "\033[0m\033[0m" + "\n\n" + command +
         "\n")
+    
+    #log("saburo:")
+    # output environment variables
+    #for key, value in os.environ.items():
+    #    log(f"{key}: {value}")
 
-    pty_master, slave = pty.openpty()
-    process = subprocess.Popen(command,
+    # Add an extra command to dump environment variables to a file
+    command_to_execute = f"{command}; echo $? > /tmp/cmd_exit_status; env > /tmp/env_dump"
+
+    process = subprocess.Popen(command_to_execute,
                              stdin=slave,
                              stdout=slave,
                              stderr=slave,
                              shell=True,
                              text=True,
-                             bufsize=1)
-
-    os.close(slave)
+                             bufsize=1,
+                             env=os.environ)
 
     std_blocks = []
 
     while process.poll() is None:
-        # Check for output with a timeout of 5 seconds
-        reads, _, _ = select.select([pty_master], [], [], 10)
+
+        #time.sleep(100)
+
+        # Check for output with a timeout of some seconds
+        reads, _, _ = select.select([pty_master], [], [], 30)
         if reads:
             for read in reads:
                 try:
@@ -524,32 +540,44 @@ def execution_command(objective: str, command: str, task_list: deque,
                     print(output_block, end="")
                     std_blocks.append(output_block)
         else:
-            # Concatenate the output and split it by lines
-            stdout_lines = "".join(std_blocks).splitlines()
+            if USER_INPUT_LLM:
+                # Concatenate the output and split it by lines
+                stdout_lines = "".join(std_blocks).splitlines()
 
-            # No output received within 5 seconds, call the check_wating_for_response function with the last 3 lines or the entire content
-            lastlines = stdout_lines[-3:] if len(stdout_lines) >= 3 else stdout_lines
-            lastlines = "\n".join(lastlines)
-            input = user_input_for_waiting(objective, lastlines, command,
-                                     "".join(std_blocks), task_list,
-                                     executed_task_list)
-            if input == 'BabyCommandAGI: Complete':
-                return input
-            elif input == 'BabyCommandAGI: Interruption':
-                break
-            elif input == 'BabyCommandAGI: Continue':
-                pass
-            else:
-                input += '\n'
-                os.write(pty_master, input.encode())
+                # No output received within 5 seconds, call the check_wating_for_response function with the last 3 lines or the entire content
+                lastlines = stdout_lines[-3:] if len(stdout_lines) >= 3 else stdout_lines
+                lastlines = "\n".join(lastlines)
+                input = user_input_for_waiting(objective, lastlines, command,
+                                         "".join(std_blocks), task_list,
+                                         executed_task_list)
+                if input == 'BabyCommandAGI: Complete':
+                    return input
+                elif input == 'BabyCommandAGI: Interruption':
+                    break
+                elif input == 'BabyCommandAGI: Continue':
+                    pass
+                else:
+                    input += '\n'
+                    os.write(pty_master, input.encode())
 
-    os.close(pty_master)
     out = "".join(std_blocks)
 
-    result = f"The Return Code for the command is {process.returncode}:\n{out}"
+    with open("/tmp/cmd_exit_status", "r") as status_file:
+        cmd_exit_status = int(status_file.read().strip())
+
+    result = f"The Return Code for the command is {cmd_exit_status}:\n{out}"
 
     log("\n" + "\033[33m\033[1m" + "[[Output]]" + "\033[0m\033[0m" + "\n\n" +
         result + "\n\n")
+    
+    # After the subprocess completes, read the dumped environment variables
+    with open("/tmp/env_dump", "r") as env_file:
+        for line in env_file:
+            name, _, value = line.partition("=")
+            #log(f"new environment:{value.strip()}")
+            os.environ[name] = value.strip()  # Set the environment variable in the parent process
+            #log(f"set environment:{os.environ[name]}")
+            
 
     return result
 
@@ -602,6 +630,9 @@ if tasks_storage.is_empty() or JOIN_EXISTING_OBJECTIVE:
     tasks_storage.append(initial_task)
 
 def main():
+
+    pty_master, slave = pty.openpty()
+
     loop = True
     new_tasks_list = []
     while loop:
@@ -620,7 +651,7 @@ def main():
                 while True:
 
                     result = execution_command(OBJECTIVE, task['content'], tasks_storage.get_tasks(),
-                                    executed_tasks_storage.get_tasks())
+                                    executed_tasks_storage.get_tasks(), pty_master, slave)
                     
 
                     # Step 2: Enrich result and store
@@ -672,6 +703,10 @@ def main():
         save_data(tasks_storage.get_tasks(), TASK_LIST_FILE)
         
         time.sleep(1)
+
+    os.close(slave)
+    os.close(pty_master)
+
 
 if __name__ == "__main__":
     main()
