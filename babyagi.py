@@ -25,6 +25,7 @@ import json
 #    time.sleep(100)
 
 # Engine configuration
+BABY_COMMAND_AGI_FOLDER = "/app"
 
 # Model: GPT, LLAMA, HUMAN, etc.
 LLM_MODEL = os.getenv("LLM_MODEL", os.getenv("OPENAI_API_MODEL", "gpt-4")).lower()
@@ -57,13 +58,13 @@ OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", 0.0))
 hash_object = hashlib.sha1(OBJECTIVE.encode())
 hex_dig = hash_object.hexdigest()
 table_name = f"{hex_dig[:8]}-{RESULTS_STORE_NAME}"
-TASK_LIST_FILE = f"data/{table_name}_task_list.pkl"
-EXECUTED_TASK_LIST_FILE = f"data/{table_name}_executed_task_list.pkl"
+TASK_LIST_FILE = f"{BABY_COMMAND_AGI_FOLDER}/data/{table_name}_task_list.pkl"
+EXECUTED_TASK_LIST_FILE = f"{BABY_COMMAND_AGI_FOLDER}/data/{table_name}_executed_task_list.pkl"
 
 # logger
 logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                     datefmt='%m-%d %H:%M',
-                    filename=f"log/{table_name}.log",
+                    filename=f"{BABY_COMMAND_AGI_FOLDER}/log/{table_name}.log",
                     filemode='a',
                     level=logging.DEBUG)
 def log(message):
@@ -509,7 +510,7 @@ def execution_command(objective: str, command: str, task_list: deque,
     #    log(f"{key}: {value}")
 
     # Add an extra command to dump environment variables to a file
-    command_to_execute = f"{command}; echo $? > /tmp/cmd_exit_status; env > /tmp/env_dump"
+    command_to_execute = f"{command}; echo $? > /tmp/cmd_exit_status; env > {BABY_COMMAND_AGI_FOLDER}/env_var/env_dump"
 
     pty_master, slave = pty.openpty()
     process = subprocess.Popen(command_to_execute,
