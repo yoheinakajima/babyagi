@@ -658,6 +658,7 @@ def main():
                 log("\033[33m\033[1m" + "*****EXCUTE COMMAND TASK*****\n\n" +
                 "\033[0m\033[0m")
 
+                is_next_plan = False
                 while True:
 
                     result = execution_command(OBJECTIVE, task['content'], tasks_storage.get_tasks(),
@@ -684,9 +685,13 @@ def main():
                         if next_task['type'] == "command":
                             task = tasks_storage.popleft()
                         else:
+                            is_next_plan = True
                             break
 
                 log("\033[32m\033[1m" + "*****TASK RESULT*****\n\n" + "\033[0m\033[0m")
+
+                if is_next_plan:
+                    continue
 
                 # Step 3: Create new tasks and reprioritize task list
                 new_tasks_list = check_completion_agent(OBJECTIVE, result,
