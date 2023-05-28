@@ -60,6 +60,8 @@ hex_dig = hash_object.hexdigest()
 table_name = f"{hex_dig[:8]}-{RESULTS_STORE_NAME}"
 TASK_LIST_FILE = f"{BABY_COMMAND_AGI_FOLDER}/data/{table_name}_task_list.pkl"
 EXECUTED_TASK_LIST_FILE = f"{BABY_COMMAND_AGI_FOLDER}/data/{table_name}_executed_task_list.pkl"
+PWD_FILE = f"{BABY_COMMAND_AGI_FOLDER}/pwd/{table_name}"
+ENV_VAR_FILE = f"{BABY_COMMAND_AGI_FOLDER}/env_/{table_name}"
 
 # logger
 logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
@@ -509,8 +511,15 @@ def execution_command(objective: str, command: str, task_list: deque,
     #for key, value in os.environ.items():
     #    log(f"{key}: {value}")
 
+    current_dir = "."
+    last_pwd_path = f"{BABY_COMMAND_AGI_FOLDER}/pwd/last_pwd"
+
+    if os.path.isfile(last_pwd_path):
+        with open(last_pwd_path, "r") as pwd_file:
+            current_dir = pwd_file.read().strip()
+
     # Add an extra command to dump environment variables to a file
-    command_to_execute = f"{command}; echo $? > /tmp/cmd_exit_status; env > {BABY_COMMAND_AGI_FOLDER}/env_var/env_dump"
+    command_to_execute = f"cd {current_dir}; {command}; echo $? > /tmp/cmd_exit_status; pwd > {BABY_COMMAND_AGI_FOLDER}/pwd/last_pwd; env > {BABY_COMMAND_AGI_FOLDER}/env_var/env_dump"
 
     pty_master, slave = pty.openpty()
     process = subprocess.Popen(command_to_execute,
@@ -573,7 +582,7 @@ def execution_command(objective: str, command: str, task_list: deque,
         result + "\n\n")
     
     # After the subprocess completes, read the dumped environment variables
-    with open("/tmp/env_dump", "r") as env_file:
+    with open(f"{BABY_COMMAND_AGI_FOLDER}/env_var/env_dump", "r") as env_file:
         for line in env_file:
             name, _, value = line.partition("=")
             #log(f"new environment:{value.strip()}")
@@ -650,7 +659,7 @@ def main():
                 while True:
 
                     result = execution_command(OBJECTIVE, task['content'], tasks_storage.get_tasks(),
-                                    executed_tasks_storage.get_tasks(), pty_master, slave)
+                                    executed_tasks_storage.get_tasks())
                     
 
                     # Step 2: Enrich result and store
