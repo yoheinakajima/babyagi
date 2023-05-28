@@ -496,7 +496,7 @@ You will perform one task based on the following objectives
 
 # Execute a task based on the objective and five previous tasks
 def execution_command(objective: str, command: str, task_list: deque,
-                      executed_task_list: deque, pty_master: int, slave: int) -> str:
+                      executed_task_list: deque) -> str:
     #[Test]
     #command = "export PATH=$PATH:$PWD/flutter/bin"
 
@@ -511,6 +511,7 @@ def execution_command(objective: str, command: str, task_list: deque,
     # Add an extra command to dump environment variables to a file
     command_to_execute = f"{command}; echo $? > /tmp/cmd_exit_status; env > /tmp/env_dump"
 
+    pty_master, slave = pty.openpty()
     process = subprocess.Popen(command_to_execute,
                              stdin=slave,
                              stdout=slave,
@@ -519,12 +520,11 @@ def execution_command(objective: str, command: str, task_list: deque,
                              text=True,
                              bufsize=1,
                              env=os.environ)
+    os.close(slave)
 
     std_blocks = []
 
     while process.poll() is None:
-
-        #time.sleep(100)
 
         # Check for output with a timeout of some seconds
         reads, _, _ = select.select([pty_master], [], [], 30)
@@ -560,6 +560,7 @@ def execution_command(objective: str, command: str, task_list: deque,
                     input += '\n'
                     os.write(pty_master, input.encode())
 
+    os.close(pty_master)
     out = "".join(std_blocks)
 
     with open("/tmp/cmd_exit_status", "r") as status_file:
@@ -630,9 +631,6 @@ if tasks_storage.is_empty() or JOIN_EXISTING_OBJECTIVE:
     tasks_storage.append(initial_task)
 
 def main():
-
-    pty_master, slave = pty.openpty()
-
     loop = True
     new_tasks_list = []
     while loop:
@@ -703,10 +701,6 @@ def main():
         save_data(tasks_storage.get_tasks(), TASK_LIST_FILE)
         
         time.sleep(1)
-
-    os.close(slave)
-    os.close(pty_master)
-
 
 if __name__ == "__main__":
     main()
