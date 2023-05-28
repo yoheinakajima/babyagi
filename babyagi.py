@@ -42,7 +42,9 @@ assert RESULTS_STORE_NAME, "\033[91m\033[1m" + "RESULTS_STORE_NAME environment v
 # Run configuration
 INSTANCE_NAME = os.getenv("INSTANCE_NAME", os.getenv("BABY_NAME", "BabyCommandAGI"))
 COOPERATIVE_MODE = "none"
-USER_INPUT_LLM = False
+# If USER_INPUT_LLM is set to True, the LLM will automatically respond if there is a confirmation when executing a command, 
+# but be aware that this will increase the number of times the LLM is used and increase the cost of the API, etc.
+USER_INPUT_LLM = True
 JOIN_EXISTING_OBJECTIVE = False
 MAX_TOKEN = 5000
 MAX_STRING_LENGTH = 6000
@@ -61,7 +63,7 @@ table_name = f"{hex_dig[:8]}-{RESULTS_STORE_NAME}"
 TASK_LIST_FILE = f"{BABY_COMMAND_AGI_FOLDER}/data/{table_name}_task_list.pkl"
 EXECUTED_TASK_LIST_FILE = f"{BABY_COMMAND_AGI_FOLDER}/data/{table_name}_executed_task_list.pkl"
 PWD_FILE = f"{BABY_COMMAND_AGI_FOLDER}/pwd/{table_name}"
-ENV_VAR_FILE = f"{BABY_COMMAND_AGI_FOLDER}/env_/{table_name}"
+ENV_DUMP_FILE = f"{BABY_COMMAND_AGI_FOLDER}/env_dump/{table_name}"
 
 # logger
 logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
@@ -512,14 +514,13 @@ def execution_command(objective: str, command: str, task_list: deque,
     #    log(f"{key}: {value}")
 
     current_dir = "."
-    last_pwd_path = f"{BABY_COMMAND_AGI_FOLDER}/pwd/last_pwd"
 
-    if os.path.isfile(last_pwd_path):
-        with open(last_pwd_path, "r") as pwd_file:
+    if os.path.isfile(PWD_FILE):
+        with open(PWD_FILE, "r") as pwd_file:
             current_dir = pwd_file.read().strip()
 
     # Add an extra command to dump environment variables to a file
-    command_to_execute = f"cd {current_dir}; {command}; echo $? > /tmp/cmd_exit_status; pwd > {BABY_COMMAND_AGI_FOLDER}/pwd/last_pwd; env > {BABY_COMMAND_AGI_FOLDER}/env_var/env_dump"
+    command_to_execute = f"cd {current_dir}; {command}; echo $? > /tmp/cmd_exit_status; pwd > {PWD_FILE}; env > {ENV_DUMP_FILE}"
 
     pty_master, slave = pty.openpty()
     process = subprocess.Popen(command_to_execute,
@@ -537,7 +538,7 @@ def execution_command(objective: str, command: str, task_list: deque,
     while process.poll() is None:
 
         # Check for output with a timeout of some seconds
-        reads, _, _ = select.select([pty_master], [], [], 30)
+        reads, _, _ = select.select([pty_master], [], [], 60)
         if reads:
             for read in reads:
                 try:
@@ -582,7 +583,7 @@ def execution_command(objective: str, command: str, task_list: deque,
         result + "\n\n")
     
     # After the subprocess completes, read the dumped environment variables
-    with open(f"{BABY_COMMAND_AGI_FOLDER}/env_var/env_dump", "r") as env_file:
+    with open(ENV_DUMP_FILE, "r") as env_file:
         for line in env_file:
             name, _, value = line.partition("=")
             #log(f"new environment:{value.strip()}")

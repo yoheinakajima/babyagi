@@ -23,6 +23,10 @@ data/*
 !data/.gitkeep
 log/*
 !log/.gitkeep
+pwd/*
+!pwd/.gitkeep
+env_dump/*
+!env_dump/.gitkeep
 
 # for node
 chroma/
