@@ -50,11 +50,17 @@ docker-compose up
 
 **Note: The agent might loop indefinitely if it cannot achieve its objective. Please be aware of the cost of OpenAI API usage.**
 
-If the execution fails, you can restart it from where you left off by running it again. If you want to execute from the initial state, please change the RESULTS_STORE_NAME in the ```.env``` file.
+If you fail, you can resume from where you left off by running it again. If you want to run the task from the initial state, please change the RESULTS_STORE_NAME in ```.env```.
 
-Different tasks will be stored separately when the OBJECTIVE is different.
+Different tasks will be saved separately when the OBJECTIVE is different.
 
-The tasks that have been executed up to a certain point are saved under the ```data``` folder.
+The following are saved up to the point where they were executed:
+- Tasks executed up to a certain point are saved under the ```data``` folder.
+- The last current directory is under the ```pwd``` folder.
+- The dump of the last environment variables is under the ```env_dump``` folder.
+
+If you want to reset the environment, not the task, please delete the Docker container of BabyCommandAGI. In that case, we recommend changing the RESULTS_STORE_NAME as well.
+(Because BabyCommandAGI executes various commands, the environment may be broken)
 
 # Logs
 
