@@ -547,8 +547,8 @@ def execution_command(objective: str, command: str, task_list: deque,
 
     while process.poll() is None:
 
-        # Check for output with a timeout of some seconds
-        reads, _, _ = select.select([pty_master], [], [], 60)
+        # Check for output with a timeout of some minutes
+        reads, _, _ = select.select([pty_master], [], [], 300)
         if reads:
             for read in reads:
                 try:
