@@ -17,7 +17,7 @@ from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 from chromadb.api.types import Documents, EmbeddingFunction, Embeddings
 import re
 
-# default opt out of chromadb telemetry.
+# Default opt out of chromadb telemetry.
 from chromadb.config import Settings
 
 client = chromadb.Client(Settings(anonymized_telemetry=False))
@@ -368,7 +368,7 @@ def openai_call(
                 return response.choices[0].text.strip()
             else:
                 # Use 4000 instead of the real limit (4097) to give a bit of wiggle room for the encoding of roles.
-                # TODO: different limits for different models.
+                # TODO: Different limits for different models.
 
                 trimmed_prompt = limit_tokens_from_string(prompt, model, 4000 - max_tokens)
 
@@ -387,32 +387,32 @@ def openai_call(
             print(
                 "   *** The OpenAI API rate limit has been exceeded. Waiting 10 seconds and trying again. ***"
             )
-            time.sleep(10)  # Wait 10 seconds and try again
+            time.sleep(10)
         except openai.error.Timeout:
             print(
                 "   *** OpenAI API timeout occurred. Waiting 10 seconds and trying again. ***"
             )
-            time.sleep(10)  # Wait 10 seconds and try again
+            time.sleep(10)
         except openai.error.APIError:
             print(
                 "   *** OpenAI API error occurred. Waiting 10 seconds and trying again. ***"
             )
-            time.sleep(10)  # Wait 10 seconds and try again
+            time.sleep(10)
         except openai.error.APIConnectionError:
             print(
                 "   *** OpenAI API connection error occurred. Check your network settings, proxy configuration, SSL certificates, or firewall rules. Waiting 10 seconds and trying again. ***"
             )
-            time.sleep(10)  # Wait 10 seconds and try again
+            time.sleep(10)
         except openai.error.InvalidRequestError:
             print(
                 "   *** OpenAI API invalid request. Check the documentation for the specific API method you are calling and make sure you are sending valid and complete parameters. Waiting 10 seconds and trying again. ***"
             )
-            time.sleep(10)  # Wait 10 seconds and try again
+            time.sleep(10)
         except openai.error.ServiceUnavailableError:
             print(
                 "   *** OpenAI API service unavailable. Waiting 10 seconds and trying again. ***"
             )
-            time.sleep(10)  # Wait 10 seconds and try again
+            time.sleep(10)
         else:
             break
 
@@ -571,7 +571,7 @@ def main():
             enriched_result = {
                 "data": result
             }
-            # extract the actual result from the dictionary
+            # Extract the actual result from the dictionary
             # since we don't do enrichment currently
             # vector = enriched_result["data"]
 
@@ -580,7 +580,7 @@ def main():
             results_storage.add(task, result, result_id)
 
             # Step 3: Create new tasks and re-prioritize task list
-            # only the main instance in cooperative mode does that
+            # Only the main instance in cooperative mode does that
             new_tasks = task_creation_agent(
                 OBJECTIVE,
                 enriched_result,
