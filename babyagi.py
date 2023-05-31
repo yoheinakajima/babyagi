@@ -248,6 +248,18 @@ class DefaultResultsStorage:
 
 
 # Initialize results storage
+def try_vectara():
+    vectara_api_key = os.getenv("VECTARA_API_KEY", None)
+    vectara_customer_id = os.getenv("VECTARA_CUSTOMER_ID", None)
+    vectara_corpus_id = os.getenv("VECTARA_CORPUS_ID", None)
+    if vectara_api_key is not None:
+        if vectara_corpus_id is None or vectara_customer_id is None:
+            print("Vectara API key available in os.environ but VECTARA_CUSTOMER_ID and VECTARA_CORPUS_ID also need to be specified")
+            return None
+    from extensions.vectara_storage import VectaraResultsStorage
+    print("\nUsing results storage: " + "\033[93m\033[1m" + "VECTARA" + "\033[0m\033[0m")
+    return VectaraResultsStorage(vectara_api_key, vectara_customer_id, vectara_corpus_id)       
+
 def try_weaviate():
     WEAVIATE_URL = os.getenv("WEAVIATE_URL", "")
     WEAVIATE_USE_EMBEDDED = os.getenv("WEAVIATE_USE_EMBEDDED", "False").lower() == "true"
@@ -274,7 +286,7 @@ def use_chroma():
     print("\nUsing results storage: " + "\033[93m\033[1m" + "Chroma (Default)" + "\033[0m\033[0m")
     return DefaultResultsStorage()
 
-results_storage = try_weaviate() or try_pinecone() or use_chroma()
+results_storage = try_vectara() or try_weaviate() or try_pinecone() or use_chroma()
 
 # Task storage supporting only a single instance of BabyAGI
 class SingleTaskListStorage:
