@@ -5,8 +5,3 @@ pre-commit>=3.2.0
 python-dotenv==1.0.0
 tiktoken==0.3.3
 llama-cpp-python>=0.1.42
-
-requests~=2.31.0
-pandas~=2.0.2
-numpy~=1.24.3
-transformers~=4.29.2
