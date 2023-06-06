@@ -32,7 +32,7 @@ This README will cover the following:
 
 - [Supported Models](#supported-models)
 
-- [Warning about running the script continuously](#continous-script-warning)
+- [Warning about running the script continuously](#continuous-script-warning)
 
 # How It Works<a name="how-it-works"></a>
 
@@ -92,7 +92,7 @@ Llama integration requires llama-cpp package. You will also need the Llama model
 
 Once you have them, set LLAMA_MODEL_PATH to the path of the specific model to use. For convenience, you can link `models` in BabyAGI repo to the folder where you have the Llama model weights. Then run the script with `LLM_MODEL=llama` or `-l` argument.
 
-# Warning<a name="continous-script-warning"></a>
+# Warning<a name="continuous-script-warning"></a>
 
 This script is designed to be run continuously as part of a task management system. Running this script continuously can result in high API usage, so please use it responsibly. Additionally, the script requires the OpenAI API to be set up correctly, so make sure you have set up the API before running the script.
 
