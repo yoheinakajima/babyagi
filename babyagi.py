@@ -256,6 +256,19 @@ def try_weaviate():
         from extensions.weaviate_storage import WeaviateResultsStorage
         print("\nUsing results storage: " + "\033[93m\033[1m" + "Weaviate" + "\033[0m\033[0m")
         return WeaviateResultsStorage(OPENAI_API_KEY, WEAVIATE_URL, WEAVIATE_API_KEY, WEAVIATE_USE_EMBEDDED, LLM_MODEL, LLAMA_MODEL_PATH, RESULTS_STORE_NAME, OBJECTIVE)
+
+    return None
+
+
+def try_tair():
+    TAIR_HOST = os.getenv("TAIR_HOST", "")
+    if TAIR_HOST and can_import("extensions.tair_storage"):
+        TAIR_PORT = int(os.getenv("TAIR_PORT", ""))
+        TAIR_USERNAME = os.getenv("TAIR_USERNAME", "")
+        TAIR_PASSWORD = os.getenv("TAIR_PASSWORD", "")
+        from extensions.tair_storage import TairResultsStorage
+        print("\nUsing results storage: " + "\033[93m\033[1m" + "Tair" + "\033[0m\033[0m")
+        return TairResultsStorage(OPENAI_API_KEY, TAIR_HOST, TAIR_PORT, TAIR_USERNAME, TAIR_PASSWORD, LLM_MODEL, LLAMA_MODEL_PATH, RESULTS_STORE_NAME, OBJECTIVE)
     return None
 
 def try_pinecone():
@@ -274,7 +287,9 @@ def use_chroma():
     print("\nUsing results storage: " + "\033[93m\033[1m" + "Chroma (Default)" + "\033[0m\033[0m")
     return DefaultResultsStorage()
 
-results_storage = try_weaviate() or try_pinecone() or use_chroma()
+
+results_storage = try_tair() or try_weaviate() or try_pinecone() or use_chroma()
+
 
 # Task storage supporting only a single instance of BabyAGI
 class SingleTaskListStorage:
