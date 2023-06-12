@@ -14,7 +14,7 @@
 
 # 目标
 
-此 Python 脚本是一个 AI 支持的任务管理系统示例. 该系统使用 OpenAI 和 Pinecone API 创建, 优先级排序和执行任务. 该系统背后的主要思想是基于先前任务的结果和预定义的目标创建任务. 脚本然后使用 OpenAI 的自然语言处理（NLP）能力根据目标创建新任务, 并使用 Pinecone 存储和检索任务结果以获得上下文. 这是原始的[任务驱动的自驱代理](https://twitter.com/yoheinakajima/status/1640934493489070080?s=20)（2023 年 3 月 28 日）的简化版本.
+此 Python 脚本是一个 AI 支持的任务管理系统示例. 该系统使用 OpenAI 和 Milvus/Pinecone API 创建, 优先级排序和执行任务. 该系统背后的主要思想是基于先前任务的结果和预定义的目标创建任务. 脚本然后使用 OpenAI 的自然语言处理（NLP）能力根据目标创建新任务, 并使用 Milvus/Pinecone 存储和检索任务结果以获得上下文. 这是原始的[任务驱动的自驱代理](https://twitter.com/yoheinakajima/status/1640934493489070080?s=20)（2023 年 3 月 28 日）的简化版本.
 
 README 将涵盖以下内容:
 
@@ -32,7 +32,7 @@ README 将涵盖以下内容:
 
 1. 从任务列表中提取第一个任务.
 2. 将任务发送给执行代理, 该代理使用 OpenAI API 根据上下文完成任务.
-3. 丰润结果并将其存储在 Pinecone 中.
+3. 丰润结果并将其存储在 Milvus/Pinecone 中.
 4. 基于目标和前一个任务的结果创建新任务, 并根据优先级对任务列表进行排序.
    </br>
 
@@ -42,7 +42,7 @@ task_creation_agent()函数使用 OpenAI API 根据目标和前一个任务的�
 </br>
 prioritization_agent()函数使用 OpenAI API 对任务列表进行重新排序. 该函数接受一个参数, 即当前任务的 ID. 它向 OpenAI 的 API 发送一个 prompt, 该 API 返回一个重新排序的任务列表(以数字编号).
 
-最后, 脚本使用 Pinecone 存储和检索任务结果以获取上下文. 脚本根据 YOUR_TABLE_NAME 变量中指定的表名创建一个 Pinecone 索引. 然后 Pinecone 将任务结果与任务名称和任何其他元数据(metadata)一起存储在索引中.
+最后, 脚本使用 Milvus/Pinecone 存储和检索任务结果以获取上下文. 脚本根据 YOUR_TABLE_NAME 变量中指定的表名创建一个 Milvus/Pinecone 索引. 然后 Milvus/Pinecone 将任务结果与任务名称和任何其他元数据(metadata)一起存储在索引中.
 
 # 咋用 <a name="how-to-use"></a>
 
@@ -51,8 +51,8 @@ prioritization_agent()函数使用 OpenAI API 对任务列表进行重新排序.
 1. 通过 `git clone https://github.com/yoheinakajima/babyagi.git` 克隆 repository(仓库), 然后使用`cd`进入克隆的 repo.
 2. 安装所需的包：`pip install -r requirements.txt`
 3. 将.env.example 文件复制到.env: `cp .env.example .env`. 在这里, 您将设置以下变量.
-4. 在 OPENAI_API_KEY, OPENAPI_API_MODEL 和 PINECONE_API_KEY 变量中设置您的 OpenAI 和 Pinecone API 密钥.
-5. 在 PINECONE_ENVIRONMENT 变量中设置 Pinecone 环境.
+4. 在 OPENAI_API_KEY, OPENAPI_API_MODEL, MILVUS_URI/PINECONE_API_KEY 变量中设置您的 OpenAI 和 Milvus URI 或 Pinecone API 密钥.
+5. 在 MILVUS_VECTOR_FIELD/PINECONE_ENVIRONMENT 变量中设置 Milvus/Pinecone 环境.
 6. 在 TABLE_NAME 变量中设置存储任务结果的表的名称. 7.（可选）在 OBJECTIVE 变量中设置任务管理系统的目标. 8.（可选）在 INITIAL_TASK 变量中设置系统的第一个任务.
 7. 运行脚本.
 
@@ -72,7 +72,7 @@ prioritization_agent()函数使用 OpenAI API 对任务列表进行重新排序.
 
 # 高能警告<a name="continous-script-warning"></a>
 
-该脚本被设计为作为任务管理系统的一部分持续运行. 持续运行此脚本可能导致 API 的**使用费超高**, 请务必谨慎使用并后果自负. 此外, 脚本需要正确设置 OpenAI 和 Pinecone API, 因此请确保在运行脚本之前已经设置了 API.
+该脚本被设计为作为任务管理系统的一部分持续运行. 持续运行此脚本可能导致 API 的**使用费超高**, 请务必谨慎使用并后果自负. 此外, 脚本需要正确设置 OpenAI 和 Milvus/Pinecone API, 因此请确保在运行脚本之前已经设置了 API.
 
 # 贡献
 
