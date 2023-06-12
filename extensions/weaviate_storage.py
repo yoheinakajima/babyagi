@@ -88,9 +88,10 @@ class WeaviateResultsStorage:
 
         self.index_name = results_store_name
 
-    def add(self, task: Dict, result: Dict, result_id: int, vector: List):
+    def add(self, task: Dict, result: Dict, result_id: int, vector: List = None):
         enriched_result = {"data": result}
-        vector = self.get_embedding(enriched_result["data"])
+        if vector is not None:
+            vector = self.get_embedding(enriched_result["data"])
 
         with self.client.batch as batch:
             data_object = {
