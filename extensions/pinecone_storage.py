@@ -20,9 +20,6 @@ class PineconeResultsStorage:
         openai.api_key = openai_api_key
         pinecone.init(api_key=pinecone_api_key, environment=pinecone_environment)
 
-        # Pinecone namespaces are only compatible with ascii characters (used in query and upsert)
-        self.namespace = re.sub(re.compile('[^\x00-\x7F]+'), '', objective)
-
         self.llm_model = llm_model
         self.llama_model_path = llama_model_path
 
@@ -44,12 +41,11 @@ class PineconeResultsStorage:
             result
         )
         self.index.upsert(
-            [(result_id, vector, {"task": task["task_name"], "result": result})], namespace=self.namespace
-        )
+            [(result_id, vector, {"task": task["task_name"], "result": result})])
 
     def query(self, query: str, top_results_num: int) -> List[dict]:
         query_embedding = self.get_embedding(query)
-        results = self.index.query(query_embedding, top_k=top_results_num, include_metadata=True, namespace=self.namespace)
+        results = self.index.query(query_embedding, top_k=top_results_num, include_metadata=True)
         sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)
         return [(str(item.metadata["task"])) for item in sorted_results]
 
