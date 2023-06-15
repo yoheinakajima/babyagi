@@ -15,12 +15,14 @@ import chromadb
 import tiktoken as tiktoken
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 from chromadb.api.types import Documents, EmbeddingFunction, Embeddings
+from hayloft.logger import logger
 import re
 
 # default opt out of chromadb telemetry.
 from chromadb.config import Settings
 
 client = chromadb.Client(Settings(anonymized_telemetry=False))
+log = logger()
 
 # Engine configuration
 
@@ -97,6 +99,11 @@ print("\033[95m\033[1m" + "\n*****CONFIGURATION*****\n" + "\033[0m\033[0m")
 print(f"Name  : {INSTANCE_NAME}")
 print(f"Mode  : {'alone' if COOPERATIVE_MODE in ['n', 'none'] else 'local' if COOPERATIVE_MODE in ['l', 'local'] else 'distributed' if COOPERATIVE_MODE in ['d', 'distributed'] else 'undefined'}")
 print(f"LLM   : {LLM_MODEL}")
+log(title="CONFIGURATION", message=f"""
+Name  : {INSTANCE_NAME}  
+Mode  : {'alone' if COOPERATIVE_MODE in ['n', 'none'] else 'local' if COOPERATIVE_MODE in ['l', 'local'] else 'distributed' if COOPERATIVE_MODE in ['d', 'distributed'] else 'undefined'}
+LLM   : {LLM_MODEL}
+""")
 
 
 # Check if we know what we are doing
@@ -138,12 +145,14 @@ if LLM_MODEL.startswith("llama"):
             + "\n*****USING LLAMA.CPP. POTENTIALLY SLOW.*****"
             + "\033[0m\033[0m"
         )
+        log(title="Llama model", message='Initialize model for evaluation and embedding')
     else:
         print(
             "\033[91m\033[1m"
             + "\nLlama LLM requires package llama-cpp. Falling back to GPT-3.5-turbo."
             + "\033[0m\033[0m"
         )
+        log(title="Llama model", message='Llama LLM requires package llama-cpp. Falling back to GPT-3.5-turbo.')
         LLM_MODEL = "gpt-3.5-turbo"
 
 if LLM_MODEL.startswith("gpt-4"):
@@ -152,6 +161,7 @@ if LLM_MODEL.startswith("gpt-4"):
         + "\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"
         + "\033[0m\033[0m"
     )
+    log(title="USING GPT-4", message='POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS')
 
 if LLM_MODEL.startswith("human"):
     print(
@@ -159,14 +169,18 @@ if LLM_MODEL.startswith("human"):
         + "\n*****USING HUMAN INPUT*****"
         + "\033[0m\033[0m"
     )
+    log(title="USING HUMAN INPUT")
 
 print("\033[94m\033[1m" + "\n*****OBJECTIVE*****\n" + "\033[0m\033[0m")
 print(f"{OBJECTIVE}")
+log(title="OBJECTIVE", message=f"{OBJECTIVE}")
 
 if not JOIN_EXISTING_OBJECTIVE:
     print("\033[93m\033[1m" + "\nInitial task:" + "\033[0m\033[0m" + f" {INITIAL_TASK}")
+    log(title="Initial task", message=f"{INITIAL_TASK}")
 else:
     print("\033[93m\033[1m" + f"\nJoining to help the objective" + "\033[0m\033[0m")
+    log(title="Joining to help the objective")
 
 # Configure OpenAI
 openai.api_key = OPENAI_API_KEY
@@ -255,6 +269,7 @@ def try_weaviate():
         WEAVIATE_API_KEY = os.getenv("WEAVIATE_API_KEY", "")
         from extensions.weaviate_storage import WeaviateResultsStorage
         print("\nUsing results storage: " + "\033[93m\033[1m" + "Weaviate" + "\033[0m\033[0m")
+        log(title="Weaviate", message="Using Weaviate as results storage")
         return WeaviateResultsStorage(OPENAI_API_KEY, WEAVIATE_URL, WEAVIATE_API_KEY, WEAVIATE_USE_EMBEDDED, LLM_MODEL, LLAMA_MODEL_PATH, RESULTS_STORE_NAME, OBJECTIVE)
     return None
 
@@ -267,11 +282,13 @@ def try_pinecone():
         ), "\033[91m\033[1m" + "PINECONE_ENVIRONMENT environment variable is missing from .env" + "\033[0m\033[0m"
         from extensions.pinecone_storage import PineconeResultsStorage
         print("\nUsing results storage: " + "\033[93m\033[1m" + "Pinecone" + "\033[0m\033[0m")
+        log(title="Pinecone", message="Using Pinecone as results storage")
         return PineconeResultsStorage(OPENAI_API_KEY, PINECONE_API_KEY, PINECONE_ENVIRONMENT, LLM_MODEL, LLAMA_MODEL_PATH, RESULTS_STORE_NAME, OBJECTIVE)
     return None
 
 def use_chroma():
     print("\nUsing results storage: " + "\033[93m\033[1m" + "Chroma (Default)" + "\033[0m\033[0m")
+    log(title="Chroma (Default)", message="Using Chroma (Default) as results storage")
     return DefaultResultsStorage()
 
 results_storage = try_weaviate() or try_pinecone() or use_chroma()
@@ -314,6 +331,7 @@ if COOPERATIVE_MODE in ['l', 'local']:
 
         tasks_storage = CooperativeTaskListStorage(OBJECTIVE)
         print("\nReplacing tasks storage: " + "\033[93m\033[1m" + "Ray" + "\033[0m\033[0m")
+        log(title="Replacing tasks storage")
 elif COOPERATIVE_MODE in ['d', 'distributed']:
     pass
 
@@ -387,31 +405,37 @@ def openai_call(
             print(
                 "   *** The OpenAI API rate limit has been exceeded. Waiting 10 seconds and trying again. ***"
             )
+            log(title="Rate limit", message="The OpenAI API rate limit has been exceeded. Waiting 10 seconds and trying again.")
             time.sleep(10)  # Wait 10 seconds and try again
         except openai.error.Timeout:
             print(
                 "   *** OpenAI API timeout occurred. Waiting 10 seconds and trying again. ***"
             )
+            log(title="Timeout", message="OpenAI API timeout occurred. Waiting 10 seconds and trying again.")
             time.sleep(10)  # Wait 10 seconds and try again
         except openai.error.APIError:
             print(
                 "   *** OpenAI API error occurred. Waiting 10 seconds and trying again. ***"
             )
+            log(title="API error", message="OpenAI API error occurred. Waiting 10 seconds and trying again.")
             time.sleep(10)  # Wait 10 seconds and try again
         except openai.error.APIConnectionError:
             print(
                 "   *** OpenAI API connection error occurred. Check your network settings, proxy configuration, SSL certificates, or firewall rules. Waiting 10 seconds and trying again. ***"
             )
+            log(title="Connection error", message="OpenAI API connection error occurred. Check your network settings, proxy configuration, SSL certificates, or firewall rules. Waiting 10 seconds and trying again.")
             time.sleep(10)  # Wait 10 seconds and try again
         except openai.error.InvalidRequestError:
             print(
                 "   *** OpenAI API invalid request. Check the documentation for the specific API method you are calling and make sure you are sending valid and complete parameters. Waiting 10 seconds and trying again. ***"
             )
+            log(title="Invalid Request", message="OpenAI API invalid request. Check the documentation for the specific API method you are calling and make sure you are sending valid and complete parameters. Waiting 10 seconds and trying again.") 
             time.sleep(10)  # Wait 10 seconds and try again
         except openai.error.ServiceUnavailableError:
             print(
                 "   *** OpenAI API service unavailable. Waiting 10 seconds and trying again. ***"
             )
+            log(title="Service unavailable", message="OpenAI API service unavailable. Waiting 10 seconds and trying again.")
             time.sleep(10)  # Wait 10 seconds and try again
         else:
             break
@@ -441,8 +465,10 @@ The number of each entry must be followed by a period. If your list is empty, wr
 Unless your list is empty, do not include any headers before your numbered list or follow your numbered list with any other output."""
 
     print(f'\n*****TASK CREATION AGENT PROMPT****\n{prompt}\n')
+    log(title="TASK CREATION AGENT PROMPT", message=prompt, type="prompt")
     response = openai_call(prompt, max_tokens=2000)
     print(f'\n****TASK CREATION AGENT RESPONSE****\n{response}\n')
+    log(title="TASK CREATION AGENT RESPONSE", message=response, type="completion")
     new_tasks = response.split('\n')
     new_tasks_list = []
     for task_string in new_tasks:
@@ -475,10 +501,13 @@ The entries must be consecutively numbered, starting with 1. The number of each 
 Do not include any headers before your ranked list or follow your list with any other output."""
 
     print(f'\n****TASK PRIORITIZATION AGENT PROMPT****\n{prompt}\n')
+    log(title="TASK PRIORITIZATION AGENT PROMPT", message=prompt, type="prompt")
     response = openai_call(prompt, max_tokens=2000)
     print(f'\n****TASK PRIORITIZATION AGENT RESPONSE****\n{response}\n')
+    log(title="TASK PRIORITIZATION AGENT RESPONSE", message=response, type="completion")
     if not response:
         print('Received empty response from priotritization agent. Keeping task list unchanged.')
+        log(title="EMPTY RESPONSE", message='Received empty response from priotritization agent. Keeping task list unchanged.')
         return
     new_tasks = response.split("\n") if "\n" in response else [response]
     new_tasks_list = []
@@ -553,18 +582,23 @@ def main():
         if not tasks_storage.is_empty():
             # Print the task list
             print("\033[95m\033[1m" + "\n*****TASK LIST*****\n" + "\033[0m\033[0m")
+            tasks = ""
             for t in tasks_storage.get_task_names():
                 print(" • " + str(t))
+                tasks += f" • {str(t)}\n"
+            log(title="TASK LIST", message=tasks)
 
             # Step 1: Pull the first incomplete task
             task = tasks_storage.popleft()
             print("\033[92m\033[1m" + "\n*****NEXT TASK*****\n" + "\033[0m\033[0m")
             print(str(task["task_name"]))
+            log(title="NEXT TASK", message=str(task["task_name"]))
 
             # Send to execution function to complete the task based on the context
             result = execution_agent(OBJECTIVE, str(task["task_name"]))
             print("\033[93m\033[1m" + "\n*****TASK RESULT*****\n" + "\033[0m\033[0m")
             print(result)
+            log(title="TASK RESULT", message=result, type="completion")
 
             # Step 2: Enrich result and store in the results storage
             # This is where you should enrich the result if needed
