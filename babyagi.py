@@ -22,6 +22,9 @@ from chromadb.config import Settings
 
 client = chromadb.Client(Settings(anonymized_telemetry=False))
 
+# Use Weaviate instead of ChromaDB
+WEAVIATE_USE_EMBEDDED = os.getenv("WEAVIATE_USE_EMBEDDED", "False").lower() == "true"
+
 # Engine configuration
 
 # Model: GPT, LLAMA, HUMAN, etc.
@@ -250,7 +253,6 @@ class DefaultResultsStorage:
 # Initialize results storage
 def try_weaviate():
     WEAVIATE_URL = os.getenv("WEAVIATE_URL", "")
-    WEAVIATE_USE_EMBEDDED = os.getenv("WEAVIATE_USE_EMBEDDED", "False").lower() == "true"
     if (WEAVIATE_URL or WEAVIATE_USE_EMBEDDED) and can_import("extensions.weaviate_storage"):
         WEAVIATE_API_KEY = os.getenv("WEAVIATE_API_KEY", "")
         from extensions.weaviate_storage import WeaviateResultsStorage
@@ -573,11 +575,11 @@ def main():
             }
             # extract the actual result from the dictionary
             # since we don't do enrichment currently
-            # vector = enriched_result["data"]
+            vector = enriched_result["data"] if WEAVIATE_USE_EMBEDDED else None
 
             result_id = f"result_{task['task_id']}"
 
-            results_storage.add(task, result, result_id)
+            results_storage.add(task, result, result_id, vector=vector)
 
             # Step 3: Create new tasks and re-prioritize task list
             # only the main instance in cooperative mode does that
