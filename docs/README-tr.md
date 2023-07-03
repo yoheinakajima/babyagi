@@ -40,7 +40,7 @@ Son olarak, betik, bağlam için görev sonuçlarını depolamak ve almak için 
 Scripti kullanmak için şu adımları izlemeniz gerekir:
 
 1. `git clone https://github.com/yoheinakajima/babyagi.git` ve `cd` aracılığıyla repoyu lokal bilgisayarınıza kopyalayın.
-2. Gerekli paketleri kurun: `pip install -r gereksinimleri.txt`
+2. Gerekli paketleri kurun: `pip install -r requirements.txt`
 3. .env.example dosyasını .env'ye kopyalayın: `cp .env.example .env`. Aşağıdaki değişkenleri ayarlayacağınız yer burasıdır.
 4. OpenAI ve Pinecone API anahtarlarınızı OPENAI_API_KEY, OPENAPI_API_MODEL ve PINECONE_API_KEY değişkenlerinde ayarlayın.
 5. PINECONE_ENVIRONMENT değişkeninde Pinecone ortamını ayarlayın.
