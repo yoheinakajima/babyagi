@@ -19,7 +19,7 @@ class TextCompletion(Skill):
             {"role": "user", "content": task_prompt}
         ]
         response = openai.ChatCompletion.create(
-            model="gpt-4",
+            model="gpt-3.5",
             messages=messages,
             temperature=0.4,
             max_tokens=2000,
