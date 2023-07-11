@@ -34,6 +34,8 @@ This README will cover the following:
 
 - [Warning about running the script continuously](#continuous-script-warning)
 
+https://github.com/eturchenkov/babyagi-hayloft/assets/49445761/291d880f-d97e-4c36-824d-4b78d3bb215d
+
 # How It Works<a name="how-it-works"></a>
 
 The script works by running an infinite loop that does the following steps:
