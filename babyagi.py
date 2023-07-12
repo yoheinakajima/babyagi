@@ -548,6 +548,7 @@ if not JOIN_EXISTING_OBJECTIVE:
 
 def main():
     loop = True
+    iteration = 1
     while loop:
         # As long as there are tasks in the storage...
         if not tasks_storage.is_empty():
@@ -575,7 +576,9 @@ def main():
             # since we don't do enrichment currently
             # vector = enriched_result["data"]
 
-            result_id = f"result_{task['task_id']}"
+            # result_id = f"result_{task['task_id']}"
+            result_id = f"result_{iteration}"
+            iteration += 1
 
             results_storage.add(task, result, result_id)
 
