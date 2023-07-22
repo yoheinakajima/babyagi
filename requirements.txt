@@ -1,7 +1,8 @@
 argparse==1.4.0
-openai==0.27.4
+openai==0.27.8
 chromadb==0.3.21
 pre-commit>=3.2.0
 python-dotenv==1.0.0
 tiktoken==0.3.3
+pydantic-settings
 llama-cpp-python>=0.1.42

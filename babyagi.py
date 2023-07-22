@@ -20,12 +20,15 @@ import re
 # default opt out of chromadb telemetry.
 from chromadb.config import Settings
 
-client = chromadb.Client(Settings(anonymized_telemetry=False))
+client = chromadb.PersistentClient(
+    path=".", 
+    settings = Settings(anonymized_telemetry=False))
 
 # Engine configuration
 
 # Model: GPT, LLAMA, HUMAN, etc.
 LLM_MODEL = os.getenv("LLM_MODEL", os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo")).lower()
+
 
 # API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
@@ -192,12 +195,10 @@ class DefaultResultsStorage:
         logging.getLogger('chromadb').setLevel(logging.ERROR)
         # Create Chroma collection
         chroma_persist_dir = "chroma"
-        chroma_client = chromadb.Client(
-            settings=chromadb.config.Settings(
-                chroma_db_impl="duckdb+parquet",
-                persist_directory=chroma_persist_dir,
+        chroma_client = chromadb.PersistentClient(
+                path=chroma_persist_dir,
             )
-        )
+
 
         metric = "cosine"
         if LLM_MODEL.startswith("llama"):
