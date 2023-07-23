@@ -36,6 +36,61 @@ To use the script, you will need to follow these steps:
 6. Set the first task of the system in the YOUR_FIRST_TASK variable.
 7. Run the script.
 
+# API mode (via [e2b](https://www.e2b.dev/))
+To start the server run:
+```bash
+python api.py
+```
+
+and then you can call the API using either the following commands:
+
+To **create a task** run:
+```bash
+curl --request POST \
+  --url http://localhost:8000/agent/tasks \
+  --header 'Content-Type: application/json' \
+  --data '{
+	"input": "Find the Answer to the Ultimate Question of Life, the Universe, and Everything."
+}'
+```
+
+You will get a response like this:
+```json
+{"input":"Find the Answer to the Ultimate Question of Life, the Universe, and Everything.","task_id":"d2c4e543-ae08-4a97-9ac5-5f9a4459cb19","artifacts":[]}
+```
+
+Then to **execute one step of the task** copy the `task_id` you got from the previous request and run:
+
+```bash
+curl --request POST \
+  --url http://localhost:8000/agent/tasks/<task-id>/steps
+```
+
+or you can use [Python client library](https://github.com/e2b-dev/agent-protocol/tree/main/agent_client/python):
+
+```python
+from agent_protocol_client import AgentApi, ApiClient, TaskRequestBody
+
+...
+
+prompt = "Find the Answer to the Ultimate Question of Life, the Universe, and Everything."
+
+async with ApiClient() as api_client:
+    # Create an instance of the API class
+    api_instance = AgentApi(api_client)
+    task_request_body = TaskRequestBody(input=prompt)
+
+    task = await api_instance.create_agent_task(
+        task_request_body=task_request_body
+    )
+    task_id = task.task_id
+    response = await api_instance.execute_agent_task_step(task_id=task_id)
+
+...
+
+```
+
+
 # Warning
 This script is designed to be run continuously as part of a task management system. Running this script continuously can result in high API usage, so please use it responsibly. Additionally, the script requires the OpenAI and Pinecone APIs to be set up correctly, so make sure you have set up the APIs before running the script.
 
