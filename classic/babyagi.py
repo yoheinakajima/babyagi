@@ -34,10 +34,7 @@ if table_name not in pinecone.list_indexes():
 index = pinecone.Index(table_name)
 
 # Task list
-task_list = deque([])
 
-def add_task(task: Dict):
-    task_list.append(task)
 
 def get_ada_embedding(text):
     text = text.replace("\n", " ")
@@ -49,23 +46,24 @@ def task_creation_agent(objective: str, result: Dict, task_description: str, tas
     new_tasks = response.choices[0].text.strip().split('\n')
     return [{"task_name": task_name} for task_name in new_tasks]
 
-def prioritization_agent(this_task_id:int):
-    global task_list
+def prioritization_agent(task_list, objective, this_task_id:int):
     task_names = [t["task_name"] for t in task_list]
     next_task_id = int(this_task_id)+1
-    prompt = f"""You are an task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}. Consider the ultimate objective of your team:{OBJECTIVE}. Do not remove any tasks. Return the result as a numbered list, like:
+    prompt = f"""You are an task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}. Consider the ultimate objective of your team:{objective}. Do not remove any tasks. Return the result as a numbered list, like:
     #. First task
     #. Second task
     Start the task list with number {next_task_id}."""
     response = openai.Completion.create(engine="text-davinci-003",prompt=prompt,temperature=0.5,max_tokens=1000,top_p=1,frequency_penalty=0,presence_penalty=0)
     new_tasks = response.choices[0].text.strip().split('\n')
-    task_list = deque()
+    new_task_list = deque()
     for task_string in new_tasks:
         task_parts = task_string.strip().split(".", 1)
         if len(task_parts) == 2:
             task_id = task_parts[0].strip()
             task_name = task_parts[1].strip()
-            task_list.append({"task_id": task_id, "task_name": task_name})
+            new_task_list.append({"task_id": task_id, "task_name": task_name})
+    return new_task_list
+
 
 def execution_agent(objective:str,task: str) -> str:
     #context = context_agent(index="quickstart", query="my_search_query", n=5)
@@ -90,49 +88,54 @@ def context_agent(query: str, index: str, n: int):
     include_metadata=True)
     #print("***** RESULTS *****")
     #print(results)
-    sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)    
+    sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)
     return [(str(item.metadata['task'])) for item in sorted_results]
 
-# Add the first task
-first_task = {
-    "task_id": 1,
-    "task_name": YOUR_FIRST_TASK
-}
 
-add_task(first_task)
-# Main loop
-task_id_counter = 1
-while True:
-    if task_list:
-        # Print the task list
-        print("\033[95m\033[1m"+"\n*****TASK LIST*****\n"+"\033[0m\033[0m")
-        for t in task_list:
-            print(str(t['task_id'])+": "+t['task_name'])
+def main():
+    # Task list
+    task_list = deque([])
+    # Add the first task
+    first_task = {
+        "task_id": 1,
+        "task_name": YOUR_FIRST_TASK
+    }
 
-        # Step 1: Pull the first task
-        task = task_list.popleft()
-        print("\033[92m\033[1m"+"\n*****NEXT TASK*****\n"+"\033[0m\033[0m")
-        print(str(task['task_id'])+": "+task['task_name'])
+    task_list.append(first_task)
+    # Main loop
+    task_id_counter = 1
+    while task_list:
+        if task_list:
+            # Print the task list
+            print("\033[95m\033[1m"+"\n*****TASK LIST*****\n"+"\033[0m\033[0m")
+            for t in task_list:
+                print(str(t['task_id'])+": "+t['task_name'])
 
-        # Send to execution function to complete the task based on the context
-        result = execution_agent(OBJECTIVE,task["task_name"])
-        this_task_id = int(task["task_id"])
-        print("\033[93m\033[1m"+"\n*****TASK RESULT*****\n"+"\033[0m\033[0m")
-        print(result)
+            # Step 1: Pull the first task
+            task = task_list.popleft()
+            print("\033[92m\033[1m"+"\n*****NEXT TASK*****\n"+"\033[0m\033[0m")
+            print(str(task['task_id'])+": "+task['task_name'])
 
-        # Step 2: Enrich result and store in Pinecone
-        enriched_result = {'data': result}  # This is where you should enrich the result if needed
-        result_id = f"result_{task['task_id']}"
-        vector = enriched_result['data']  # extract the actual result from the dictionary
-        index.upsert([(result_id, get_ada_embedding(vector),{"task":task['task_name'],"result":result})])
+            # Send to execution function to complete the task based on the context
+            result = execution_agent(OBJECTIVE,task["task_name"])
+            this_task_id = int(task["task_id"])
+            print("\033[93m\033[1m"+"\n*****TASK RESULT*****\n"+"\033[0m\033[0m")
+            print(result)
 
-    # Step 3: Create new tasks and reprioritize task list
-    new_tasks = task_creation_agent(OBJECTIVE,enriched_result, task["task_name"], [t["task_name"] for t in task_list])
+            # Step 2: Enrich result and store in Pinecone
+            enriched_result = {'data': result}  # This is where you should enrich the result if needed
+            result_id = f"result_{task['task_id']}"
+            vector = enriched_result['data']  # extract the actual result from the dictionary
 
-    for new_task in new_tasks:
-        task_id_counter += 1
-        new_task.update({"task_id": task_id_counter})
-        add_task(new_task)
-    prioritization_agent(this_task_id)
+        # Step 3: Create new tasks and reprioritize task list
+        new_tasks = task_creation_agent(OBJECTIVE,enriched_result, task["task_name"], [t["task_name"] for t in task_list])
 
-time.sleep(1)  # Sleep before checking the task list again
+        for new_task in new_tasks:
+            task_id_counter += 1
+            new_task.update({"task_id": task_id_counter})
+            task_list.append(new_task)
+        task_list = prioritization_agent(task_list, this_task_id)
+
+
+if __name__ == "__main__":
+    main()
