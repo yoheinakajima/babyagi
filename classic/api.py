@@ -1,8 +1,10 @@
 from agent_protocol import (
     Agent,
-    StepResult,
-    StepHandler,
+    Step,
+    Task,
 )
+from agent_protocol.models import Status
+
 from babyagi import (
     execution_agent,
     YOUR_FIRST_TASK,
@@ -11,38 +13,52 @@ from babyagi import (
 )
 
 
-def babyagi(task_input):
-    task_input = str(task_input)
-    task_list = [{"task_name": YOUR_FIRST_TASK, "task_id": 1}]
-    while task := task_list.pop():
-        result = execution_agent(task_input, task["task_name"])
-        yield result
+def _get_future_step_names(task: Task, step: Step) -> list[str]:
+    return [s.name for s in task.steps if s.status == Status.created and s != step]
 
-        result = {"data": result}
-        new_tasks = task_creation_agent(
-            task_input, result, task["task_name"], [t["task_name"] for t in task_list]
+
+async def task_handler(task: Task) -> None:
+    await Agent.db.create_step(task.task_id, YOUR_FIRST_TASK)
+
+
+async def step_handler(step: Step) -> Step:
+    task = await Agent.db.get_task(step.task_id)
+    result = execution_agent(task.input, step.name)
+    step.output = result
+
+    # Plan new tasks
+    new_tasks = task_creation_agent(
+        task.input,
+        {"data": result},
+        step.name,
+        _get_future_step_names(task, step),
+    )
+
+    step_names = _get_future_step_names(task, step) + new_tasks
+    step_id = task.steps.index(step) + 1
+
+    # Prioritize
+    result = prioritization_agent(
+        [{"task_name": s} for s in step_names],
+        task.input,
+        step_id,
+    )
+
+    # Set up new steps
+    task.steps = list(
+        filter(lambda s: s.status == Status.completed or s == step, task.steps)
+    )
+    for i, new_step in enumerate(result):
+        await Agent.db.create_step(
+            task.task_id,
+            new_step["task_name"],
         )
 
-        for new_task in new_tasks:
-            task_list.append(new_task)
+    # End if everything's done
+    if len(result) == 0:
+        step.is_last = True
 
-        task_list = prioritization_agent(task_list, task_input, task["task_id"])
-
-
-async def task_handler(task_input) -> StepHandler:
-    loop = babyagi(task_input)
-
-    async def step_handler(step_input) -> StepResult:
-        result = next(loop, None)
-        if result is None:
-            return StepResult(
-                is_last=True,
-            )
-        return StepResult(
-            output=result,
-        )
-
-    return step_handler
+    return step
 
 
-Agent.handle_task(task_handler).start()
+Agent.setup_agent(task_handler, step_handler).start()
