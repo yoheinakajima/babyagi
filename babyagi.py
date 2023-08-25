@@ -1,40 +1,55 @@
 #!/usr/bin/env python3
+from chromadb.config import Settings
+import re
+from chromadb.api.types import Documents, EmbeddingFunction, Embeddings
+from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
+import tiktoken as tiktoken
+import chromadb
+import openai
+import importlib
+from typing import Dict, List
+from collections import deque
+import logging
+import time
+import os
 from dotenv import load_dotenv
+
+# Set up agentops
+import agentops
+from agentops import AgentOpsLogger
+ao_client = agentops.AgentOps(api_key='31453e35-43d8-43e6-98f6-5753893b2f19')
+
+logging = AgentOpsLogger.get_agentops_logger(ao_client, 'babyagi_logger')
+
+# Set logger
 
 # Load default environment variables (.env)
 load_dotenv()
 
-import os
-import time
-import logging
-from collections import deque
-from typing import Dict, List
-import importlib
-import openai
-import chromadb
-import tiktoken as tiktoken
-from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
-from chromadb.api.types import Documents, EmbeddingFunction, Embeddings
-import re
 
 # default opt out of chromadb telemetry.
-from chromadb.config import Settings
 
-client = chromadb.Client(Settings(anonymized_telemetry=False))
+client = chromadb.EphemeralClient()
 
 # Engine configuration
 
 # Model: GPT, LLAMA, HUMAN, etc.
-LLM_MODEL = os.getenv("LLM_MODEL", os.getenv("OPENAI_API_MODEL", "gpt-3.5-turbo")).lower()
+LLM_MODEL = os.getenv("LLM_MODEL", os.getenv(
+    "OPENAI_API_MODEL", "gpt-3.5-turbo")).lower()
 
 # API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 if not (LLM_MODEL.startswith("llama") or LLM_MODEL.startswith("human")):
-    assert OPENAI_API_KEY, "\033[91m\033[1m" + "OPENAI_API_KEY environment variable is missing from .env" + "\033[0m\033[0m"
+    assert OPENAI_API_KEY, "\033[91m\033[1m" + \
+        "OPENAI_API_KEY environment variable is missing from .env" + \
+        "\033[0m\033[0m"
 
 # Table config
-RESULTS_STORE_NAME = os.getenv("RESULTS_STORE_NAME", os.getenv("TABLE_NAME", ""))
-assert RESULTS_STORE_NAME, "\033[91m\033[1m" + "RESULTS_STORE_NAME environment variable is missing from .env" + "\033[0m\033[0m"
+RESULTS_STORE_NAME = os.getenv(
+    "RESULTS_STORE_NAME", os.getenv("TABLE_NAME", ""))
+assert RESULTS_STORE_NAME, "\033[91m\033[1m" + \
+    "RESULTS_STORE_NAME environment variable is missing from .env" + \
+    "\033[0m\033[0m"
 
 # Run configuration
 INSTANCE_NAME = os.getenv("INSTANCE_NAME", os.getenv("BABY_NAME", "BabyAGI"))
@@ -64,7 +79,7 @@ DOTENV_EXTENSIONS = os.getenv("DOTENV_EXTENSIONS", "").split(" ")
 # Command line arguments extension
 # Can override any of the above environment variables
 ENABLE_COMMAND_LINE_ARGS = (
-        os.getenv("ENABLE_COMMAND_LINE_ARGS", "false").lower() == "true"
+    os.getenv("ENABLE_COMMAND_LINE_ARGS", "false").lower() == "true"
 )
 if ENABLE_COMMAND_LINE_ARGS:
     if can_import("extensions.argparseext"):
@@ -95,21 +110,26 @@ if DOTENV_EXTENSIONS:
 
 print("\033[95m\033[1m" + "\n*****CONFIGURATION*****\n" + "\033[0m\033[0m")
 print(f"Name  : {INSTANCE_NAME}")
-print(f"Mode  : {'alone' if COOPERATIVE_MODE in ['n', 'none'] else 'local' if COOPERATIVE_MODE in ['l', 'local'] else 'distributed' if COOPERATIVE_MODE in ['d', 'distributed'] else 'undefined'}")
+print(
+    f"Mode  : {'alone' if COOPERATIVE_MODE in ['n', 'none'] else 'local' if COOPERATIVE_MODE in ['l', 'local'] else 'distributed' if COOPERATIVE_MODE in ['d', 'distributed'] else 'undefined'}")
 print(f"LLM   : {LLM_MODEL}")
 
 
 # Check if we know what we are doing
-assert OBJECTIVE, "\033[91m\033[1m" + "OBJECTIVE environment variable is missing from .env" + "\033[0m\033[0m"
-assert INITIAL_TASK, "\033[91m\033[1m" + "INITIAL_TASK environment variable is missing from .env" + "\033[0m\033[0m"
+assert OBJECTIVE, "\033[91m\033[1m" + \
+    "OBJECTIVE environment variable is missing from .env" + "\033[0m\033[0m"
+assert INITIAL_TASK, "\033[91m\033[1m" + \
+    "INITIAL_TASK environment variable is missing from .env" + "\033[0m\033[0m"
 
-LLAMA_MODEL_PATH = os.getenv("LLAMA_MODEL_PATH", "models/llama-13B/ggml-model.bin")
+LLAMA_MODEL_PATH = os.getenv(
+    "LLAMA_MODEL_PATH", "models/llama-13B/ggml-model.bin")
 if LLM_MODEL.startswith("llama"):
     if can_import("llama_cpp"):
         from llama_cpp import Llama
 
         print(f"LLAMA : {LLAMA_MODEL_PATH}" + "\n")
-        assert os.path.exists(LLAMA_MODEL_PATH), "\033[91m\033[1m" + f"Model can't be found." + "\033[0m\033[0m"
+        assert os.path.exists(
+            LLAMA_MODEL_PATH), "\033[91m\033[1m" + f"Model can't be found." + "\033[0m\033[0m"
 
         CTX_MAX = 1024
         LLAMA_THREADS_NUM = int(os.getenv("LLAMA_THREADS_NUM", 8))
@@ -164,9 +184,11 @@ print("\033[94m\033[1m" + "\n*****OBJECTIVE*****\n" + "\033[0m\033[0m")
 print(f"{OBJECTIVE}")
 
 if not JOIN_EXISTING_OBJECTIVE:
-    print("\033[93m\033[1m" + "\nInitial task:" + "\033[0m\033[0m" + f" {INITIAL_TASK}")
+    print("\033[93m\033[1m" + "\nInitial task:" +
+          "\033[0m\033[0m" + f" {INITIAL_TASK}")
 else:
-    print("\033[93m\033[1m" + f"\nJoining to help the objective" + "\033[0m\033[0m")
+    print("\033[93m\033[1m" +
+          f"\nJoining to help the objective" + "\033[0m\033[0m")
 
 # Configure OpenAI
 openai.api_key = OPENAI_API_KEY
@@ -177,7 +199,7 @@ class LlamaEmbeddingFunction(EmbeddingFunction):
     def __init__(self):
         return
 
-
+    @ao_client.record_action("embedding_function", tags={"model": LLM_MODEL})
     def __call__(self, texts: Documents) -> Embeddings:
         embeddings = []
         for t in texts:
@@ -189,27 +211,24 @@ class LlamaEmbeddingFunction(EmbeddingFunction):
 # Results storage using local ChromaDB
 class DefaultResultsStorage:
     def __init__(self):
-        logging.getLogger('chromadb').setLevel(logging.ERROR)
+        # logging.getLogger('chromadb').setLevel(logging.ERROR)
         # Create Chroma collection
         chroma_persist_dir = "chroma"
-        chroma_client = chromadb.Client(
-            settings=chromadb.config.Settings(
-                chroma_db_impl="duckdb+parquet",
-                persist_directory=chroma_persist_dir,
-            )
-        )
+        chroma_client = chromadb.EphemeralClient()
 
         metric = "cosine"
         if LLM_MODEL.startswith("llama"):
             embedding_function = LlamaEmbeddingFunction()
         else:
-            embedding_function = OpenAIEmbeddingFunction(api_key=OPENAI_API_KEY)
+            embedding_function = OpenAIEmbeddingFunction(
+                api_key=OPENAI_API_KEY)
         self.collection = chroma_client.get_or_create_collection(
             name=RESULTS_STORE_NAME,
             metadata={"hnsw:space": metric},
             embedding_function=embedding_function,
         )
 
+    @ao_client.record_action("add_result", tags={"model": LLM_MODEL})
     def add(self, task: Dict, result: str, result_id: str):
 
         # Break the function if LLM_MODEL starts with "human" (case-insensitive)
@@ -217,9 +236,11 @@ class DefaultResultsStorage:
             return
         # Continue with the rest of the function
 
-        embeddings = llm_embed.embed(result) if LLM_MODEL.startswith("llama") else None
+        embeddings = llm_embed.embed(
+            result) if LLM_MODEL.startswith("llama") else None
         if (
-                len(self.collection.get(ids=[result_id], include=[])["ids"]) > 0
+                len(self.collection.get(
+                    ids=[result_id], include=[])["ids"]) > 0
         ):  # Check if the result already exists
             self.collection.update(
                 ids=result_id,
@@ -235,6 +256,7 @@ class DefaultResultsStorage:
                 metadatas={"task": task["task_name"], "result": result},
             )
 
+    @ao_client.record_action("query_results", tags={"model": LLM_MODEL})
     def query(self, query: str, top_results_num: int) -> List[dict]:
         count: int = self.collection.count()
         if count == 0:
@@ -248,16 +270,21 @@ class DefaultResultsStorage:
 
 
 # Initialize results storage
+@ao_client.record_action("initialize_results_storage_weaviate", tags={"model": LLM_MODEL})
 def try_weaviate():
     WEAVIATE_URL = os.getenv("WEAVIATE_URL", "")
-    WEAVIATE_USE_EMBEDDED = os.getenv("WEAVIATE_USE_EMBEDDED", "False").lower() == "true"
+    WEAVIATE_USE_EMBEDDED = os.getenv(
+        "WEAVIATE_USE_EMBEDDED", "False").lower() == "true"
     if (WEAVIATE_URL or WEAVIATE_USE_EMBEDDED) and can_import("extensions.weaviate_storage"):
         WEAVIATE_API_KEY = os.getenv("WEAVIATE_API_KEY", "")
         from extensions.weaviate_storage import WeaviateResultsStorage
-        print("\nUsing results storage: " + "\033[93m\033[1m" + "Weaviate" + "\033[0m\033[0m")
+        print("\nUsing results storage: " +
+              "\033[93m\033[1m" + "Weaviate" + "\033[0m\033[0m")
         return WeaviateResultsStorage(OPENAI_API_KEY, WEAVIATE_URL, WEAVIATE_API_KEY, WEAVIATE_USE_EMBEDDED, LLM_MODEL, LLAMA_MODEL_PATH, RESULTS_STORE_NAME, OBJECTIVE)
     return None
 
+
+@ao_client.record_action("initialize_results_storage_pinecone", tags={"model": LLM_MODEL})
 def try_pinecone():
     PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
     if PINECONE_API_KEY and can_import("extensions.pinecone_storage"):
@@ -266,25 +293,34 @@ def try_pinecone():
             PINECONE_ENVIRONMENT
         ), "\033[91m\033[1m" + "PINECONE_ENVIRONMENT environment variable is missing from .env" + "\033[0m\033[0m"
         from extensions.pinecone_storage import PineconeResultsStorage
-        print("\nUsing results storage: " + "\033[93m\033[1m" + "Pinecone" + "\033[0m\033[0m")
+        print("\nUsing results storage: " +
+              "\033[93m\033[1m" + "Pinecone" + "\033[0m\033[0m")
         return PineconeResultsStorage(OPENAI_API_KEY, PINECONE_API_KEY, PINECONE_ENVIRONMENT, LLM_MODEL, LLAMA_MODEL_PATH, RESULTS_STORE_NAME, OBJECTIVE)
     return None
 
+
+@ao_client.record_action("initialize_results_storage_chroma", tags={"model": LLM_MODEL})
 def use_chroma():
-    print("\nUsing results storage: " + "\033[93m\033[1m" + "Chroma (Default)" + "\033[0m\033[0m")
+    print("\nUsing results storage: " +
+          "\033[93m\033[1m" + "Chroma (Default)" + "\033[0m\033[0m")
     return DefaultResultsStorage()
+
 
 results_storage = try_weaviate() or try_pinecone() or use_chroma()
 
 # Task storage supporting only a single instance of BabyAGI
+
+
 class SingleTaskListStorage:
     def __init__(self):
         self.tasks = deque([])
         self.task_id_counter = 0
 
+    @ao_client.record_action("append_task", tags={"model": LLM_MODEL})
     def append(self, task: Dict):
         self.tasks.append(task)
 
+    @ao_client.record_action("replace_tasks", tags={"model": LLM_MODEL})
     def replace(self, tasks: List[Dict]):
         self.tasks = deque(tasks)
 
@@ -313,7 +349,8 @@ if COOPERATIVE_MODE in ['l', 'local']:
         from extensions.ray_tasks import CooperativeTaskListStorage
 
         tasks_storage = CooperativeTaskListStorage(OBJECTIVE)
-        print("\nReplacing tasks storage: " + "\033[93m\033[1m" + "Ray" + "\033[0m\033[0m")
+        print("\nReplacing tasks storage: " +
+              "\033[93m\033[1m" + "Ray" + "\033[0m\033[0m")
 elif COOPERATIVE_MODE in ['d', 'distributed']:
     pass
 
@@ -331,6 +368,7 @@ def limit_tokens_from_string(string: str, model: str, limit: int) -> str:
     return encoding.decode(encoded[:limit])
 
 
+@ao_client.record_action("openai_call", tags={"model": LLM_MODEL})
 def openai_call(
     prompt: str,
     model: str = LLM_MODEL,
@@ -370,7 +408,8 @@ def openai_call(
                 # Use 4000 instead of the real limit (4097) to give a bit of wiggle room for the encoding of roles.
                 # TODO: different limits for different models.
 
-                trimmed_prompt = limit_tokens_from_string(prompt, model, 4000 - max_tokens)
+                trimmed_prompt = limit_tokens_from_string(
+                    prompt, model, 4000 - max_tokens)
 
                 # Use chat completion API
                 messages = [{"role": "system", "content": trimmed_prompt}]
@@ -417,6 +456,7 @@ def openai_call(
             break
 
 
+@ao_client.record_action("task_creation_agent", tags={"model": LLM_MODEL})
 def task_creation_agent(
         objective: str, result: Dict, task_description: str, task_list: List[str]
 ):
@@ -458,6 +498,7 @@ Unless your list is empty, do not include any headers before your numbered list 
     return out
 
 
+@ao_client.record_action("task_prioritization_agent", tags={"model": LLM_MODEL})
 def prioritization_agent():
     task_names = tasks_storage.get_task_names()
     bullet_string = '\n'
@@ -488,12 +529,14 @@ Do not include any headers before your ranked list or follow your list with any 
             task_id = ''.join(s for s in task_parts[0] if s.isnumeric())
             task_name = re.sub(r'[^\w\s_]+', '', task_parts[1]).strip()
             if task_name.strip():
-                new_tasks_list.append({"task_id": task_id, "task_name": task_name})
+                new_tasks_list.append(
+                    {"task_id": task_id, "task_name": task_name})
 
     return new_tasks_list
 
 
 # Execute a task based on the objective and five previous tasks
+@ao_client.record_action("execution_agent", tags={"model": LLM_MODEL})
 def execution_agent(objective: str, task: str) -> str:
     """
     Executes a task based on the given objective and previous context.
@@ -513,12 +556,14 @@ def execution_agent(objective: str, task: str) -> str:
     # print('')
     prompt = f'Perform one task based on the following objective: {objective}.\n'
     if context:
-        prompt += 'Take into account these previously completed tasks:' + '\n'.join(context)
+        prompt += 'Take into account these previously completed tasks:' + \
+            '\n'.join(context)
     prompt += f'\nYour task: {task}\nResponse:'
     return openai_call(prompt, max_tokens=2000)
 
 
 # Get the top n completed tasks for the objective
+@ao_client.record_action("context_agent", tags={"model": LLM_MODEL})
 def context_agent(query: str, top_results_num: int):
     """
     Retrieves context for a given query from an index of tasks.
@@ -531,7 +576,8 @@ def context_agent(query: str, top_results_num: int):
         list: A list of tasks as context for the given query, sorted by relevance.
 
     """
-    results = results_storage.query(query=query, top_results_num=top_results_num)
+    results = results_storage.query(
+        query=query, top_results_num=top_results_num)
     # print("****RESULTS****")
     # print(results)
     return results
@@ -552,18 +598,21 @@ def main():
         # As long as there are tasks in the storage...
         if not tasks_storage.is_empty():
             # Print the task list
-            print("\033[95m\033[1m" + "\n*****TASK LIST*****\n" + "\033[0m\033[0m")
+            print("\033[95m\033[1m" +
+                  "\n*****TASK LIST*****\n" + "\033[0m\033[0m")
             for t in tasks_storage.get_task_names():
                 print(" • " + str(t))
 
             # Step 1: Pull the first incomplete task
             task = tasks_storage.popleft()
-            print("\033[92m\033[1m" + "\n*****NEXT TASK*****\n" + "\033[0m\033[0m")
+            print("\033[92m\033[1m" +
+                  "\n*****NEXT TASK*****\n" + "\033[0m\033[0m")
             print(str(task["task_name"]))
 
             # Send to execution function to complete the task based on the context
             result = execution_agent(OBJECTIVE, str(task["task_name"]))
-            print("\033[93m\033[1m" + "\n*****TASK RESULT*****\n" + "\033[0m\033[0m")
+            print("\033[93m\033[1m" +
+                  "\n*****TASK RESULT*****\n" + "\033[0m\033[0m")
             print(result)
 
             # Step 2: Enrich result and store in the results storage
@@ -604,6 +653,7 @@ def main():
         else:
             print('Done.')
             loop = False
+    ao_client.end_session('Indeterminate')
 
 
 if __name__ == "__main__":

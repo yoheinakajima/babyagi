@@ -115,7 +115,8 @@ class WeaviateResultsStorage:
         return self._extract_tasks(results)
 
     def _extract_tasks(self, data):
-        task_data = data.get("data", {}).get("Get", {}).get(self.index_name, [])
+        task_data = data.get("data", {}).get(
+            "Get", {}).get(self.index_name, [])
         return [item["task"] for item in task_data]
 
     # Get embedding for the text

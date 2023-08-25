@@ -2,3 +2,4 @@ ray==2.3.1
 pinecone-client==2.2.1
 llama-cpp-python>=0.1.35
 weaviate-client>=3.16.1
+agentops==0.0.1

@@ -1,2 +1,3 @@
 openai==0.27.2
 pinecone-client==2.2.1
+agentops==0.0.1
