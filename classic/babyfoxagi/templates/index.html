@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat Assistant</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="{{ url_for('static', filename='chat.js') }}"></script>
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+    <link href='https://fonts.googleapis.com/css?family=Montserrat:wght@300' rel='stylesheet'>
+
+</head>
+
+<body class="h-screen flex flex-col">
+    <div class="container mx-auto mt-5 mb-5 flex-grow flex flex-col md:flex-row">
+        <!-- Chat Box -->
+        <div class="chat-box md:flex-1 mb-5 md:mr-5 bg-white p-5 rounded-lg shadow flex flex-col h-full" id="chat-box">
+            <div class="chat-messages overflow-y-auto flex-grow h-96 border border-gray-300 p-5 rounded-lg" id="chat-messages"></div>
+            <div class="input-bar mt-5 flex">
+                <input type="text" id="user-input" placeholder="Type your message..." class="flex-grow border p-2 rounded mr-3">
+                <button id="send-btn" class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">
+                    Send
+                </button>
+            </div>
+        </div>
+        <!-- Objectives Box -->
+        <div class="objectives-box md:flex-1 bg-white p-5 rounded-lg shadow flex flex-col h-full overflow-y-auto">
+            <h3 class="text-l font-bold mb-5">Tasks and Output</h3>
+            <input type="text" id="task-search" placeholder="Search tasks..." class="mb-5 p-2 rounded border">
+            <div id="task-list" class="flex-grow"></div>
+        </div>
+    </div>
+</body>
+</html>
