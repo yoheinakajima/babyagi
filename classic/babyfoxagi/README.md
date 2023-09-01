@@ -15,6 +15,63 @@ Notable in the chat is the ability to either run one skill quickly or generate a
 
 I had issues with parallel tasks within BabyAGI, so removed that for now. I'm also not streaming the task list or in-between work from these task list runs to the UI. For now, you'll have to monitor that in the console. And in general, lots more room for improvement... but wanted to get this out there :)
 
+## Getting Started
+
+These instructions will guide you through the process of setting up Classic BabyFoxAGI on your local machine.
+
+### Prerequisites
+
+Make sure you have the following software installed:
+
+- Git ([Download & Install Git](https://git-scm.com/downloads))
+- Python 3.x ([Download & Install Python](https://www.python.org/downloads/))
+- Pip (usually installed with Python)
+
+### Clone the Repository
+
+To clone this specific folder (`classic/babyfoxagi`) from the GitHub repository, open a terminal and run the following commands:
+
+```bash
+# Navigate to the directory where you want to clone the project
+cd your/desired/directory
+
+# Clone the entire repository
+git clone https://github.com/yoheinakajima/babyagi.git
+
+# Move into the cloned repository
+cd babyagi
+
+# Navigate to the 'classic/babyfoxagi' folder
+cd classic/babyfoxagi
+```
+### Install Dependencies
+Since there's no requirements.txt, you'll need to install the required packages manually:
+```bash
+# Install OpenAI package
+pip install openai
+
+# Install Flask
+pip install Flask
+```
+Note: If you are using a Python environment manager like conda, make sure to activate your environment before running the pip commands.
+### Configuration
+Create a .env file in the classic/babyfoxagi directory to store your API keys.
+```bash
+# Create a .env file
+touch .env
+
+# Open the .env file with a text editor and add your API keys
+echo "OPENAI_API_KEY=your_openai_api_key_here" >> .env
+# Add other API keys as needed for other tools (e.g., Airtable)
+echo "SERPAPI_API_KEY=your_serpapi_api_key_here" >> .env
+echo "AIRTABLE_API_KEY=your_airtable_api_key_here" >> .env
+```
+For other tools like airtable_search, you may also need to specify additional configurations like BASE, TABLE, and COLUMN in the airtable_search.py file.
+### Running the Project
+After cloning the repository, installing the dependencies, and setting up the .env file, just run:
+```bash
+python main.py
+```
 
 # BabyFoxAGI - Overview
 
