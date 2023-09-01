@@ -1,6 +1,6 @@
 ### Author's Note
 
-BabyFoxAGI is the 5th mod of BabyAGI. The earlier 4 were [BabyBeeAGI](https://twitter.com/yoheinakajima/status/1652732735344246784?lang=en), [BabyCatAGI](https://twitter.com/yoheinakajima/status/1657448504112091136), [BabyDeerAGI](https://twitter.com/yoheinakajima/status/1666313838868992001), and [BabyElfAGI](https://twitter.com/yoheinakajima/status/1678443482866933760). Following the evolution will be the easiest way to understand BabyFoxAGI.
+BabyFoxAGI is the 5th mod of BabyAGI. The earlier 4 were [BabyBeeAGI](https://twitter.com/yoheinakajima/status/1652732735344246784?lang=en), [BabyCatAGI](https://twitter.com/yoheinakajima/status/1657448504112091136), [BabyDeerAGI](https://twitter.com/yoheinakajima/status/1666313838868992001), and [BabyElfAGI](https://twitter.com/yoheinakajima/status/1678443482866933760). Following the evolution will be the easiest way to understand BabyFoxAGI. Please check out [the tweet thread introducing BabyFoxAGI](https://twitter.com/yoheinakajima/status/1697539193768116449) for a quick overview.
 
 ### New Features in BabyFoxAGI
 
