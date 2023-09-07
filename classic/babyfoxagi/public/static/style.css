@@ -1,0 +1,97 @@
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+    background-image: 
+        linear-gradient(45deg, rgba(250, 243, 224, 0.1) 25%, transparent 25%, transparent 50%, rgba(250, 243, 224, 0.1) 50%, rgba(250, 243, 224, 0.1) 75%, transparent 75%, transparent);
+    background-size: 40px 40px;
+}
+
+body {
+  background-color: #ffffff;
+  opacity: 0.8;
+  background-image:  linear-gradient(135deg, #fff2ce 25%, transparent 25%), linear-gradient(225deg, #fff2ce 25%, transparent 25%), linear-gradient(45deg, #fff2ce 25%, transparent 25%), linear-gradient(315deg, #fff2ce 25%, #ffffff 25%);
+  background-position:  10px 0, 10px 0, 0 0, 0 0;
+  background-size: 10px 10px;
+  background-repeat: repeat;
+  font-family: 'Montserrat';
+}
+
+
+
+
+.chat-box {
+  
+   background-color:  #faf3e0; /* Light beige */
+}
+.objectives-box {
+    background-color:  #faf3e0; /* Light beige */
+}
+#task-list {
+    background-color: #fff; /* Light beige */
+}
+
+.chat-messages {
+    overflow-y: scroll;
+    background-color: #fff
+    /* background-color: #faf3e0; /* Light beige */
+}
+
+/* Style for user's speech bubble tail */
+.bg-blue-200::before {
+    content: "";
+    position: absolute;
+    top: 10px; 
+    right: -10px; 
+    border-width: 10px;
+    border-style: solid;
+    border-color: transparent transparent transparent; 
+}
+
+/* Style for assistant's speech bubble tail */
+.bg-gray-300::before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    left: -10px;
+    border-width: 10px;
+    border-style: solid;
+    border-color: transparent 	 transparent transparent; 
+}
+
+
+.task-item {
+    border: 1px solid #fffbe7;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    padding: 10px;
+    position: relative;
+}
+
+.task-title {
+    font-weight: bold;
+}
+
+.task-output {
+    margin-top: 10px;
+}
+
+.show-output .task-output {
+    display: block;
+}
+
+#task-list {
+    overflow-y: auto;
+    max-height: calc(100vh - 150px); /* Adjust based on header and padding */
+}
+
+.task-output {
+    background-color: #fffdfd;  /* Light gray */
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 5px;
+}

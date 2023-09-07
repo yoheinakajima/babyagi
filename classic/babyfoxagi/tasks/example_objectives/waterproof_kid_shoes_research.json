@@ -1,0 +1,42 @@
+[
+
+{
+  "objective": "Research waterproof kid shoes to find the best options available in the market.",
+  "examples": [
+    {
+      "id": 1,
+      "task": "Search online for popular brands of waterproof kid shoes.",
+      "skill": "web_search",
+      "dependent_task_ids": [],
+      "status": "incomplete"
+    },
+    {
+      "id": 2,
+      "task": "Read customer reviews and ratings for different waterproof kid shoes.",
+      "skill": "web_search",
+      "dependent_task_ids": [],
+      "status": "incomplete"
+    },
+    {
+      "id": 3,
+      "task": "Compare the features and prices of waterproof kid shoes from different brands.",
+      "skill": "text_completion",
+      "dependent_task_ids": [],
+      "status": "incomplete"
+    },
+    {
+      "id": 4,
+      "task": "Make a list of the top 5 waterproof kid shoes based on research findings.",
+      "skill": "text_completion",
+      "dependent_task_ids": [],
+      "status": "incomplete"
+    },
+    {
+      "id": 5,
+      "task": "Finalize the selection of the best waterproof kid shoes based on research and recommendations.",
+      "skill": "text_completion",
+      "dependent_task_ids": [],
+      "status": "incomplete"
+    }
+  ]
+}]

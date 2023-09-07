@@ -1,0 +1,19 @@
+[{
+  "objective": "Create new skill for writing a poem called poem_saver, then use the poem_writer skill to write a poem about AI.",
+  "examples": [
+    {
+      "id": 1,
+      "task": "Create and save a new skill for writing a poem based on an input.",
+      "skill": "call_babyagi",
+      "dependent_task_ids": [],
+      "status": "incomplete"
+    },
+    {
+      "id": 2,
+      "task": "Write a poem about AI.",
+      "skill": "poem_writer",
+      "dependent_task_ids": [1],
+      "status": "incomplete"
+    }
+  ]
+}]
