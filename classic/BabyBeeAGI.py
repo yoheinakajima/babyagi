@@ -2,6 +2,7 @@
 ######IMPORTANT NOTE: I'm sharing this as a framework to build on top of (with lots of errors for improvement), to facilitate discussion around how to improve these. This is NOT for people who are looking for a complete solution that's ready to use. ######
 
 import openai
+import litellm
 import pinecone
 import time
 import requests
@@ -170,7 +171,7 @@ def task_manager_agent(objective: str, result: str, task_description: str, incom
         "[{\"id\": 1, \"task\": \"https://untapped.vc\", \"tool\": \"web-scrape\", \"dependent_task_id\": null, \"status\": \"incomplete\", \"result\": null, \"result_summary\": null}, {\"id\": 2, \"task\": \"Analyze the contents of...\", \"tool\": \"text-completion\", \"dependent_task_id\": 1, \"status\": \"incomplete\", \"result\": null, \"result_summary\": null}, {\"id\": 3, \"task\": \"Untapped Capital\", \"tool\": \"web-search\", \"dependent_task_id\": null, \"status\": \"incomplete\", \"result\": null, \"result_summary\": null}]."
     )
     print("\033[90m\033[3m" + "\nRunning task manager agent...\n" + "\033[0m")
-    response = openai.ChatCompletion.create(
+    response = litellm.completion(
         model="gpt-4",
         messages=[
             {

@@ -1,5 +1,6 @@
 from skills.skill import Skill
 import openai
+import litellm
 import requests
 import os
 import json
@@ -44,7 +45,7 @@ class PlayMusic(Skill):
             {"role": "user", "content": objective}
         ]
         
-        response = openai.ChatCompletion.create(
+        response = litellm.completion(
             model="gpt-3.5-turbo",
             messages=prompt_generation_messages
         )

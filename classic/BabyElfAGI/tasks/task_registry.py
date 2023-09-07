@@ -1,4 +1,5 @@
 import openai
+import litellm
 import json
 import threading
 import os
@@ -36,7 +37,7 @@ class TaskRegistry:
         )
 
         print("\033[90m\033[3m" + "\nInitializing...\n" + "\033[0m")
-        response = openai.ChatCompletion.create(
+        response = litellm.completion(
             model="gpt-3.5-turbo-0613",
             messages=[
                 {
@@ -139,7 +140,7 @@ class TaskRegistry:
                 f"\n###OUTPUT = "
             )
             print("\033[90m\033[3m" + "\nReflecting on task output to generate new tasks if necessary...\n" + "\033[0m")
-            response = openai.ChatCompletion.create(
+            response = litellm.completion(
                 model="gpt-3.5-turbo-16k-0613",
                 messages=[
                     {

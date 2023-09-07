@@ -1,5 +1,6 @@
 from skills.skill import Skill
 import openai
+import litellm
 import requests
 import os
 from urllib.parse import urlparse
@@ -41,7 +42,7 @@ class ImageGeneration(Skill):
             {"role": "user", "content": "Generate a prompt for image creation based on the following objective: " + objective}
         ]
         
-        response = openai.ChatCompletion.create(
+        response = litellm.completion(
             model="gpt-3.5-turbo",
             messages=prompt_generation_messages
         )

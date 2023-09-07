@@ -1,6 +1,7 @@
 import os
 import json
 import openai
+import litellm
 import importlib.util
 import inspect
 from .skill import Skill
@@ -78,7 +79,7 @@ class SkillRegistry:
             f"Missing skills:"
         )
         print("\033[90m\033[3m" + "\nReflecting on skills used in task list...\n" + "\033[0m")
-        response = openai.ChatCompletion.create(
+        response = litellm.completion(
             model="gpt-3.5-turbo-16k",
             messages=[
                 {

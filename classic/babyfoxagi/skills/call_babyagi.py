@@ -1,5 +1,6 @@
 from skills.skill import Skill
 import openai
+import litellm
 
 #This is an experimental skill to have BabyAGI use BabyAGI as a skill, which really isnt necessary, and also buggy.
 class CallBabyagi(Skill):
@@ -28,7 +29,7 @@ class CallBabyagi(Skill):
         messages = [
             {"role": "user", "content": prompt}
         ]
-        response = openai.ChatCompletion.create(
+        response = litellm.completion(
             model="gpt-3.5-turbo-16k",
             messages=messages,
             temperature=0.2,

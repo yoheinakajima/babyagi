@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify, send_from_directory
 import openai
+import litellm
 import os
 import json
 import threading
@@ -50,7 +51,7 @@ def summarize_text(text):
     " The summary should be limited to a maximum of 500 tokens."
     " Here's the conversation you need to summarize:")
 
-  completion = openai.ChatCompletion.create(model="gpt-3.5-turbo-16k",
+  completion = litellm.completion(model="gpt-3.5-turbo-16k",
                                             messages=[{
                                               "role": "system",
                                               "content": system_message
@@ -71,7 +72,7 @@ def combine_summaries(overall, latest):
     " The combined summary should not exceed 500 tokens."
     " Here are the summaries you need to combine:")
 
-  completion = openai.ChatCompletion.create(
+  completion = litellm.completion(
     model="gpt-3.5-turbo-16k",
     messages=[{
       "role": "system",
@@ -115,7 +116,7 @@ def openai_function_call(user_message):
     f"You are a fun happy and quirky AI chat assistant that uses Gen Z language and lots of emojis named BabyAGI with capabilities beyond chat. For every user message, you quickly analyze whether this is a request that you can simply respond via ChatCompletion, whether you need to use one of the skills provided, or whether you should create a task list and chain multiple skills together. You will always provide a message_to_user. If path is Skill or TaskList, always generate an objective. If path is Skill, ALWAYS include skill_used from one of the available skills. ###Here are your available skills: {global_skill_registry}.###For context, here is the overall summary of the chat: {overall_summary}."
   )
 
-  completion = openai.ChatCompletion.create(
+  completion = litellm.completion(
     model="gpt-3.5-turbo-16k",
     messages=[
       {"role": "system","content": system_message},

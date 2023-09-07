@@ -1,6 +1,7 @@
 from skills.skill import Skill
 from serpapi import GoogleSearch
 import openai
+import litellm
 from bs4 import BeautifulSoup
 import requests
 import re
@@ -75,7 +76,7 @@ class WebSearch(Skill):
         messages = [
             {"role": "user", "content": prompt}
         ]
-        response = openai.ChatCompletion.create(
+        response = litellm.completion(
             model="gpt-3.5-turbo-16k",
             messages=messages,
             temperature=0,
@@ -140,7 +141,7 @@ class WebSearch(Skill):
                 {"role": "user", "content": f"You are an expert AI research assistant tasked with creating or updating the current notes. If the current note is empty, start a current-notes section by exracting relevant data to the task and objective from the chunk of text to analyze. If there is a current note, add new relevant info frol the chunk of text to analyze. Make sure the new or combined notes is comprehensive and well written. Here's the current chunk of text to analyze: {chunk}. ### Here is the current task: {task}.### For context, here is the objective: {objective}.### Here is the data we've extraced so far that you need to update: {notes}.### new-or-updated-note:"}
             ]
     
-            response = openai.ChatCompletion.create(
+            response = litellm.completion(
                 model="gpt-3.5-turbo-16k",
                 messages=messages,
                 max_tokens=2000,

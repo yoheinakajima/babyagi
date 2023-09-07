@@ -2,6 +2,7 @@
 ######IMPORTANT NOTE: I'm sharing this as a framework to build on top of (with lots of room for improvement), to facilitate discussion around how to improve these. This is NOT for people who are looking for a complete solution that's ready to use. ######
 
 import openai
+import litellm
 import time
 from datetime import datetime
 import requests
@@ -72,7 +73,7 @@ def text_completion_tool(prompt: str):
     messages = [
         {"role": "user", "content": prompt}
     ]
-    response = openai.ChatCompletion.create(
+    response = litellm.completion(
         model="gpt-3.5-turbo",
         messages=messages,
         temperature=0.2,
@@ -193,7 +194,7 @@ def extract_relevant_info(objective, large_string, task):
             {"role": "user", "content": f"You are an expert AI research assistant tasked with creating or updating the current notes. If the current note is empty, start a current-notes section by exracting relevant data to the task and objective from the chunk of text to analyze. If there is a current note, add new relevant info frol the chunk of text to analyze. Make sure the new or combined notes is comprehensive and well written. Here's the current chunk of text to analyze: {chunk}. ### Here is the current task: {task}.### For context, here is the objective: {OBJECTIVE}.### Here is the data we've extraced so far that you need to update: {notes}.### new-or-updated-note:"}
         ]
 
-        response = openai.ChatCompletion.create(
+        response = litellm.completion(
             model="gpt-3.5-turbo",
             messages=messages,
             max_tokens=800,
@@ -289,7 +290,7 @@ def task_creation_agent(objective: str) -> List[Dict]:
     )
 
     print("\033[90m\033[3m" + "\nInitializing...\n" + "\033[0m")
-    response = openai.ChatCompletion.create(
+    response = litellm.completion(
         model="gpt-3.5-turbo",
         messages=[
             {

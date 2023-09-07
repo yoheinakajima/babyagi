@@ -1,5 +1,6 @@
 from skills.skill import Skill
 import openai
+import litellm
 import os
 import requests
 from urllib.parse import quote  # Python built-in URL encoding function
@@ -110,7 +111,7 @@ class AirtableSearch(Skill):
         messages = [
             {"role": "user", "content": prompt}
         ]
-        response = openai.ChatCompletion.create(
+        response = litellm.completion(
             model="gpt-3.5-turbo-16k",
             messages=messages,
             temperature=0.2,

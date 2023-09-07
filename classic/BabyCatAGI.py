@@ -2,6 +2,7 @@
 ######IMPORTANT NOTE: I'm sharing this as a framework to build on top of (with lots of errors for improvement), to facilitate discussion around how to improve these. This is NOT for people who are looking for a complete solution that's ready to use. ######
 
 import openai
+import litellm
 import time
 import requests
 from bs4 import BeautifulSoup
@@ -68,7 +69,7 @@ def text_completion_tool(prompt: str):
         {"role": "user", "content": prompt}
     ]
 
-    response = openai.ChatCompletion.create(
+    response = litellm.completion(
         model="gpt-3.5-turbo",
         messages=messages,
         temperature=0.2,
@@ -177,7 +178,7 @@ def extract_relevant_info(objective, large_string, task):
             {"role": "user", "content": f"Analyze the following text and extract information relevant to our objective and current task, and only information relevant to our objective and current task. If there is no relevant information do not say that there is no relevant informaiton related to our objective. ### Then, update or start our notes provided here (keep blank if currently blank): {notes}.### Text to analyze: {chunk}.### Updated Notes:"}
         ]
 
-        response = openai.ChatCompletion.create(
+        response = litellm.completion(
             model="gpt-3.5-turbo",
             messages=messages,
             max_tokens=800,
@@ -265,7 +266,7 @@ def task_creation_agent(objective: str) -> List[Dict]:
     print("\033[90m\033[3m" + "\nInitializing...\n" + "\033[0m")
     print("\033[90m\033[3m" + "Analyzing objective...\n" + "\033[0m")
     print("\033[90m\033[3m" + "Running task creation agent...\n" + "\033[0m")
-    response = openai.ChatCompletion.create(
+    response = litellm.completion(
         model="gpt-4",
         messages=[
             {

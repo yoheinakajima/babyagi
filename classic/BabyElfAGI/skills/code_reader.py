@@ -1,5 +1,6 @@
 from skills.skill import Skill
 import openai
+import litellm
 import os
 
 class CodeReader(Skill):
@@ -26,7 +27,7 @@ class CodeReader(Skill):
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": task_prompt}
         ]
-        response = openai.ChatCompletion.create(
+        response = litellm.completion(
             model="gpt-3.5-turbo",
             messages=messages,
             temperature=0.2,

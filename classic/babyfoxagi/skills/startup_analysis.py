@@ -1,5 +1,6 @@
 from skills.skill import Skill
 import openai
+import litellm
 import json
 
 class StartupAnalysis(Skill):
@@ -14,7 +15,7 @@ class StartupAnalysis(Skill):
     if not self.valid:
       return
 
-    completion = openai.ChatCompletion.create(
+    completion = litellm.completion(
         model="gpt-4",
         messages=[
             {

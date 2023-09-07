@@ -11,6 +11,7 @@ from collections import deque
 from typing import Dict, List
 import importlib
 import openai
+import litellm
 import chromadb
 import tiktoken as tiktoken
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
@@ -374,7 +375,7 @@ def openai_call(
 
                 # Use chat completion API
                 messages = [{"role": "system", "content": trimmed_prompt}]
-                response = openai.ChatCompletion.create(
+                response = litellm.completion(
                     model=model,
                     messages=messages,
                     temperature=temperature,

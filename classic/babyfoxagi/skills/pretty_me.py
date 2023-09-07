@@ -1,4 +1,5 @@
 import openai
+import litellm
 import logging
 from skills.skill import Skill
 import os
@@ -72,7 +73,7 @@ class PrettyMe(Skill):
                 {"role": "user", "content": task_prompt}
             ]
             print(messages)
-            response = openai.ChatCompletion.create(
+            response = litellm.completion(
                 model="gpt-3.5-turbo-16k",
                 messages=messages,
                 temperature=0,

@@ -1,6 +1,7 @@
 from skills.skill import Skill
 import os
 import openai
+import litellm
 
 class ObjectiveSaver(Skill):
     name = 'objective_saver'
@@ -20,7 +21,7 @@ class ObjectiveSaver(Skill):
         messages = [
             {"role": "user", "content": task_prompt}
         ]
-        response = openai.ChatCompletion.create(
+        response = litellm.completion(
             model="gpt-3.5-turbo",
             messages=messages,
             temperature=0.4,

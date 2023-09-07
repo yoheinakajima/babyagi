@@ -1,5 +1,6 @@
 from skills.skill import Skill
 import openai
+import litellm
 
 class TextCompletion(Skill):
     name = 'text_completion'
@@ -18,7 +19,7 @@ class TextCompletion(Skill):
         messages = [
             {"role": "user", "content": task_prompt}
         ]
-        response = openai.ChatCompletion.create(
+        response = litellm.completion(
             model="gpt-3.5-turbo",
             messages=messages,
             temperature=0.4,

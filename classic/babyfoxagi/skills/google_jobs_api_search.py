@@ -1,6 +1,7 @@
 from skills.skill import Skill
 from serpapi import GoogleSearch
 import openai
+import litellm
 from bs4 import BeautifulSoup
 import requests
 import re
@@ -70,7 +71,7 @@ class GoogleJobsAPISearch(Skill):
         messages = [
             {"role": "user", "content": prompt}
         ]
-        response = openai.ChatCompletion.create(
+        response = litellm.completion(
             model="gpt-3.5-turbo-16k",
             messages=messages,
             temperature=0.2,

@@ -1,5 +1,6 @@
 import os
 import openai
+import litellm
 import time
 import sys
 from typing import List, Dict, Union
@@ -84,7 +85,7 @@ def openai_call(
         # Use chat completion API
         messages=[{"role": "user", "content": prompt}]
         try:
-            response = openai.ChatCompletion.create(
+            response = litellm.completion(
                 model=model,
                 messages=messages,
                 temperature=temperature,

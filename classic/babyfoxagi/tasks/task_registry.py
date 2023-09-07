@@ -1,4 +1,5 @@
 import openai
+import litellm
 import json
 import threading
 import os
@@ -43,7 +44,7 @@ class TaskRegistry:
         )
         #print(prompt)
         print("\033[90m\033[3m" + "\nInitializing...\n" + "\033[0m")
-        response = openai.ChatCompletion.create(
+        response = litellm.completion(
             model="gpt-3.5-turbo-16k",
             messages=[
                 {
@@ -89,7 +90,7 @@ class TaskRegistry:
         )
         #print(prompt)
         print("\033[90m\033[3m" + "\nInitializing...\n" + "\033[0m")
-        response = openai.ChatCompletion.create(
+        response = litellm.completion(
             model="gpt-3.5-turbo-16k",
             messages=[
                 {
@@ -193,7 +194,7 @@ class TaskRegistry:
                 f"\n###OUTPUT = "
             )
             print("\033[90m\033[3m" + "\nReflecting on task output to generate new tasks if necessary...\n" + "\033[0m")
-            response = openai.ChatCompletion.create(
+            response = litellm.completion(
                 model="gpt-3.5-turbo-16k-0613",
                 messages=[
                     {
@@ -288,7 +289,7 @@ class TaskRegistry:
             f"\n###IMPROVED TASKLIST = "
         )
         print("\033[90m\033[3m" + "\nReflecting on entire task list...\n" + "\033[0m")
-        response = openai.ChatCompletion.create(
+        response = litellm.completion(
             model="gpt-3.5-turbo-16k",
             messages=[
                 {
@@ -333,7 +334,7 @@ class TaskRegistry:
             f"\n###ANALYSIS:"
         )
         print("\033[90m\033[3m" + "\nReflecting on result...\n" + "\033[0m")
-        response = openai.ChatCompletion.create(
+        response = litellm.completion(
             model="gpt-3.5-turbo-16k",
             messages=[
                 {
@@ -419,7 +420,7 @@ class TaskRegistry:
 
 
     def chatcompletion(self, role_content, system_content, max_tokens):
-      return openai.ChatCompletion.create(
+      return litellm.completion(
           model="gpt-3.5-turbo-16k",
           messages=[
               {

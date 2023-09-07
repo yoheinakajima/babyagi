@@ -1,6 +1,7 @@
 from skills.skill import Skill
 import os
 import openai
+import litellm
 
 class SkillSaver(Skill):
     name = 'skill_saver'
@@ -19,7 +20,7 @@ class SkillSaver(Skill):
         messages = [
             {"role": "user", "content": task_prompt}
         ]
-        response = openai.ChatCompletion.create(
+        response = litellm.completion(
             model="gpt-3.5-turbo",
             messages=messages,
             temperature=0.4,
@@ -35,7 +36,7 @@ class SkillSaver(Skill):
         messages = [
             {"role": "user", "content": task_prompt}
         ]
-        response = openai.ChatCompletion.create(
+        response = litellm.completion(
             model="gpt-3.5-turbo",
             messages=messages,
             temperature=0.4,
