@@ -24,7 +24,7 @@ These instructions will guide you through the process of setting up Classic Baby
 Make sure you have the following software installed:
 
 - Git ([Download & Install Git](https://git-scm.com/downloads))
-- Python 3.x ([Download & Install Python](https://www.python.org/downloads/))
+- Python 3.8-3.11 ([Download & Install Python](https://www.python.org/downloads/))
 - Pip (usually installed with Python)
 
 ### Clone the Repository
@@ -44,18 +44,22 @@ cd babyagi
 # Navigate to the 'classic/babyfoxagi' folder
 cd classic/babyfoxagi
 ```
-### Install Dependencies
-Since there's no requirements.txt, you'll need to install the required packages manually:
-```bash
-# Install OpenAI package
-pip install openai
 
-# Install Flask
-pip install Flask
+### Install Dependencies
+
+Install **requirements.txt**, to get the required packages:
+
+```bash
+# Install required packages
+pip install -r requirements.txt
 ```
+
 Note: If you are using a Python environment manager like conda, make sure to activate your environment before running the pip commands.
+
 ### Configuration
+
 Create a .env file in the classic/babyfoxagi directory to store your API keys.
+
 ```bash
 # Create a .env file
 touch .env
@@ -66,9 +70,13 @@ echo "OPENAI_API_KEY=your_openai_api_key_here" >> .env
 echo "SERPAPI_API_KEY=your_serpapi_api_key_here" >> .env
 echo "AIRTABLE_API_KEY=your_airtable_api_key_here" >> .env
 ```
+
 For other tools like airtable_search, you may also need to specify additional configurations like BASE, TABLE, and COLUMN in the airtable_search.py file.
+
 ### Running the Project
+
 After cloning the repository, installing the dependencies, and setting up the .env file, just run:
+
 ```bash
 python main.py
 ```
@@ -88,9 +96,11 @@ The project consists mainly of two Python scripts (`main.py` and `babyagi.py`) a
 ### main.py
 
 #### Role
+
 Acts as the entry point for the Flask web application and handles routes, API calls, and ongoing tasks.
 
 #### Key Features
+
 - Flask routes for handling HTTP requests.
 - Integration with OpenAI's API for text summarization and skill execution.
 - Management of ongoing tasks and their statuses.
@@ -98,9 +108,11 @@ Acts as the entry point for the Flask web application and handles routes, API ca
 ### Chat.js
 
 #### Role
+
 Handles the client-side interaction within the web interface, including capturing user input and displaying messages and task statuses.
 
 #### Key Features
+
 - Dynamic chat interface for user interaction.
 - HTTP requests to the Flask backend for task initiation and status checks.
 - Presentation layer for task status and results.
@@ -108,17 +120,21 @@ Handles the client-side interaction within the web interface, including capturin
 ### index.html
 
 #### Role
+
 Provides the layout for the web interface, including a chat box for user interaction and an objectives box for task display.
 
 #### Key Features
+
 - HTML layout that accommodates the chat box and objectives box side-by-side.
 
 ### babyagi.py
 
 #### Role
+
 Acts as the central orchestrator for task execution, coordinating with various skills to accomplish a predefined objective.
 
 #### Key Features
+
 - Task and skill registries to manage the execution.
 - Main execution loop that iteratively performs tasks based on dependencies and objectives.
 - Optional feature to reflect on task outputs and potentially generate new tasks.
