@@ -34,7 +34,7 @@ The core is a new function framework (**functionz**) for storing, managing, and 
 
 To quickly check out the dashboard and see how it works:
 
-1. **Install BabyAGI:** (PIP INSTALL WILL NOT WORK UNTIL WE PUSH TO PYPI, USE GIT CLONE FOR NOW)
+1. **Install BabyAGI:**
 
     ```bash
     pip install babyagi
