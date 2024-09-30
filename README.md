@@ -249,7 +249,7 @@ This will generate 3 distinct tasks a salesperson might ask an AI assistant and 
 
 Contributions are greatly appreciatedly, but candidly I have not been great at managing PRs. Please be patient as things will move slow while I am working on this alone (on nights and weekends). I may start by building a small core crew before collaborating with a larger group.
 
-If you are a dev, investor, friend of open-source and interesting supporting AI work I do, please fill [this form]([https://](https://forms.gle/UZLyT75HQULr8XNUA)) (I have a few fun initiatives coming up!)
+If you are a dev, investor, friend of open-source and interesting supporting AI work I do, please fill [this form](https://forms.gle/UZLyT75HQULr8XNUA) (I have a few fun initiatives coming up!)
 
 ## License
 
