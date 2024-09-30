@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% block head %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PythonFunc Dashboard{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Include external CSS -->
+    <link rel="stylesheet" href="{{ url_for('dashboard.static', filename='css/style.css') }}">
+    {% endblock %}
+</head>
+<body>
+    <!-- Include the navigation menu outside the container for styling purposes -->
+    <nav>
+        <ul>
+            <li><a href="{{ url_for('dashboard.dashboard_home') }}">Home</a></li>
+            <li><a href="{{ url_for('dashboard.function_graph') }}">Graph</a></li>
+            <li><a href="{{ url_for('dashboard.function_graph_mermaid') }}">Mermaid Graph</a></li>
+            <li><a href="{{ url_for('dashboard.function_graph_3d') }}">3D Graph</a></li>
+            <li><a href="{{ url_for('dashboard.logs_dashboard') }}">Logs</a></li>
+            <li><a href="{{ url_for('dashboard.chat_page') }}">Chat</a></li>
+            <!--<li><a href="{{ url_for('dashboard.log_relationship_graph') }}">Log Graph</a></li>-->
+        </ul>
+    </nav>
+    <div class="container">
+        <!-- Breadcrumb -->
+        {% block breadcrumb %}{% endblock %}
+        <!-- Main content -->
+        {% block content %}{% endblock %}
+    </div>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

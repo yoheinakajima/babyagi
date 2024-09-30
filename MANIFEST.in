@@ -1,0 +1,25 @@
+# Include the README and LICENSE
+include README.md
+include LICENSE
+
+# Include all package directories and their contents
+recursive-include babyagi *
+
+# Include examples
+recursive-include examples *
+
+# Exclude specific sensitive or unwanted files
+exclude encryption_key.json
+exclude funztionz.db
+
+# Exclude other unnecessary files
+global-exclude *.pyc
+global-exclude __pycache__/
+
+# Exclude .git and .gitignore
+global-exclude .git
+global-exclude .gitignore
+
+# Exclude .egg-info directory and files
+global-exclude *.egg-info
+global-exclude *.egg-info/*

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Log Relationship Graph{% endblock %}
+{% block breadcrumb %}
+    <div class="breadcrumb">
+        <a href="{{ url_for('dashboard.dashboard_home') }}">Home</a> &gt; Log Graph
+    </div>
+{% endblock %}
+{% block content %}
+    <h1>Log Relationship Graph</h1>
+    <div class="controls">
+        <input type="text" id="functionName" placeholder="Function name (optional)">
+        <input type="datetime-local" id="startDate" placeholder="Start date">
+        <input type="datetime-local" id="endDate" placeholder="End date">
+        <button onclick="loadLogs()">Load Logs</button>
+    </div>
+    <div id="graph"></div>
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #3366cc;"></div>
+            <span>Parent Relationship</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #dc3912; border-top: 2px dashed #dc3912;"></div>
+            <span>Trigger Relationship</span>
+        </div>
+    </div>
+    <div id="overlay" class="overlay">
+        <div class="overlay-content">
+            <span class="close-btn" onclick="closeOverlay()">&times;</span>
+            <h2 id="logTitle"></h2>
+            <pre id="logContent"></pre>
+        </div>
+    </div>
+{% endblock %}
+{% block scripts %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.21.1/cytoscape.min.js"></script>
+    <script>
+        const apiLogsUrl = "{{ url_for('api.get_logs') }}";
+    </script>
+    <script src="{{ url_for('dashboard.static', filename='js/log_graph.js') }}"></script>
+{% endblock %}

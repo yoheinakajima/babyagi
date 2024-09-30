@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Function Details: {{ function_name }}{% endblock %}
+{% block head %}
+    <link rel="stylesheet" href="{{ url_for('dashboard.static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/theme/monokai.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/mode/python/python.min.js"></script>
+{% endblock %}
+{% block breadcrumb %}
+    <div class="breadcrumb">
+        <a href="{{ url_for('dashboard.dashboard_home') }}">Home</a> &gt; <span id="functionName">{{ function_name }}</span>
+    </div>
+{% endblock %}
+{% block content %}
+    <h1>Function: <span id="functionName">{{ function_name }}</span></h1>
+
+    <div class="two-column">
+        <div class="column">
+            <div class="function-detail">
+                <div class="section-title">Execute Function</div>
+                <div id="executionForm"></div>
+                <button onclick="executeFunction()" class="button">Execute</button>
+                <div id="executionResult" class="execution-result"></div>
+            </div>
+            <div class="function-detail">
+                <div class="section-title">Details</div>
+                <div id="functionDetails"></div>
+                <div id="functionTriggers"></div>
+            </div>
+        </div>
+
+        <div class="column">
+            <div class="function-detail">
+                <div class="section-title">Code</div>
+                <textarea id="codeEditor"></textarea>
+                <button onclick="updateFunction()" class="button">Update Function</button>
+            </div>
+
+            <div class="function-detail">
+                <div class="section-title">Logs</div>
+                <div id="functionLogs"></div>
+            </div>
+
+            <div class="function-detail">
+                <div class="section-title">
+                    Versions
+                </div>
+                <button class="button" id="toggleVersionHistory">Show Versions</button>
+                <div id="versionHistory" class="version-history" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block scripts %}
+    <script>
+        window.functionName = "{{ function_name }}";
+        window.dashboardRoute = "{{ url_for('dashboard.dashboard_home') }}";
+        const apiRoutes = {
+            getFunction: "{{ url_for('api.get_function', function_name=function_name) }}",
+            executeFunction: "{{ url_for('api.execute_function', function_name=function_name) }}",
+            getLogs: "{{ url_for('api.get_logs', function_name=function_name) }}",
+            getTriggers: "{{ url_for('api.get_triggers', function_name=function_name) }}",
+            getFunctionVersions: "{{ url_for('api.get_function_versions', function_name=function_name) }}",
+            activateVersion: "{{ url_for('api.activate_function_version', function_name=function_name, version='VERSION_PLACEHOLDER') }}",
+            updateFunction: "{{ url_for('api.update_function', function_name=function_name) }}"
+        };
+    </script>
+    <script src="{{ url_for('dashboard.static', filename='js/function_details.js') }}"></script>
+{% endblock %}

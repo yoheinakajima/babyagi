@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}3D Function Relationship Graph{% endblock %}
+{% block head %}
+    {{ super() }}
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Inter', Arial, sans-serif;
+        }
+        #3d-graph {
+            width: 100%;
+            height: 100vh;
+        }
+        .node-label {
+            background-color: white;
+            padding: 5px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            position: absolute;
+            display: none;
+            z-index: 1;
+        }
+    </style>
+{% endblock %}
+{% block breadcrumb %}
+    <div class="breadcrumb">
+        <a href="{{ url_for('dashboard.dashboard_home') }}">Home</a> &gt; 3D Graph
+    </div>
+{% endblock %}
+{% block content %}
+    <div id="3d-graph"></div>
+    <div id="node-label" class="node-label"></div>
+{% endblock %}
+{% block scripts %}
+    <!-- Include the 3D Force-Directed Graph and Three.js libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/3d-force-graph"></script>
+
+    <script>
+        // Main script to generate 3D graph
+
+        // Fetch the data for functions and dependencies (same structure as before)
+        fetch('/api/functions')
+            .then(response => response.json())
+            .then(data => {
+                const imports = new Set();
+
+                // Prepare the nodes and links arrays for the 3D force-directed graph
+                const nodes = [];
+                const links = [];
+
+                // Map function data to nodes and edges
+                data.forEach(func => {
+                    nodes.push({ id: func.name, group: 'function' });
+
+                    func.dependencies.forEach(dep => {
+                        links.push({ source: func.name, target: dep, type: 'dependency' });
+                    });
+
+                    func.triggers.forEach(trigger => {
+                        links.push({ source: func.name, target: trigger, type: 'trigger' });
+                    });
+
+                    func.imports.forEach(imp => imports.add(imp));
+                });
+
+                imports.forEach(imp => {
+                    nodes.push({ id: imp, group: 'import' });
+                });
+
+                data.forEach(func => {
+                    func.imports.forEach(imp => {
+                        links.push({ source: func.name, target: imp, type: 'import' });
+                    });
+                });
+
+                // Create the 3D graph using 3D Force-Directed Graph
+                const Graph = ForceGraph3D()
+                    (document.getElementById('3d-graph'))
+                    .graphData({ nodes, links })
+                    .nodeLabel('id')
+                    .nodeAutoColorBy('group')
+                    .linkWidth(link => link.type === 'dependency' ? 2 : 1)
+                    .linkDirectionalParticles(2)
+                    .linkDirectionalParticleWidth(2)
+                    .nodeThreeObject(node => {
+                        // Create a custom 3D object for nodes using the correct version of THREE
+                        const sphereGeometry = new THREE.SphereGeometry(8, 32, 32);
+                        const material = new THREE.MeshBasicMaterial({ color: node.group === 'function' ? 0x44aa88 : 0xffcc00 });
+                        return new THREE.Mesh(sphereGeometry, material);
+                    })
+                    .onNodeClick(node => {
+                        // On node click, dynamically fetch and show more information
+                        expandNode(node);
+                    });
+
+                // Function to expand a node and add more details dynamically
+                function expandNode(node) {
+                    // Fetch the details of the clicked node (function)
+                    const url = '/api/functions/' + node.id;
+
+                    fetch(url)
+                        .then(response => response.json())
+                        .then(funcData => {
+                            // Handle function data here
+                            // You can add more nodes or display details as needed
+                        })
+                        .catch(error => {
+                            console.error('Error fetching function details:', error);
+                        });
+                }
+            });
+    </script>
+{% endblock %}

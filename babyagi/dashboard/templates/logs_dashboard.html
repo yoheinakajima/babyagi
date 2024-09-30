@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Logs Dashboard{% endblock %}
+{% block breadcrumb %}
+    <div class="breadcrumb">
+        <a href="{{ url_for('dashboard.dashboard_home') }}">Home</a> &gt; Logs
+    </div>
+{% endblock %}
+{% block content %}
+    <h1>Logs Dashboard</h1>
+
+    <!-- Filter Section -->
+    <div class="filter-container">
+        <label class="filter-label" for="functionFilter">Function:</label>
+        <select id="functionFilter" class="filter-select">
+            <option value="">All</option>
+            <!-- Dynamic options will be populated here -->
+        </select>
+
+        <label class="filter-label" for="logTypeFilter">Log Type:</label>
+        <select id="logTypeFilter" class="filter-select">
+            <option value="">All</option>
+            <option value="info">Info</option>
+            <option value="success">Success</option>
+            <option value="error">Error</option>
+            <!-- Add more log types if applicable -->
+        </select>
+
+        <label class="filter-label" for="dateFilter">Date Range:</label>
+        <input type="date" id="startDate" class="filter-select">
+        <input type="date" id="endDate" class="filter-select">
+
+        <button class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
+        <button class="btn btn-secondary" onclick="resetFilters()">Reset Filters</button>
+    </div>
+
+    <!-- Logs Table (Desktop View) -->
+    <table id="logTable" class="table table-striped table-bordered desktop-only">
+        <thead>
+            <tr>
+                <th class="sortable" onclick="sortLogs('id')">ID</th>
+                <th class="sortable" onclick="sortLogs('function_name')">Function Name</th>
+                <th class="sortable" onclick="sortLogs('message')">Message</th>
+                <th class="sortable" onclick="sortLogs('timestamp')">Timestamp</th>
+                <th class="sortable" onclick="sortLogs('log_type')">Log Type</th>
+                <th class="sortable" onclick="sortLogs('time_spent')">Time Spent (s)</th>
+                <th class="sortable" onclick="sortLogs('parent_log_id')">Parent Log ID</th>
+                <th class="sortable" onclick="sortLogs('triggered_by_log_id')">Triggered By Log ID</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Log rows will be dynamically inserted here -->
+        </tbody>
+    </table>
+
+    <!-- Logs Grid (Mobile View) -->
+    <div id="logGrid" class="log-grid mobile-only">
+        <!-- Log cards will be dynamically inserted here -->
+    </div>
+{% endblock %}
+{% block scripts %}
+    <script>
+        const dashboardRoute = "{{ url_for('dashboard.dashboard_home') }}";
+        const apiLogsUrl = "{{ url_for('api.get_logs') }}";
+    </script>
+    <!-- Include external JavaScript -->
+    <script src="{{ url_for('dashboard.static', filename='js/log_dashboard.js') }}"></script>
+{% endblock %}

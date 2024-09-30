@@ -1,0 +1,504 @@
+{% extends "base.html" %}
+{% block title %}Chat Application{% endblock %}
+{% block breadcrumb %}
+    <div class="breadcrumb">
+        <a href="{{ url_for('dashboard.dashboard_home') }}">Home</a> &gt; Chat
+    </div>
+{% endblock %}
+{% block content %}
+    <div class="header-container">
+        <h1>Function-Enhanced Chat Application</h1>
+        <!-- Additional header content can be added here -->
+    </div>
+
+    <div class="main-content">
+        <!-- Function Selection Section -->
+        <div class="function-selection">
+            <h2>Select Available Functions</h2>
+            <input type="text" id="searchBar" placeholder="Search functions..." class="search-bar">
+            <div id="functionList" class="function-list">
+                <!-- Function items will be populated here -->
+            </div>
+        </div>
+
+        <!-- Chat Section -->
+        <div class="chat-container">
+            <!-- Available Functions Display -->
+            <div id="availableFunctionsContainer" class="available-functions-container">
+                <h3>Available Functions:</h3>
+                <div id="availableFunctionsList" class="available-functions-list">
+                    <!-- Selected functions will be displayed here -->
+                </div>
+            </div>
+
+            <div id="chatWindow" class="chat-window">
+                <!-- Chat messages will be displayed here -->
+            </div>
+            <div class="chat-input-container">
+                <textarea id="userMessage" placeholder="Type your message here..." rows="2"></textarea>
+                <button id="sendMessage" class="btn btn-success">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Function Details Modal -->
+    <div id="functionModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <div id="modalContent">
+                <!-- Function details will be displayed here -->
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block scripts %}
+    <!-- Include Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style>
+        /* Basic Styles */
+        .header-container {
+            margin-bottom: 20px;
+        }
+        .main-content {
+            display: flex;
+            flex-direction: column;
+        }
+        .function-selection {
+            margin-bottom: 20px;
+            flex-shrink: 0;
+        }
+        .search-bar {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+        .function-list {
+            overflow-y: auto;
+            max-height: calc(100vh - 400px); /* Adjust based on header and other elements */
+        }
+        .function-item {
+            border-bottom: 1px solid #ddd;
+            padding: 5px 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: background-color 0.2s;
+            position: relative;
+        }
+        .function-item:hover {
+            background-color: #f0f0f0;
+        }
+        .function-item.selected {
+            background-color: #e0f7fa;
+        }
+        .function-name {
+            flex: 1;
+            font-weight: bold;
+            text-decoration: none;
+            color: inherit;
+        }
+        .add-button {
+            margin-left: 5px;
+        }
+        .info-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            margin-left: 5px;
+            position: relative;
+        }
+        .chat-container {
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-height: calc(100vh - 400px);
+            margin-top: 20px; /* Added margin to separate from function list */
+        }
+        .chat-window {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .chat-message {
+            margin-bottom: 10px;
+        }
+        .chat-message.user {
+            text-align: right;
+        }
+        .chat-message.assistant {
+            text-align: left;
+        }
+        .chat-input-container {
+            display: flex;
+            margin-top: 10px;
+            padding-bottom: 10px; /* Added padding at the bottom */
+        }
+        #userMessage {
+            flex: 1;
+            resize: none;
+            padding: 5px;
+        }
+        #sendMessage {
+            margin-left: 10px;
+        }
+        .available-functions-container {
+            margin-bottom: 20px;
+        }
+        .available-functions-list {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .available-function-item {
+            background-color: #e0f7fa;
+            padding: 5px 10px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            border-radius: 3px;
+            position: relative;
+            cursor: default;
+        }
+        .available-function-item .remove-function {
+            position: absolute;
+            top: 2px;
+            right: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        /* Modal Styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 1000; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5); /* Black w/ opacity */
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto; /* 15% from the top and centered */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%; /* Could be more or less, depending on screen size */
+            max-height: 80%;
+            overflow-y: auto;
+            position: relative;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            position: absolute;
+            right: 10px;
+            top: 5px;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        /* Responsive Layout */
+        @media (min-width: 768px) {
+            .main-content {
+                flex-direction: row;
+            }
+            .function-selection {
+                width: 25%;
+                margin-right: 20px;
+            }
+            .chat-container {
+                width: 75%;
+                margin-top: 0; /* Remove top margin in row layout */
+            }
+        }
+    </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const functionListContainer = document.getElementById('functionList');
+            const chatWindow = document.getElementById('chatWindow');
+            const userMessageInput = document.getElementById('userMessage');
+            const sendMessageButton = document.getElementById('sendMessage');
+            const searchBar = document.getElementById('searchBar');
+            const modal = document.getElementById('functionModal');
+            const modalContent = document.getElementById('modalContent');
+            const closeButton = document.querySelector('.close-button');
+
+            let availableFunctions = [];
+            let allFunctions = [];
+            let chatHistory = [
+                // Optionally, you can initialize with system message if needed
+                // { role: 'system', message: 'You are a helpful assistant.' }
+            ];
+
+            // Function to fetch available functions using /api/functions endpoint
+            function fetchFunctions() {
+                fetch("{{ url_for('api.get_functions') }}", {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    allFunctions = data;
+                    displayFunctions(allFunctions);
+                })
+                .catch(error => console.error('Error fetching functions:', error));
+            }
+
+            // Function to display functions as selectable items
+            function displayFunctions(functions) {
+                functionListContainer.innerHTML = '';
+                functions.forEach(func => {
+                    console.log(func);
+                    const functionItem = document.createElement('div');
+                    functionItem.className = 'function-item';
+                    functionItem.dataset.name = func.name;
+                    functionItem.dataset.description = func.description || '';
+                    functionItem.dataset.details = JSON.stringify(func);
+
+                    const functionName = document.createElement('a');
+                    functionName.className = 'function-name';
+                    functionName.textContent = func.name;
+                    functionName.href = '/function/' + encodeURIComponent(func.name);
+
+                    const addButton = document.createElement('button');
+                    addButton.className = 'add-button';
+                    addButton.textContent = 'Add';
+
+                    // **New Code Starts Here**
+                    // Check if the function is already in availableFunctions
+                    if (availableFunctions.includes(func.name)) {
+                        addButton.textContent = 'Remove';
+                        addButton.classList.add('remove');
+                    } else {
+                        addButton.textContent = 'Add';
+                        addButton.classList.remove('remove');
+                    }
+                    // **New Code Ends Here**
+
+                    addButton.addEventListener('click', function(event) {
+                        event.stopPropagation();
+                        toggleFunctionSelection(func.name);
+                        if (addButton.textContent === 'Add') {
+                            addButton.textContent = 'Remove';
+                            addButton.classList.add('remove');
+                        } else {
+                            addButton.textContent = 'Add';
+                            addButton.classList.remove('remove');
+                        }
+                    });
+
+                    const infoButton = document.createElement('button');
+                    infoButton.className = 'info-button';
+                    infoButton.innerHTML = 'ℹ️';
+
+                    // Add click event listener to open modal with function details
+                    infoButton.addEventListener('click', function(event) {
+                        event.stopPropagation();
+                        openModal(func);
+                    });
+
+                    functionItem.appendChild(functionName);
+                    functionItem.appendChild(addButton);
+                    functionItem.appendChild(infoButton);
+
+                    functionListContainer.appendChild(functionItem);
+
+                    // Add click event listener for selecting the function item
+                    functionItem.addEventListener('click', function(event) {
+                        // Avoid triggering when clicking on addButton or infoButton
+                        if (event.target === addButton || event.target === infoButton || infoButton.contains(event.target)) {
+                            return;
+                        }
+                        window.location.href = '/function/' + encodeURIComponent(func.name);
+                    });
+                });
+            }
+
+
+            // Function to open modal with function details
+            function openModal(func) {
+                // Assemble the detailed information
+                let infoContent = `<h2>${func.name}</h2>`;
+                infoContent += `<strong>Version:</strong> ${func.version || 'N/A'}<br>`;
+                infoContent += `<strong>Created Date:</strong> ${func.created_date || 'N/A'}<br>`;
+                infoContent += `<strong>Metadata:</strong> <pre>${JSON.stringify(func.metadata, null, 2) || '{}'}<pre><br>`;
+                infoContent += `<strong>Dependencies:</strong> <pre>${JSON.stringify(func.dependencies, null, 2) || '[]'}<pre><br>`;
+                infoContent += `<strong>Triggers:</strong> <pre>${JSON.stringify(func.triggers, null, 2) || '[]'}<pre><br>`;
+                infoContent += `<strong>Input Parameters:</strong> <pre>${JSON.stringify(func.input_parameters, null, 2) || '[]'}<pre><br>`;
+                infoContent += `<strong>Output Parameters:</strong> <pre>${JSON.stringify(func.output_parameters, null, 2) || '[]'}<pre><br>`;
+                infoContent += `<strong>Code:</strong><pre>${func.code || 'N/A'}</pre>`;
+
+                modalContent.innerHTML = infoContent;
+                modal.style.display = 'block';
+            }
+
+            // Close the modal when the user clicks on the close button
+            closeButton.addEventListener('click', function() {
+                modal.style.display = 'none';
+            });
+
+            // Close the modal when the user clicks anywhere outside of the modal content
+            window.addEventListener('click', function(event) {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+
+            // Filter functions based on search input
+            searchBar.addEventListener('input', function() {
+                const query = this.value.toLowerCase();
+                const filteredFunctions = allFunctions.filter(func =>
+                    func.name.toLowerCase().includes(query) ||
+                    (func.description && func.description.toLowerCase().includes(query))
+                );
+                displayFunctions(filteredFunctions);
+            });
+
+            // Toggle function selection
+            function toggleFunctionSelection(functionName) {
+                const index = availableFunctions.indexOf(functionName);
+                if (index === -1) {
+                    availableFunctions.push(functionName);
+                    addFunctionToAvailableList(functionName);
+                } else {
+                    availableFunctions.splice(index, 1);
+                    removeFunctionFromAvailableList(functionName);
+                }
+            }
+
+            // Add function to available functions list in UI
+            function addFunctionToAvailableList(functionName) {
+                const availableFunctionsList = document.getElementById('availableFunctionsList');
+                const functionItem = document.createElement('div');
+                functionItem.className = 'available-function-item';
+                functionItem.dataset.name = functionName;
+                functionItem.textContent = functionName;
+
+                const removeButton = document.createElement('span');
+                removeButton.className = 'remove-function';
+                removeButton.textContent = '×';
+
+                removeButton.addEventListener('click', function() {
+                    toggleFunctionSelection(functionName);
+                    // Update the add button in the function list
+                    const functionItems = document.querySelectorAll('.function-item');
+                    functionItems.forEach(item => {
+                        if (item.dataset.name === functionName) {
+                            const addButton = item.querySelector('.add-button');
+                            if (addButton) {
+                                addButton.textContent = 'Add';
+                                addButton.classList.remove('remove');
+                            }
+                        }
+                    });
+                });
+
+                functionItem.appendChild(removeButton);
+                availableFunctionsList.appendChild(functionItem);
+            }
+
+            // Remove function from available functions list in UI
+            function removeFunctionFromAvailableList(functionName) {
+                const availableFunctionsList = document.getElementById('availableFunctionsList');
+                const functionItems = availableFunctionsList.querySelectorAll('.available-function-item');
+                functionItems.forEach(item => {
+                    if (item.dataset.name === functionName) {
+                        availableFunctionsList.removeChild(item);
+                    }
+                });
+            }
+
+            // Send user message
+            sendMessageButton.addEventListener('click', function() {
+                const userMessage = userMessageInput.value.trim();
+                if (userMessage === '') return;
+
+                if (availableFunctions.length === 0) {
+                    alert('Please select at least one function before sending a message.');
+                    return;
+                }
+
+                // Display user message
+                addMessageToChat('user', userMessage);
+
+                // Clear input
+                userMessageInput.value = '';
+
+                // Prepare parameters
+                const params = {
+                    chat_history: chatHistory,
+                    available_function_names: availableFunctions.join(', ')
+                };
+
+                fetch("{{ url_for('api.execute_function', function_name='chat_with_functions') }}", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(params)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Data received from server:', data);
+
+                    let assistantResponse;
+
+                    if (typeof data === 'string') {
+                        assistantResponse = data;
+                    } else if (data.message) {
+                        assistantResponse = data.message;
+                    } else {
+                        assistantResponse = JSON.stringify(data);
+                    }
+
+                    // Display the assistant's response
+                    addMessageToChat('assistant', assistantResponse);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    addMessageToChat('assistant', 'Error processing your request.');
+                });
+            });
+
+            // Function to add message to chat window
+            function addMessageToChat(role, message) {
+                if (typeof message !== 'string') {
+                    message = 'No message received.';
+                }
+
+                const messageElement = document.createElement('div');
+                messageElement.className = `chat-message ${role}`;
+
+                if (role === 'assistant') {
+                    // Parse Markdown
+                    messageElement.innerHTML = marked.parse(message);
+                } else {
+                    messageElement.textContent = message;
+                }
+
+                chatWindow.appendChild(messageElement);
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+
+                // Save message to chat history
+                chatHistory.push({ role: role, message: message });
+            }
+
+            // Initialize by fetching functions
+            fetchFunctions();
+        });
+    </script>
+{% endblock %}

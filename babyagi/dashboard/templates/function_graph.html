@@ -1,0 +1,507 @@
+{% extends "base.html" %}
+{% block title %}Function Relationship Graph{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <!-- Include Cytoscape.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.21.1/cytoscape.min.js"></script>
+    <!-- Include CodeMirror CSS and JS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/theme/monokai.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/mode/python/python.min.js"></script>
+    <!-- Page-Specific Styles -->
+    <style>
+        #graph {
+            width: 100%;
+            height: calc(100vh - 160px); /* Adjust height considering nav and breadcrumb */
+            background-color: var(--background-color);
+        }
+
+        .overlay {
+            position: absolute;
+            background: var(--card-bg-color);
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 10;
+            top: 10px;
+            right: 10px;
+            width: 400px;
+            height: 90vh;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--text-color);
+        }
+
+        .toggle-menu {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+
+        .toggle-menu button {
+            padding: 10px;
+            cursor: pointer;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+
+        .toggle-menu button:hover {
+            background-color: var(--hover-color);
+        }
+
+        .card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            background-color: var(--card-bg-color);
+        }
+
+        .card-title {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+
+        .card-content {
+            display: none;
+        }
+
+        .card-content.active {
+            display: block;
+        }
+
+        #tab-buttons {
+            display: flex;
+            margin-bottom: 10px;
+        }
+
+        .tab-button {
+            padding: 5px 10px;
+            margin-right: 5px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .tab-button.active {
+            background-color: #007bff;
+            color: white;
+            border-color: #0056b3;
+        }
+
+        #tab-content {
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 3px;
+        }
+    </style>
+{% endblock %}
+
+{% block breadcrumb %}
+    <div class="breadcrumb">
+        <a href="{{ url_for('dashboard.dashboard_home') }}">Home</a> &gt; Function Graph
+    </div>
+{% endblock %}
+
+{% block content %}
+    <h1>Function Relationship Graph</h1>
+    <div id="graph"></div>
+
+    <!-- Overlay for Function Details -->
+    <div id="overlay" class="overlay">
+        <span class="close-btn" onclick="closeOverlay()">×</span>
+        <div id="overlay-content">
+            <h2 id="functionName"></h2>
+            <!-- Tab buttons -->
+            <div id="tab-buttons">
+                <button class="tab-button active" onclick="showTab('description')">Description</button>
+                <button class="tab-button" onclick="showTab('code')">Code</button>
+                <button class="tab-button" onclick="showTab('logs')">Logs</button>
+                <button class="tab-button" onclick="showTab('execute')">Execute</button>
+                <button class="tab-button" onclick="showTab('versions')">Versions</button>
+            </div>
+            <!-- Tab content -->
+            <div id="tab-content">
+                <div id="description-tab">
+                    <div id="functionDetails"></div>
+                    <div id="functionTriggers"></div>
+                </div>
+                <div id="code-tab" style="display: none;">
+                    <textarea id="codeEditor"></textarea>
+                    <button onclick="updateFunction()" class="button">Update Function</button>
+                </div>
+                <div id="logs-tab" style="display: none;">
+                    <div id="functionLogs"></div>
+                </div>
+                <div id="execute-tab" style="display: none;">
+                    <div id="executionForm"></div>
+                    <button onclick="executeFunction()" class="button">Execute</button>
+                    <div id="executionResult" class="execution-result"></div>
+                </div>
+                <div id="versions-tab" style="display: none;">
+                    <button class="button" id="toggleVersionHistory">Show Versions</button>
+                    <div id="versionHistory" class="version-history" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        // Define dashboardRoute correctly without _external and _scheme
+        window.dashboardRoute = "{{ url_for('dashboard.dashboard_home') }}";
+
+        // Initialize Cytoscape graph
+        let cy;
+        document.addEventListener('DOMContentLoaded', () => {
+            cy = cytoscape({
+                container: document.getElementById('graph'),
+                style: [
+                    {
+                        selector: 'node',
+                        style: {
+                            'shape': 'rectangle',
+                            'background-color': '#E6F2FF',
+                            'label': 'data(id)',
+                            'text-valign': 'center',
+                            'text-halign': 'center',
+                            'text-wrap': 'wrap',
+                            'text-max-width': '150px',
+                            'width': 'label',
+                            'height': 'label',
+                            'padding': '12px',
+                            'font-weight': 'bold',
+                            'font-size': '16px',
+                            'color': '#333333',
+                            'text-outline-color': '#FFFFFF',
+                            'text-outline-width': 1,
+                            'cursor': 'pointer'
+                        }
+                    },
+                    {
+                        selector: 'node[type="import"]',
+                        style: {
+                            'background-color': '#E6FFF2'  // Light green for imports
+                        }
+                    },
+                    {
+                        selector: 'node[type="trigger"]',
+                        style: {
+                            'background-color': '#FFE6E6'  // Light red for triggers
+                        }
+                    },
+                    {
+                        selector: 'node:hover',
+                        style: {
+                            'background-opacity': 0.8
+                        }
+                    },
+                    {
+                        selector: 'edge',
+                        style: {
+                            'width': 1,
+                            'line-color': '#999999',
+                            'target-arrow-color': '#999999',
+                            'target-arrow-shape': 'triangle',
+                            'curve-style': 'bezier',
+                            'arrow-scale': 1.5
+                        }
+                    },
+                    {
+                        selector: 'edge[type="dependency"]',
+                        style: {
+                            'width': 2
+                        }
+                    },
+                    {
+                        selector: 'edge[type="trigger"]',
+                        style: {
+                            'line-style': 'dashed',
+                            'label': 'trigger',
+                            'font-size': '12px',
+                            'text-rotation': 'autorotate',
+                            'text-margin-y': -10
+                        }
+                    }
+                ],
+                layout: {
+                    name: 'cose',
+                    idealEdgeLength: 50,
+                    nodeOverlap: 20,
+                    refresh: 20,
+                    fit: true,
+                    padding: 30,
+                    randomize: false,
+                    componentSpacing: 80,
+                    nodeRepulsion: 450000,
+                    edgeElasticity: 100,
+                    nestingFactor: 5,
+                    gravity: 80,
+                    numIter: 1000,
+                    initialTemp: 200,
+                    coolingFactor: 0.95,
+                    minTemp: 1.0
+                },
+                wheelSensitivity: 0.2
+            });
+
+            fetch('/api/functions')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch functions');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const elements = [];
+                    const imports = new Set();
+
+                    data.forEach(func => {
+                        elements.push({ data: { id: func.name, type: 'function' } });
+
+                        func.dependencies.forEach(dep => {
+                            elements.push({ data: { id: dep, type: 'function' } });
+                            elements.push({ data: { source: func.name, target: dep, type: 'dependency' } });
+                        });
+
+                        func.triggers.forEach(trigger => {
+                            elements.push({ data: { id: trigger, type: 'trigger' } });
+                            elements.push({ data: { source: func.name, target: trigger, type: 'trigger' } });
+                        });
+
+                        func.imports.forEach(imp => imports.add(imp));
+                    });
+
+                    imports.forEach(imp => {
+                        elements.push({ data: { id: imp, type: 'import' } });
+                    });
+
+                    data.forEach(func => {
+                        func.imports.forEach(imp => {
+                            elements.push({ data: { source: func.name, target: imp, type: 'import' } });
+                        });
+                    });
+
+                    cy.add(elements);
+                    cy.layout({ name: 'cose' }).run();
+
+                    // Zoom to fit with a bit of padding
+                    cy.fit(40);
+
+                    // Add a slight zoom in
+                    cy.zoom({
+                        level: cy.zoom() * 1.3,
+                        renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching functions:', error);
+                });
+
+            cy.on('tap', 'node', function(evt) {
+                const node = evt.target;
+                if (node.data('type') === 'function') {
+                    showFunctionOverlay(node.id());
+                }
+            });
+
+            cy.on('zoom pan', () => {
+                closeOverlay();
+            });
+        });
+
+        // Initialize global variables and API routes
+        window.functionName = null;
+        window.apiRoutes = {}; // Initialize apiRoutes as an empty object
+        window.functionDetailsJsLoaded = false; // Flag to check if function_details.js is loaded
+
+        // Update apiRoutes based on the selected function
+        window.updateApiRoutes = function(functionName) {
+            window.apiRoutes = {
+                getFunction: `/api/function/${functionName}`,
+                updateFunction: `/api/function/${functionName}`,
+                executeFunction: `/api/execute/${functionName}`,
+                getLogs: `/api/logs/${functionName}`,
+                getFunctionVersions: `/api/function/${functionName}/versions`,
+                activateVersion: (version) => `/api/function/${functionName}/versions/${version}/activate`
+            };
+        };
+
+        // Function to show the overlay with function details
+        function showFunctionOverlay(functionName) {
+            const overlay = document.getElementById('overlay');
+            document.getElementById('functionName').textContent = functionName;
+
+            // Set global functionName
+            window.functionName = functionName;
+
+            // Update apiRoutes with the current function name
+            window.updateApiRoutes(functionName);
+
+            overlay.style.display = 'block';
+
+            // Fetch the function data from the API
+            fetch(window.apiRoutes.getFunction)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch function data');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("Fetched function data:", data);
+
+                    if (data.error) {
+                        console.error("Error fetching function data:", data.error);
+                        return;
+                    }
+
+                    // Set the global functionData to the fetched data
+                    window.functionData = data;
+
+                    // Check if function_details.js is loaded
+                    if (!window.functionDetailsJsLoaded) {
+                        var script = document.createElement('script');
+                        script.src = "{{ url_for('dashboard.static', filename='js/function_details.js') }}";
+                        script.onload = function() {
+                            window.functionDetailsJsLoaded = true;
+
+                            // Call the required functions after loading the script
+                            window.loadFunctionDetails();
+                            window.loadFunctionLogs();
+
+                            // Initialize CodeMirror editor
+                            window.initCodeEditor();
+
+                            // Set up version history toggle
+                            const toggleVersionHistoryBtn = document.getElementById('toggleVersionHistory');
+                            if (toggleVersionHistoryBtn) {
+                                toggleVersionHistoryBtn.onclick = window.toggleVersionHistory;
+                            }
+
+                            // Default to showing the Description tab
+                            showTab('description');
+                        };
+                        document.head.appendChild(script);
+                    } else {
+                        // If function_details.js is already loaded, just call the necessary functions
+                        window.loadFunctionDetails();
+                        window.loadFunctionLogs();
+
+                        // Initialize CodeMirror editor
+                        if (typeof codeEditor === 'undefined' || !codeEditor) {
+                            window.initCodeEditor();
+                        } else {
+                            codeEditor.setValue('');
+                            codeEditor.toTextArea();
+                            window.initCodeEditor();
+                        }
+
+                        // Set up version history toggle
+                        const toggleVersionHistoryBtn = document.getElementById('toggleVersionHistory');
+                        if (toggleVersionHistoryBtn) {
+                            toggleVersionHistoryBtn.onclick = window.toggleVersionHistory;
+                        }
+
+                        // Default to showing the Description tab
+                        showTab('description');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching function data:', error);
+                });
+        }
+
+        // Function to handle tab switching
+        function showTab(tabName) {
+            const tabs = ['description', 'code', 'logs', 'execute', 'versions'];
+            tabs.forEach(tab => {
+                const tabElement = document.getElementById(`${tab}-tab`);
+                const tabButton = document.querySelector(`button.tab-button:nth-child(${tabs.indexOf(tab) + 1})`);
+                if (tab === tabName) {
+                    tabElement.style.display = 'block';
+                    tabButton.classList.add('active');
+                } else {
+                    tabElement.style.display = 'none';
+                    tabButton.classList.remove('active');
+                }
+            });
+
+            // Load content for specific tabs if needed
+            if (tabName === 'code' && document.getElementById('code-tab').innerHTML === '') {
+                window.initCodeEditor();
+            } else if (tabName === 'logs' && document.getElementById('logs-tab').innerHTML === '') {
+                window.loadFunctionLogs();
+            } else if (tabName === 'execute' && document.getElementById('executionForm').innerHTML === '') {
+                window.createExecutionForm();
+            } else if (tabName === 'versions' && document.getElementById('versionHistory').innerHTML === '') {
+                window.loadFunctionVersions();
+            }
+        }
+
+        // Function to close the overlay
+        function closeOverlay() {
+            document.getElementById('overlay').style.display = 'none';
+        }
+
+        // Function to toggle card visibility (if needed)
+        function toggleCard(cardId) {
+            const allCards = document.querySelectorAll('.card .card-content');
+            allCards.forEach(card => card.classList.remove('active'));
+
+            const selectedCard = document.getElementById(cardId).querySelector('.card-content');
+            selectedCard.classList.add('active');
+        }
+
+        // Override the executeFunction to ensure it uses POST method
+        window.executeFunction = function() {
+            let params = {};
+            const form = document.getElementById('executionForm');
+            const inputs = form.querySelectorAll('input, textarea');
+            inputs.forEach(input => {
+                params[input.name] = input.value;
+            });
+
+            fetch(apiRoutes.executeFunction, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(params),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        throw new Error(text || response.statusText);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('executionResult').innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                document.getElementById('executionResult').innerHTML = `<pre class="error">Error executing function: ${error.message}</pre>`;
+            });
+        };
+    </script>
+{% endblock %}

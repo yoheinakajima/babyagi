@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Function Dashboard{% endblock %}
+{% block content %}
+    <h1>Function Dashboard</h1>
+    <input type="text" id="searchInput" placeholder="Search functions..." onkeyup="filterTable()">
+    <table id="functionTable">
+        <thead>
+            <tr>
+                <th class="sortable" onclick="sortTable('name')">Name</th>
+                <th>Version</th>
+                <th>Description</th>
+                <th>Input Parameters</th>
+                <th>Output Parameters</th>
+                <th>Dependencies</th>
+                <th>Imports</th>
+                <th>Triggers</th>
+                <th class="sortable" onclick="sortTable('created_date')">Created Date</th>
+                <th class="sortable" onclick="sortTable('total_logs')">Total Logs</th>
+                <th class="sortable" onclick="sortTable('last_log_date')">Last Log Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Function rows will be dynamically inserted here -->
+        </tbody>
+    </table>
+    <div id="functionGrid" class="function-grid">
+        <!-- Function cards will be dynamically inserted here for mobile view -->
+    </div>
+{% endblock %}
+{% block scripts %}
+    <script>
+        const dashboardRoute = "{{ url_for('dashboard.dashboard_home') }}";
+        const apiFunctionsUrl = "{{ url_for('api.get_functions') }}";
+        const apiLogsUrl = "{{ url_for('api.get_logs', function_name='') }}"; // Base URL for logs
+    </script>
+    <!-- Include external JavaScript -->
+    <script src="{{ url_for('dashboard.static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

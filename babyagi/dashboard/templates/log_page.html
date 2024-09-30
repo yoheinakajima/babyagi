@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block title %}Log Details{% endblock %}
+{% block content %}
+<h1>Log Details for Log ID {{ log_id }}</h1>
+
+<!-- Container to display the logs -->
+<div id="logContainer"></div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+    /* CSS Styles */
+    .log-entry {
+        margin-left: 20px;
+        border-left: 1px solid #ccc;
+        padding-left: 10px;
+        position: relative;
+    }
+
+    .log-entry::before {
+        content: '';
+        position: absolute;
+        left: -1px;
+        top: 0;
+        bottom: 0;
+        width: 1px;
+        background: #ccc;
+    }
+
+    .log-header {
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+    }
+
+    .log-status {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 10px;
+    }
+
+    .log-status-success {
+        background-color: green;
+    }
+
+    .log-status-error {
+        background-color: red;
+    }
+
+    .log-status-other {
+        background-color: yellow;
+    }
+
+    .log-details {
+        margin-top: 5px;
+        display: none; /* Hidden by default */
+        background-color: #f9f9f9;
+        padding: 10px;
+    }
+
+    .toggle-button {
+        color: blue;
+        cursor: pointer;
+        text-decoration: underline;
+        margin-left: 10px;
+    }
+
+    pre {
+        background-color: #f4f4f4;
+        padding: 10px;
+        overflow: auto;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const logId = {{ log_id }};
+        const apiLogBundleUrl = '/api/log_bundle/' + logId;
+
+        fetch(apiLogBundleUrl)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            const logs = data.logs;
+            if (!logs || logs.length === 0) {
+                document.getElementById('logContainer').innerHTML = '<p>No logs found.</p>';
+                return;
+            }
+
+            const logsById = {};
+            logs.forEach(log => {
+                log.children = [];
+                logsById[log.id] = log;
+            });
+
+            // Build the tree by assigning children to their respective parents
+            logs.forEach(log => {
+                if (log.parent_log_id !== null && logsById[log.parent_log_id]) {
+                    logsById[log.parent_log_id].children.push(log);
+                }
+            });
+    
+            // Identify all root logs (logs without a parent in the fetched bundle)
+            const rootLogs = logs.filter(log => log.parent_log_id === null || !logsById[log.parent_log_id]);
+    
+            const logContainer = document.getElementById('logContainer');
+            rootLogs.forEach(log => {
+                renderLog(logContainer, log);
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching log bundle:', error);
+            document.getElementById('logContainer').innerHTML = `<p>Error loading log bundle: ${error.message}</p>`;
+        });
+
+        function renderLog(container, log, depth = 0) {
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            div.style.marginLeft = (depth * 20) + 'px';
+
+            const header = document.createElement('div');
+            header.className = 'log-header';
+
+            const statusDiv = document.createElement('div');
+            statusDiv.className = 'log-status ' + getLogStatusClass(log.log_type);
+            header.appendChild(statusDiv);
+
+            const messageSpan = document.createElement('span');
+            messageSpan.textContent = `${log.function_name}: ${log.message}`;
+
+            const toggleButton = document.createElement('span');
+            toggleButton.className = 'toggle-button';
+            toggleButton.textContent = '[Show Details]';
+            toggleButton.addEventListener('click', function() {
+                if (detailsDiv.style.display === 'none') {
+                    detailsDiv.style.display = 'block';
+                    toggleButton.textContent = '[Hide Details]';
+                } else {
+                    detailsDiv.style.display = 'none';
+                    toggleButton.textContent = '[Show Details]';
+                }
+            });
+
+            header.appendChild(messageSpan);
+            header.appendChild(toggleButton);
+            div.appendChild(header);
+
+            const detailsDiv = document.createElement('div');
+            detailsDiv.className = 'log-details';
+
+            // Handle null or undefined params/output
+            const params = log.params ? JSON.stringify(log.params, null, 2) : 'N/A';
+            const output = log.output ? JSON.stringify(log.output, null, 2) : 'N/A';
+
+            detailsDiv.innerHTML = `
+                <p><strong>ID:</strong> ${log.id}</p>
+                <p><strong>Timestamp:</strong> ${new Date(log.timestamp).toLocaleString()}</p>
+                <p><strong>Log Type:</strong> ${log.log_type}</p>
+                <p><strong>Time Spent:</strong> ${log.time_spent ? log.time_spent.toFixed(3) + ' s' : 'N/A'}</p>
+                <p><strong>Parent Log ID:</strong> ${log.parent_log_id !== null ? log.parent_log_id : 'N/A'}</p>
+                <p><strong>Triggered By Log ID:</strong> ${log.triggered_by_log_id !== null ? log.triggered_by_log_id : 'N/A'}</p>
+                <p><strong>Params:</strong></p>
+                <pre>${params}</pre>
+                <p><strong>Output:</strong></p>
+                <pre>${output}</pre>
+            `;
+
+            div.appendChild(detailsDiv);
+
+            container.appendChild(div);
+
+            // Recursively render children
+            if (log.children && log.children.length > 0) {
+                log.children.forEach(childLog => {
+                    renderLog(container, childLog, depth + 1);
+                });
+            }
+        }
+
+        function getLogStatusClass(logType) {
+            switch (logType.toLowerCase()) {
+                case 'success':
+                    return 'log-status-success';
+                case 'error':
+                    return 'log-status-error';
+                default:
+                    return 'log-status-other';
+            }
+        }
+    });
+</script>
+{% endblock %}

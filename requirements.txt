@@ -1,0 +1,6 @@
+Flask>=2.0.0
+sqlalchemy>=1.4,<2.0
+cryptography
+scikit-learn
+litellm
+openai

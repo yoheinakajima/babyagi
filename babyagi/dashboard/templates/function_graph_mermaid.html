@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+{% block title %}Function Relationship Mermaid Graph{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <!-- Include Mermaid.js as an ESM module -->
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+        
+        // Initialize Mermaid with desired configuration
+        mermaid.initialize({
+            startOnLoad: false, // We will manually initialize after graph is inserted
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                fontFamily: 'Arial, sans-serif' // Use web-safe fonts to avoid CORS issues
+            }
+        });
+    </script>
+    <style>
+        /* Additional styles specific to the function_graph_mermaid.html */
+        #graph {
+            width: 100%;
+            height: calc(100vh - 160px); /* Adjust height considering nav and breadcrumb */
+            background-color: var(--background-color);
+            overflow: auto;
+            padding: 20px;
+        }
+
+        /* Download Button Styles */
+        #download-btn {
+            position: fixed;
+            top: 120px; /* Adjust based on your layout */
+            right: 30px;
+            padding: 10px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 1001; /* Ensure it's above the graph */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        #download-btn:hover {
+            background-color: var(--hover-color);
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 768px) {
+            #download-btn {
+                top: 100px;
+                right: 20px;
+                padding: 8px 16px;
+            }
+        }
+
+        /* Optional: Enhance node hover effects */
+        .mermaid .node rect {
+            cursor: pointer;
+        }
+
+        .mermaid .node:hover rect {
+            stroke: var(--primary-color);
+            stroke-width: 2px;
+        }
+    </style>
+{% endblock %}
+
+{% block breadcrumb %}
+    <div class="breadcrumb">
+        <a href="{{ url_for('dashboard.dashboard_home') }}">Home</a> &gt; Mermaid Graph
+    </div>
+{% endblock %}
+
+{% block content %}
+    <h1>Function Relationship Mermaid Graph</h1>
+    <div id="graph">
+        <div class="mermaid">
+            %% Mermaid graph will be injected here
+        </div>
+    </div>
+    <!-- Download Button -->
+    <!-- <button id="download-btn">Download Image</button>-->
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetch('/api/functions')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch functions');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    let mermaidGraph = 'graph TD\n';
+
+                    const imports = new Set();
+                    const wrappers = [];  // To store functions ending with _wrapper
+
+                    // Process each function to build the graph
+                    data.forEach(func => {
+                        // Prepare input and output parameters
+                        const inputs = Array.isArray(func.input_parameters) && func.input_parameters.length > 0
+                            ? func.input_parameters.map(param => `${param.name}: ${param.type}`).join(', ')
+                            : 'None';
+                        const outputs = Array.isArray(func.output_parameters) && func.output_parameters.length > 0
+                            ? func.output_parameters.map(param => `${param.name}: ${param.type}`).join(', ')
+                            : 'None';
+
+                        // Multiline label using <br/> for inputs and outputs, with function name in bold
+                        const label = `<b>${func.name}</b><br/>Inputs: ${inputs}<br/>Outputs: ${outputs}`;
+
+                        if (func.name.endsWith('_wrapper')) {
+                            wrappers.push(func.name);  // Add _wrapper functions to this array
+                        }
+
+                        // Define node with HTML-like labels for better formatting
+                        mermaidGraph += `    ${func.name}["${label}"]\n`;
+
+                        // Add dependencies as edges
+                        func.dependencies.forEach(dep => {
+                            mermaidGraph += `    ${func.name} -->|Depends on| ${dep}\n`;
+                        });
+
+                        // Add triggers as dashed edges
+                        func.triggers.forEach(trigger => {
+                            mermaidGraph += `    ${func.name} -.->|Triggered by| ${trigger}\n`;
+                        });
+
+                        // Collect imports
+                        if (Array.isArray(func.imports)) {
+                            func.imports.forEach(imp => imports.add(imp));
+                        }
+                    });
+
+                    // Define Imports subgraph
+                    if (imports.size > 0) {
+                        mermaidGraph += `    subgraph Imports\n`;
+                        imports.forEach(imp => {
+                            mermaidGraph += `        ${imp}["Import: ${imp}"]\n`;
+                        });
+                        mermaidGraph += `    end\n`;
+
+                        // Link functions to imports
+                        data.forEach(func => {
+                            if (Array.isArray(func.imports)) {
+                                func.imports.forEach(imp => {
+                                    mermaidGraph += `    ${func.name} -->|Uses| ${imp}\n`;
+                                });
+                            }
+                        });
+                    }
+
+                    // Define Wrapper_Functions subgraph if any
+                    if (wrappers.length > 0) {
+                        mermaidGraph += `    subgraph Wrapper_Functions\n`;
+                        wrappers.forEach(wrapper => {
+                            mermaidGraph += `        ${wrapper}["<b>${wrapper}</b>"]\n`;
+                        });
+                        mermaidGraph += `    end\n`;
+
+                        // Link wrapper functions if necessary
+                        // (Add any specific links related to wrapper functions here)
+                    }
+
+                    // Inject the graph into the Mermaid container
+                    const graphContainer = document.querySelector('.mermaid');
+                    graphContainer.innerHTML = mermaidGraph;
+
+                    // Render the Mermaid graph
+                    mermaid.init(undefined, graphContainer);
+
+                    // Add click event listeners to nodes for interactivity
+                    // Note: Mermaid does not provide built-in click events, so we need to add them manually
+                    // This approach uses SVG elements generated by Mermaid
+                    // Ensure that the graph has been rendered before adding event listeners
+
+                    // Delay to ensure Mermaid has rendered the SVG
+                    setTimeout(() => {
+                        const nodes = graphContainer.querySelectorAll('.node');
+                        nodes.forEach(node => {
+                            node.style.cursor = 'pointer'; // Change cursor to pointer
+                            node.addEventListener('click', () => {
+                                // Extract function name from the label
+                                const rawLabel = node.querySelector('text').innerHTML;
+                                const functionName = rawLabel.split('<br/>')[0].replace('<b>', '').replace('</b>', '');
+                                // Optional: Implement a click handler if needed
+                                // For now, we'll just alert the function name
+                                alert(`Function: ${functionName}`);
+                            });
+                        });
+                    }, 500); // Adjust delay as necessary
+                })
+                .catch(error => {
+                    console.error('Error fetching functions:', error);
+                    document.getElementById('graph').innerHTML = `<p>Error loading graph: ${error.message}</p>`;
+                });
+        });
+
+        // Download Image Functionality
+        document.getElementById('download-btn').addEventListener('click', () => {
+            const graphContainer = document.querySelector('.mermaid');
+            const svg = graphContainer.querySelector('svg');
+
+            if (!svg) {
+                alert('Graph is not loaded yet.');
+                return;
+            }
+
+            const serializer = new XMLSerializer();
+            const svgString = serializer.serializeToString(svg);
+
+            // Create a canvas to draw the SVG
+            const canvas = document.createElement('canvas');
+            const bbox = svg.getBBox();
+            canvas.width = bbox.width;
+            canvas.height = bbox.height;
+            const ctx = canvas.getContext('2d');
+
+            const img = new Image();
+            const svgBlob = new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
+            const url = URL.createObjectURL(svgBlob);
+
+            img.onload = () => {
+                ctx.drawImage(img, 0, 0);
+                URL.revokeObjectURL(url);
+
+                // Create a PNG data URL
+                const pngUrl = canvas.toDataURL('image/png');
+
+                // Create a temporary link to trigger download
+                const downloadLink = document.createElement('a');
+                downloadLink.href = pngUrl;
+                downloadLink.download = 'function_relationship_graph.png';
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+            };
+
+            img.onerror = (error) => {
+                console.error('Error loading SVG image for download:', error);
+                alert('Failed to convert graph to image.');
+            };
+
+            img.src = url;
+        });
+    </script>
+{% endblock %}
