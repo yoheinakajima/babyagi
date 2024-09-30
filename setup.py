@@ -14,10 +14,10 @@ def parse_requirements(filename):
 
 setup(
     name="babyagi",  # Ensure this is the desired package name
-    version="0.0.6",  # Update this version appropriately
+    version="0.0.7",  # Update this version appropriately
     author="Yohei Nakajima",
     author_email="babyagi@untapped.vc",
-    description="A temporary description. Do not install.",
+    description="An experimental prototype framework for building self building autonomous agents.",
     long_description=  long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/yoheinakajima/babyagi",  # Update if necessary
