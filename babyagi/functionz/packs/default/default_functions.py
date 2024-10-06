@@ -6,7 +6,25 @@ from typing import Optional, Dict, Any, List
 
 @func.register_function()
 def execute_function_wrapper(function_name: str, *args, **kwargs):
-    return func.execute_function(function_name, *args, **kwargs)
+    # Create an initial log for the wrapper
+    wrapper_log_id = func.db.add_log(
+        function_name="execute_function_wrapper",
+        message="Wrapper execution started.",
+        timestamp=datetime.now(),
+        params={"function_name": function_name, "args": args, "kwargs": kwargs},
+        output=None,
+        time_spent=0,
+        parent_log_id=None,
+        triggered_by_log_id=None,
+        log_type='started'
+    )
+    # Execute the function with the wrapper's log ID as the parent ID
+    result = func.execute_function(function_name, *args, parent_log_id=wrapper_log_id, **kwargs)
+
+    # Update the wrapper log after execution
+    func.db.update_log(wrapper_log_id, output=result, log_type='success', message="Wrapper execution completed.")
+    return result
+
 
 @func.register_function(
     metadata={

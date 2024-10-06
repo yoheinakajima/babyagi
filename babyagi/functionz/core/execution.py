@@ -52,43 +52,72 @@ class FunctionExecutor:
             return self.execute(func_name, *args, executed_functions=executed_functions, parent_log_id=parent_log_id, **kwargs)
         return wrapper
 
-    def execute(self, function_name: str, *args, executed_functions: Optional[List[str]] = None,
-                parent_log_id: Optional[int] = None, triggered_by_log_id: Optional[int] = None, **kwargs) -> Any:
+    def execute(
+        self,
+        function_name: str,
+        *args,
+        executed_functions: Optional[List[str]] = None,
+        parent_log_id: Optional[int] = None,
+        wrapper_log_id: Optional[int] = None,
+        triggered_by_log_id: Optional[int] = None,
+        **kwargs
+    ) -> Any:
         start_time = datetime.now()
         executed_functions = executed_functions or []
         log_id = None
         bound_args = None
         output = None
 
+        # Ensure wrapper_log_id is initialized
+        wrapper_log_id = wrapper_log_id if wrapper_log_id is not None else None
+
         logger.info(f"Executing function: {function_name}")
-        logger.debug(f"Args: {args}")
-        logger.debug(f"Kwargs: {kwargs}")
-        logger.debug(f"Executed functions: {executed_functions}")
 
         try:
-            #if function_name in executed_functions:
-            #    logger.warning(f"Function '{function_name}' is already executed in this chain. Skipping to prevent recursion.")
-            #    return None
-
             executed_functions.append(function_name)
-
             function_version = self.python_func.db.get_function(function_name)
             if not function_version:
                 raise ValueError(f"Function '{function_name}' not found in the database.")
 
-            self._check_key_dependencies(function_version)
+            # If the function being executed is the wrapper, create a special log entry and set wrapper_log_id
+            if function_name == 'execute_function_wrapper':
+                log_id = self._add_execution_log(
+                    function_name,
+                    start_time,
+                    {},
+                    None,
+                    0,
+                    parent_log_id,
+                    triggered_by_log_id,
+                    'started'
+                )
+                wrapper_log_id = log_id
+            else:
+                log_id = self._add_execution_log(
+                    function_name,
+                    start_time,
+                    {},
+                    None,
+                    0,
+                    wrapper_log_id if wrapper_log_id else parent_log_id,
+                    triggered_by_log_id,
+                    'started'
+                )
 
-            # Create execution log with status 'started' and get log_id
-            log_id = self._add_execution_log(function_name, start_time, {}, None, 0,
-                                             parent_log_id, triggered_by_log_id, 'started')
+            # Include 'datetime' in local_scope
+            local_scope = {
+                'func': self.python_func,
+                'parent_log_id': log_id,
+                'datetime': datetime  # Added datetime here
+            }
 
-            # Inject parent_log_id into local_scope
-            local_scope = {'func': self.python_func, 'parent_log_id': log_id}
-            self._resolve_dependencies(function_version, local_scope, parent_log_id=log_id, executed_functions=executed_functions)
-
+            self._resolve_dependencies(
+                function_version,
+                local_scope,
+                parent_log_id=log_id,
+                executed_functions=executed_functions
+            )
             self._inject_secret_keys(local_scope)
-
-            logger.debug(f"Local scope before execution: {local_scope.keys()}")
 
             exec(function_version['code'], local_scope)
             if function_name not in local_scope:
@@ -101,32 +130,24 @@ class FunctionExecutor:
             params = bound_args.arguments
             self._update_execution_log_params(log_id, params)
 
-            logger.info(f"Executing function {function_name} with args: {bound_args.args} and kwargs: {bound_args.kwargs}")
             output = func(*bound_args.args, **bound_args.kwargs)
-            logger.info(f"Function {function_name} executed. Output: {output}")
-
             end_time = datetime.now()
             time_spent = (end_time - start_time).total_seconds()
 
-            # Update execution log with status 'success'
             self._update_execution_log(log_id, output, time_spent, 'success')
 
+            # Check and execute triggers for the function
             self._execute_triggered_functions(function_name, output, executed_functions, log_id)
-
-            logger.info(f"All triggers for {function_name} have been executed.")
             return output
 
         except Exception as e:
             end_time = datetime.now()
             time_spent = (end_time - start_time).total_seconds()
-            params = bound_args.arguments if bound_args else {}
-
-            # Update execution log with status 'error'
             if log_id is not None:
                 self._update_execution_log(log_id, None, time_spent, 'error', str(e))
-
-            #logger.error(f"Error executing function '{function_name}': {str(e)}")
             raise
+
+    
 
     def _check_key_dependencies(self, function_version: Dict[str, Any]) -> None:
         if 'key_dependencies' in function_version.get('metadata', {}):
