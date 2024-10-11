@@ -1,6 +1,6 @@
 [tool.poetry]
-name = "python-template"
-version = "0.1.0"
+name = "babyagi"
+version = "0.0.8"
 description = ""
 authors = ["Your Name <you@example.com>"]
 
