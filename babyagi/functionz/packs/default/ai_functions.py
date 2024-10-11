@@ -10,7 +10,7 @@ from functionz.core.framework import func
 def gpt_call(prompt: str) -> str:
     from litellm import completion
     messages = [{"role": "user", "content": prompt}]
-    response = completion(model="gpt-3.5-turbo", messages=messages)
+    response = completion(model="gpt-4o", messages=messages)
     return response['choices'][0]['message']['content']
 
 @func.register_function(
