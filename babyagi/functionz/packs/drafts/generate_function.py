@@ -649,11 +649,17 @@ def generate_final_function_code(description: str, reusable_function_code: dict,
             if not combined_final["name"]:
                 combined_final["name"] = parsed_result.name
             combined_final["code"] += parsed_result.code + "\n"
-            combined_final["metadata"].update(parsed_result.metadata)
-            combined_final["imports"].extend(parsed_result.imports)
-            combined_final["dependencies"].extend(parsed_result.dependencies)
-            combined_final["key_dependencies"].extend(parsed_result.key_dependencies)
-            combined_final["triggers"].extend(parsed_result.triggers)
+            if parsed_result.metadata:
+                combined_final["metadata"].update(parsed_result.metadata or {})
+            if parsed_result.imports:
+                combined_final["imports"].extend(parsed_result.imports)
+            if parsed_result.dependencies:
+                combined_final["dependencies"].extend(parsed_result.dependencies)
+            if parsed_result.key_dependencies:
+                combined_final["key_dependencies"].extend(parsed_result.key_dependencies)
+            if parsed_result.triggers:
+                combined_final["triggers"].extend(parsed_result.triggers)
+
         except (ValidationError, IndexError, AttributeError, json.JSONDecodeError) as e:
             print(f"[ERROR] Parsing GeneratedFunction response failed: {e}")
             intermediate_steps.append({"step": "Error Parsing GeneratedFunction Response", "content": str(e)})

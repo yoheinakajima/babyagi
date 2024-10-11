@@ -14,7 +14,7 @@ def parse_requirements(filename):
 
 setup(
     name="babyagi",  # Ensure this is the desired package name
-    version="0.0.9",  # Update this version appropriately
+    version="0.1.0",  # Update this version appropriately
     author="Yohei Nakajima",
     author_email="babyagi@untapped.vc",
     description="An experimental prototype framework for building self building autonomous agents.",
