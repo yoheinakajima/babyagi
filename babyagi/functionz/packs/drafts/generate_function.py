@@ -603,7 +603,7 @@ def generate_final_function_code(description: str, reusable_function_code: dict,
 
     Provide the function details in a structured format including:
     1. Function name
-    2. Complete function code (including the @babyagi.register_function decorator)
+    2. Complete function code (do not the @babyagi.register_function decorator)
     3. Metadata (description)
     4. Imports
     5. Dependencies
@@ -714,7 +714,7 @@ def add_function_to_database(combined_final: dict, intermediate_steps: list) -> 
     }
 
 # Main Function: Orchestrate all steps
-@babyagi.register_function(
+@func.register_function(
     metadata={"description": "Main function to generate a function from a description."},
     dependencies=[
         "fetch_existing_functions",
