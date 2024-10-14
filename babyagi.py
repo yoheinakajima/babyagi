@@ -1,9 +1,4 @@
 #!/usr/bin/env python3
-from dotenv import load_dotenv
-
-# Load default environment variables (.env)
-load_dotenv()
-
 import os
 import time
 import logging
@@ -20,7 +15,6 @@ import re
 
 # default opt out of chromadb telemetry.
 from chromadb.config import Settings
-
 client = chromadb.Client(Settings(anonymized_telemetry=False))
 
 # Load default environment variables (.env)
@@ -52,7 +46,6 @@ INITIAL_TASK = os.getenv("INITIAL_TASK", os.getenv("FIRST_TASK", ""))
 # Model configuration
 OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", 0.0))
 
-
 # Extensions support begin
 
 def can_import(module_name):
@@ -73,7 +66,6 @@ ENABLE_COMMAND_LINE_ARGS = (
 if ENABLE_COMMAND_LINE_ARGS:
     if can_import("extensions.argparseext"):
         from extensions.argparseext import parse_arguments
-
         OBJECTIVE, INITIAL_TASK, LLM_MODEL, DOTENV_EXTENSIONS, INSTANCE_NAME, COOPERATIVE_MODE, JOIN_EXISTING_OBJECTIVE = parse_arguments()
 
 # Human mode extension
@@ -88,7 +80,6 @@ if LLM_MODEL.startswith("human"):
 if DOTENV_EXTENSIONS:
     if can_import("extensions.dotenvext"):
         from extensions.dotenvext import load_dotenv_extensions
-
         load_dotenv_extensions(DOTENV_EXTENSIONS)
 
 # TODO: There's still work to be done here to enable people to get
@@ -117,8 +108,6 @@ if LLM_MODEL.startswith("llama"):
 
         CTX_MAX = 2048
         LLAMA_THREADS_NUM = int(os.getenv("LLAMA_THREADS_NUM", 8))
-
-        print('Initialize model for evaluation')
         llm = Llama(
             model_path=LLAMA_MODEL_PATH,
             n_ctx=CTX_MAX,
@@ -126,8 +115,6 @@ if LLM_MODEL.startswith("llama"):
             n_batch=512,
             use_mlock=True,
         )
-
-        print('\nInitialize model for embedding')
         llm_embed = Llama(
             model_path=LLAMA_MODEL_PATH,
             n_ctx=CTX_MAX,
@@ -180,8 +167,6 @@ openai.api_key = OPENAI_API_KEY
 class LlamaEmbeddingFunction(EmbeddingFunction):
     def __init__(self):
         return
-
-
     def __call__(self, texts: Documents) -> Embeddings:
         embeddings = []
         for t in texts:
@@ -299,10 +284,8 @@ if COOPERATIVE_MODE in ['l', 'local']:
     if can_import("extensions.ray_tasks"):
         import sys
         from pathlib import Path
-
         sys.path.append(str(Path(__file__).resolve().parent))
         from extensions.ray_tasks import CooperativeTaskListStorage
-
         tasks_storage = CooperativeTaskListStorage(OBJECTIVE)
         print("\nReplacing tasks storage: " + "\033[93m\033[1m" + "Ray" + "\033[0m\033[0m")
 elif COOPERATIVE_MODE in ['d', 'distributed']:
