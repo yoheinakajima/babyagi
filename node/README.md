@@ -11,7 +11,6 @@ This README will cover the following:
 * How to use the script 
 * Warning about running the script continuously
 # How It Works
-
 The script works by running an infinite loop that does the following steps:
 
 1. Pulls the first task from the task list.
@@ -27,9 +26,7 @@ The prioritization_agent() function is where OpenAI's API is used to reprioritiz
 Finally, the script uses Chroma to store and retrieve task results for context. The script creates a Chroma collection based on the table name specified in the TABLE_NAME variable. Chroma is then used to store the results of the task in the collection, along with the task name and any additional metadata.
 
 # How to Use
-
 To use the script, you will need to follow these steps:
-
 1. Install the required packages: `npm install`
 2. Install chroma in this directory (based on the Chroma [docs](https://docs.trychroma.com/getting-started)) : 
     ```
@@ -42,14 +39,11 @@ To use the script, you will need to follow these steps:
 6. Run the script with 'npm run babyagi'. This will handle 'docker compose up.' 
 7. Provide the objective of the task management system when prompted.
 8. Provide the objective of the task management system when prompted.
-9. Provide the objective of the task management system when prompted.
 
 # Warning
-
 This script is designed to be run continuously as part of a task management system. Running this script continuously can result in high API usage, so please use it responsibly. Additionally, the script requires the OpenAI and Pinecone APIs to be set up correctly, so make sure you have set up the APIs before running the script.
 
 # Backstory
-
 BabyAGI is a paired-down version of the original [Task-Driven Autonomous Agent](https://twitter.com/yoheinakajima/status/1640934493489070080?s=20) (Mar 28, 2023) shared on Twitter. This version is down to 140 lines: 13 comments, 22 blank, 105 code. The name of the repo came up in the reaction to the original autonomous agent - the author does not mean to imply that this is AGI.
 
 # TODO 
@@ -61,7 +55,6 @@ BabyAGI is a paired-down version of the original [Task-Driven Autonomous Agent](
 - [ ] Allow agent to request additional input from user ( could be an interesting strategy to mitigate looping )
 
 Made with love by :
-
 - [@yoheinakajima](https://twitter.com/yoheinakajima) (0->1), who happens to be a VC - so if you use this build a startup, ping him!
 
 Contributions from: 

@@ -39,9 +39,6 @@ def main():
     ''', default=[os.getenv("OBJECTIVE", "")])
     args = parser.parse_args()
 
-    # Configure OpenAI
-    openai.api_key = OPENAI_API_KEY
-
     # Initialize Pinecone
     pinecone.init(api_key=PINECONE_API_KEY)
 
