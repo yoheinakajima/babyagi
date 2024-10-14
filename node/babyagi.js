@@ -154,8 +154,8 @@ const prioritization_agent = async (taskId)=>{
 const execution_agent = async (objective, task, chromaCollection)=>{
     const context = context_agent(objective, 5, chromaCollection)
     const prompt = `
-    You are an AI who performs one task based on the following objective: ${objective}.\n
-    Take into account these previously completed tasks: ${context}.\n
+    You are an AI who performs one task based on the following objective: ${objective}\n.
+    Take into account these previously completed tasks: ${context}\n.
     Your task: ${task}\nResponse:`
     const response = await openai_completion(prompt, undefined, 2000)
     return response

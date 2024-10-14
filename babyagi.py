@@ -15,12 +15,16 @@ import chromadb
 import tiktoken as tiktoken
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 from chromadb.api.types import Documents, EmbeddingFunction, Embeddings
+from dotenv import load_dotenv
 import re
 
 # default opt out of chromadb telemetry.
 from chromadb.config import Settings
 
 client = chromadb.Client(Settings(anonymized_telemetry=False))
+
+# Load default environment variables (.env)
+load_dotenv()
 
 # Engine configuration
 
@@ -111,7 +115,7 @@ if LLM_MODEL.startswith("llama"):
         print(f"LLAMA : {LLAMA_MODEL_PATH}" + "\n")
         assert os.path.exists(LLAMA_MODEL_PATH), "\033[91m\033[1m" + f"Model can't be found." + "\033[0m\033[0m"
 
-        CTX_MAX = 1024
+        CTX_MAX = 2048
         LLAMA_THREADS_NUM = int(os.getenv("LLAMA_THREADS_NUM", 8))
 
         print('Initialize model for evaluation')
@@ -120,7 +124,7 @@ if LLM_MODEL.startswith("llama"):
             n_ctx=CTX_MAX,
             n_threads=LLAMA_THREADS_NUM,
             n_batch=512,
-            use_mlock=False,
+            use_mlock=True,
         )
 
         print('\nInitialize model for embedding')
@@ -130,7 +134,7 @@ if LLM_MODEL.startswith("llama"):
             n_threads=LLAMA_THREADS_NUM,
             n_batch=512,
             embedding=True,
-            use_mlock=False,
+            use_mlock=True,
         )
 
         print(
@@ -248,33 +252,20 @@ class DefaultResultsStorage:
 
 
 # Initialize results storage
-def try_weaviate():
-    WEAVIATE_URL = os.getenv("WEAVIATE_URL", "")
-    WEAVIATE_USE_EMBEDDED = os.getenv("WEAVIATE_USE_EMBEDDED", "False").lower() == "true"
-    if (WEAVIATE_URL or WEAVIATE_USE_EMBEDDED) and can_import("extensions.weaviate_storage"):
-        WEAVIATE_API_KEY = os.getenv("WEAVIATE_API_KEY", "")
-        from extensions.weaviate_storage import WeaviateResultsStorage
-        print("\nUsing results storage: " + "\033[93m\033[1m" + "Weaviate" + "\033[0m\033[0m")
-        return WeaviateResultsStorage(OPENAI_API_KEY, WEAVIATE_URL, WEAVIATE_API_KEY, WEAVIATE_USE_EMBEDDED, LLM_MODEL, LLAMA_MODEL_PATH, RESULTS_STORE_NAME, OBJECTIVE)
-    return None
-
-def try_pinecone():
-    PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
-    if PINECONE_API_KEY and can_import("extensions.pinecone_storage"):
+results_storage = DefaultResultsStorage()
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
+if PINECONE_API_KEY:
+    if can_import("extensions.pinecone_storage"):
         PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "")
         assert (
             PINECONE_ENVIRONMENT
         ), "\033[91m\033[1m" + "PINECONE_ENVIRONMENT environment variable is missing from .env" + "\033[0m\033[0m"
         from extensions.pinecone_storage import PineconeResultsStorage
-        print("\nUsing results storage: " + "\033[93m\033[1m" + "Pinecone" + "\033[0m\033[0m")
-        return PineconeResultsStorage(OPENAI_API_KEY, PINECONE_API_KEY, PINECONE_ENVIRONMENT, LLM_MODEL, LLAMA_MODEL_PATH, RESULTS_STORE_NAME, OBJECTIVE)
-    return None
 
-def use_chroma():
-    print("\nUsing results storage: " + "\033[93m\033[1m" + "Chroma (Default)" + "\033[0m\033[0m")
-    return DefaultResultsStorage()
+        results_storage = PineconeResultsStorage(OPENAI_API_KEY, PINECONE_API_KEY, PINECONE_ENVIRONMENT, LLM_MODEL,
+                                                 LLAMA_MODEL_PATH, RESULTS_STORE_NAME, OBJECTIVE)
+        print("\nReplacing results storage: " + "\033[93m\033[1m" + "Pinecone" + "\033[0m\033[0m")
 
-results_storage = try_weaviate() or try_pinecone() or use_chroma()
 
 # Task storage supporting only a single instance of BabyAGI
 class SingleTaskListStorage:
@@ -340,18 +331,8 @@ def openai_call(
     while True:
         try:
             if model.lower().startswith("llama"):
-                result = llm(prompt[:CTX_MAX],
-                             stop=["### Human"],
-                             echo=False,
-                             temperature=0.2,
-                             top_k=40,
-                             top_p=0.95,
-                             repeat_penalty=1.05,
-                             max_tokens=200)
-                # print('\n*****RESULT JSON DUMP*****\n')
-                # print(json.dumps(result))
-                # print('\n')
-                return result['choices'][0]['text'].strip()
+                result = llm(prompt[:CTX_MAX], stop=["### Human"], echo=False, temperature=0.2)
+                return str(result['choices'][0]['text'].strip())
             elif model.lower().startswith("human"):
                 return user_input_await(prompt)
             elif not model.lower().startswith("gpt-"):
@@ -420,6 +401,7 @@ def openai_call(
 def task_creation_agent(
         objective: str, result: Dict, task_description: str, task_list: List[str]
 ):
+
     prompt = f"""
 You are to use the result from an execution agent to create new tasks with the following objective: {objective}.
 The last completed task has the result: \n{result["data"]}
@@ -427,22 +409,22 @@ This result was based on this task description: {task_description}.\n"""
 
     if task_list:
         prompt += f"These are incomplete tasks: {', '.join(task_list)}\n"
-    prompt += "Based on the result, return a list of tasks to be completed in order to meet the objective. "
+    prompt += "Based on the result, create a list of new tasks to be completed in order to meet the objective. "
     if task_list:
         prompt += "These new tasks must not overlap with incomplete tasks. "
 
     prompt += """
-Return one task per line in your response. The result must be a numbered list in the format:
-
+Return all the new tasks, with one task per line in your response. The result must be a numbered list in the format:
+    
 #. First task
 #. Second task
+        
+The number of each entry must be followed by a period.
+Do not include any headers before your numbered list. Do not follow your numbered list with any other output."""
 
-The number of each entry must be followed by a period. If your list is empty, write "There are no tasks to add at this time."
-Unless your list is empty, do not include any headers before your numbered list or follow your numbered list with any other output."""
-
-    print(f'\n*****TASK CREATION AGENT PROMPT****\n{prompt}\n')
+    print(f'\n************** TASK CREATION AGENT PROMPT *************\n{prompt}\n')
     response = openai_call(prompt, max_tokens=2000)
-    print(f'\n****TASK CREATION AGENT RESPONSE****\n{response}\n')
+    print(f'\n************* TASK CREATION AGENT RESPONSE ************\n{response}\n')
     new_tasks = response.split('\n')
     new_tasks_list = []
     for task_string in new_tasks:
@@ -460,26 +442,24 @@ Unless your list is empty, do not include any headers before your numbered list 
 
 def prioritization_agent():
     task_names = tasks_storage.get_task_names()
-    bullet_string = '\n'
+    next_task_id = tasks_storage.next_task_id()
 
     prompt = f"""
-You are tasked with prioritizing the following tasks: {bullet_string + bullet_string.join(task_names)}
+You are tasked with cleaning the format and re-prioritizing the following tasks: {', '.join(task_names)}.
 Consider the ultimate objective of your team: {OBJECTIVE}.
-Tasks should be sorted from highest to lowest priority, where higher-priority tasks are those that act as pre-requisites or are more essential for meeting the objective.
-Do not remove any tasks. Return the ranked tasks as a numbered list in the format:
+Tasks should be sorted from highest to lowest priority. 
+Higher-priority tasks are those that act as pre-requisites or are more essential for meeting the objective.
+Do not remove any tasks. Return the result as a numbered list in the format:
 
 #. First task
 #. Second task
 
-The entries must be consecutively numbered, starting with 1. The number of each entry must be followed by a period.
-Do not include any headers before your ranked list or follow your list with any other output."""
+The entries are consecutively numbered, starting with 1. The number of each entry must be followed by a period.
+Do not include any headers before your numbered list. Do not follow your numbered list with any other output."""
 
-    print(f'\n****TASK PRIORITIZATION AGENT PROMPT****\n{prompt}\n')
+    print(f'\n************** TASK PRIORITIZATION AGENT PROMPT *************\n{prompt}\n')
     response = openai_call(prompt, max_tokens=2000)
-    print(f'\n****TASK PRIORITIZATION AGENT RESPONSE****\n{response}\n')
-    if not response:
-        print('Received empty response from priotritization agent. Keeping task list unchanged.')
-        return
+    print(f'\n************* TASK PRIORITIZATION AGENT RESPONSE ************\n{response}\n')
     new_tasks = response.split("\n") if "\n" in response else [response]
     new_tasks_list = []
     for task_string in new_tasks:
@@ -490,7 +470,7 @@ Do not include any headers before your ranked list or follow your list with any 
             if task_name.strip():
                 new_tasks_list.append({"task_id": task_id, "task_name": task_name})
 
-    return new_tasks_list
+    tasks_storage.replace(new_tasks_list)
 
 
 # Execute a task based on the objective and five previous tasks
@@ -506,14 +486,15 @@ def execution_agent(objective: str, task: str) -> str:
         str: The response generated by the AI for the given task.
 
     """
-
+    
     context = context_agent(query=objective, top_results_num=5)
-    # print("\n****RELEVANT CONTEXT****\n")
+    # print("\n*******RELEVANT CONTEXT******\n")
     # print(context)
     # print('')
     prompt = f'Perform one task based on the following objective: {objective}.\n'
     if context:
-        prompt += 'Take into account these previously completed tasks:' + '\n'.join(context)
+        prompt += 'Take into account these previously completed tasks:' + '\n'.join(context)\
+
     prompt += f'\nYour task: {task}\nResponse:'
     return openai_call(prompt, max_tokens=2000)
 
@@ -532,7 +513,7 @@ def context_agent(query: str, top_results_num: int):
 
     """
     results = results_storage.query(query=query, top_results_num=top_results_num)
-    # print("****RESULTS****")
+    # print("***** RESULTS *****")
     # print(results)
     return results
 
@@ -573,7 +554,7 @@ def main():
             }
             # extract the actual result from the dictionary
             # since we don't do enrichment currently
-            # vector = enriched_result["data"]
+            # vector = enriched_result["data"]  
 
             result_id = f"result_{task['task_id']}"
 
@@ -594,12 +575,9 @@ def main():
                 print(str(new_task))
                 tasks_storage.append(new_task)
 
-            if not JOIN_EXISTING_OBJECTIVE:
-                prioritized_tasks = prioritization_agent()
-                if prioritized_tasks:
-                    tasks_storage.replace(prioritized_tasks)
+            if not JOIN_EXISTING_OBJECTIVE: prioritization_agent()
 
-            # Sleep a bit before checking the task list again
+        # Sleep a bit before checking the task list again
             time.sleep(5)
         else:
             print('Done.')
