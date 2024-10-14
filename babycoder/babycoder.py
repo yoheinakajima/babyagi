@@ -1,14 +1,14 @@
-import os
-import openai # type: ignore
-import time
-import sys
-from typing import List, Dict, Union
-from dotenv import load_dotenv # type: ignore
 import json
-import subprocess
+import os
 import platform
+import subprocess
+import sys
+import time
+from typing import Dict, List, Union
 
-from embeddings import Embeddings
+import openai  # type: ignore
+from dotenv import load_dotenv  # type: ignore
+from embeddings import Embeddings  # type: ignore
 
 # Set Variables
 load_dotenv()
@@ -32,6 +32,8 @@ if "gpt-4" in OPENAI_API_MODEL.lower():
         + "\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"
         + "\033[0m\033[0m"
     )
+
+OBJECTIVE = None
 
 if len(sys.argv) > 1:
     OBJECTIVE = sys.argv[1]
@@ -98,15 +100,26 @@ def openai_call(
             # try again
             if openai_calls_retried < max_openai_calls_retries:
                 openai_calls_retried += 1
-                print(f"Error calling OpenAI. Retrying {openai_calls_retried} of {max_openai_calls_retries}...")
+                print(
+                    f"Error calling OpenAI. Retrying {openai_calls_retried} of "
+                    f"{max_openai_calls_retries}..."
+                )
                 return openai_call(prompt, model, temperature, max_tokens)
 
 def execute_command_json(json_string):
+    process = None
     try:
         command_data = json.loads(json_string)
         full_command = command_data.get('command')
         
-        process = subprocess.Popen(full_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True, cwd='playground')
+        process = subprocess.Popen(
+            full_command, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE, 
+            text=True, 
+            shell=True, 
+            cwd='playground'
+        )
         stdout, stderr = process.communicate(timeout=60)
 
         return_code = process.returncode
@@ -119,14 +132,22 @@ def execute_command_json(json_string):
     except json.JSONDecodeError as e:
         return f"Error: Unable to decode JSON string: {str(e)}"
     except subprocess.TimeoutExpired:
-        process.terminate()
+        if process:
+            process.terminate()
         return "Error: Timeout reached (60 seconds)"
     except Exception as e:
         return f"Error: {str(e)}"
 
 def execute_command_string(command_string):
     try:
-        result = subprocess.run(command_string, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True, cwd='playground')
+        result = subprocess.run(
+            command_string, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE, 
+            text=True, 
+            shell=True, 
+            cwd='playground'
+        )
         output = result.stdout or result.stderr or "No output"
         return output
 
@@ -151,19 +172,22 @@ def refactor_code(modified_code: List[Dict[str, Union[int, str]]], file_path: st
     for modification in modified_code:
         start_line = modification["start_line"]
         end_line = modification["end_line"]
-        modified_chunk = modification["modified_code"].splitlines()
+        modified_chunk = modification["modified_code"].splitlines() # type: ignore
 
         # Remove original lines within the range
-        del lines[start_line - 1:end_line]
+        del lines[start_line - 1:end_line] # type: ignore
 
         # Insert the new modified_chunk lines
         for i, line in enumerate(modified_chunk):
-            lines.insert(start_line - 1 + i, line + "\n")
+            lines.insert(start_line - 1 + i, line + "\n") # type: ignore
 
     with open(full_path, "w", encoding="utf-8") as f:
         f.writelines(lines)
 
-def split_code_into_chunks(file_path: str, chunk_size: int = 50) -> List[Dict[str, Union[int, str]]]:
+def split_code_into_chunks(
+    file_path: str, 
+    chunk_size: int = 50
+) -> List[Dict[str, Union[int, str]]]:  # noqa: E501
     full_path = os.path.join(current_directory, "playground", file_path)
 
     with open(full_path, "r", encoding="utf-8") as f:
@@ -173,7 +197,7 @@ def split_code_into_chunks(file_path: str, chunk_size: int = 50) -> List[Dict[st
     for i in range(0, len(lines), chunk_size):
         start_line = i + 1
         end_line = min(i + chunk_size, len(lines))
-        chunk = {"start_line": start_line, "end_line": end_line, "code": "".join(lines[i:end_line])}
+        chunk = {"start_line": start_line, "end_line": end_line, "code": "".join(lines[i:end_line])}  # noqa: E501
         chunks.append(chunk)
     return chunks
 
@@ -244,7 +268,7 @@ def code_tasks_initializer_agent(objective: str):
                 ],
             }}
 
-    The tasks will be executed by either of the three agents: command_executor, code_writer or code_refactor. They can't interact with programs. They can either run terminal commands or write code snippets. Their output is controlled by other functions to run the commands or save their output to code files. Make sure the tasks are compatible with the current agents. ALL tasks MUST start either with the following phrases: 'Run a command to...', 'Write code to...', 'Edit existing code to...' depending on the agent that will execute the task. RETURN JSON ONLY:"""
+    The tasks will be executed by either of the three agents: command_executor, code_writer or code_refactor. They can't interact with programs. They can either run terminal commands or write code snippets. Their output is controlled by other functions to run the commands or save their output to code files. Make sure the tasks are compatible with the current agents. ALL tasks MUST start either with the following phrases: 'Run a command to...', 'Write code to...', 'Edit existing code to...' depending on the agent that will execute the task. RETURN JSON ONLY:"""  # noqa: E501
 
     return openai_call(prompt, temperature=0.8, max_tokens=2000)
 
@@ -298,7 +322,7 @@ def code_tasks_refactor_agent(objective: str, task_list_json):
 
     IMPORTANT: All tasks should start either with the following phrases: 'Run a command to...', 'Write a code to...', 'Edit the code to...' depending on the agent that will execute the task:
             
-    ALWAYS ENSURE ALL TASKS HAVE RELEVANT CONTEXT ABOUT THE CODE TO BE WRITTEN, INCLUDE DETAILS ON HOW TO CALL FUNCTIONS, CLASSES, IMPORTS, ETC. AGENTS HAVE NO VIEW OF OTHER TASKS, SO THEY NEED TO BE SELF-CONTAINED. RETURN THE JSON:"""
+    ALWAYS ENSURE ALL TASKS HAVE RELEVANT CONTEXT ABOUT THE CODE TO BE WRITTEN, INCLUDE DETAILS ON HOW TO CALL FUNCTIONS, CLASSES, IMPORTS, ETC. AGENTS HAVE NO VIEW OF OTHER TASKS, SO THEY NEED TO BE SELF-CONTAINED. RETURN THE JSON:"""  # noqa: E501
 
     return openai_call(prompt, temperature=0, max_tokens=2000)
 
@@ -316,7 +340,7 @@ def code_tasks_details_agent(objective: str, task_list_json):
     
     RETURN THE SAME TASK LIST but with the description improved to contain the details you is adding for each task in the list. DO NOT MAKE OTHER MODIFICATIONS TO THE LIST. Your input should go in the 'description' field of each task.
     
-    RETURN JSON ONLY:"""
+    RETURN JSON ONLY:"""  # noqa: E501
     return openai_call(prompt, temperature=0.7, max_tokens=2000)
 
 def code_tasks_context_agent(objective: str, task_list_json):
@@ -337,7 +361,7 @@ def code_tasks_context_agent(objective: str, task_list_json):
     
     RETURN THE SAME TASK LIST but with a new field called 'isolated_context' for each task in the list. This field should be a string with the context you are adding. DO NOT MAKE OTHER MODIFICATIONS TO THE LIST.
     
-    RETURN JSON ONLY:"""
+    RETURN JSON ONLY:"""  # noqa: E501
     return openai_call(prompt, temperature=0.7, max_tokens=2000)
 
 def task_assigner_recommendation_agent(objective: str, task: str):
@@ -358,7 +382,7 @@ def task_assigner_recommendation_agent(objective: str, task: str):
     - If the task involves modifying or optimizing existing code, consider using the code_refactor_agent.
     - If the task involves file operations, command execution, or running a script, consider using the command_executor_agent.
 
-    Based on the task and overall objective, suggest the most appropriate agent to work on the task."""
+    Based on the task and overall objective, suggest the most appropriate agent to work on the task."""  # noqa: E501
     return openai_call(prompt, temperature=0.5, max_tokens=2000)
 
 def task_assigner_agent(objective: str, task: str, recommendation: str):
@@ -378,7 +402,7 @@ def task_assigner_agent(objective: str, task: str, recommendation: str):
     
     TLDR: To create files, use command_executor_agent, to write text/code to files, use code_writer_agent, to modify existing code, use code_refactor_agent.
 
-    Choose the most appropriate agent to work on the task and return a JSON output with the following format: {{"agent": "agent_name"}}. ONLY return JSON output:"""
+    Choose the most appropriate agent to work on the task and return a JSON output with the following format: {{"agent": "agent_name"}}. ONLY return JSON output:"""  # noqa: E501
     return openai_call(prompt, temperature=0, max_tokens=2000)
 
 def command_executor_agent(task: str, file_path: str):
@@ -387,7 +411,7 @@ def command_executor_agent(task: str, file_path: str):
     The current task is: {task}
     File or folder name referenced in the task (relative file path): {file_path} 
     
-    Based on the task, write the appropriate command to execute on the {os_version} OS. Make sure the command is relevant to the task and objective. For example, if the task is to create a new folder, the command should be 'mkdir new_folder_name'. Return the command as a JSON output with the following format: {{"command": "command_to_execute"}}. ONLY return JSON output:"""
+    Based on the task, write the appropriate command to execute on the {os_version} OS. Make sure the command is relevant to the task and objective. For example, if the task is to create a new folder, the command should be 'mkdir new_folder_name'. Return the command as a JSON output with the following format: {{"command": "command_to_execute"}}. ONLY return JSON output:"""  # noqa: E501
     return openai_call(prompt, temperature=0, max_tokens=2000)
 
 def code_writer_agent(task: str, isolated_context: str, context_code_chunks):
@@ -402,10 +426,10 @@ def code_writer_agent(task: str, isolated_context: str, context_code_chunks):
 
     Note: Always use 'encoding='utf-8'' when opening files with open().
     
-    Based on the task and objective, write the appropriate code to achieve the task. Make sure the code is relevant to the task and objective, and follows best practices. Return the code as a plain text output and NOTHING ELSE. Use identation and line breaks in the in the code. Make sure to only write the code and nothing else as your output will be saved directly to the file by other agent. IMPORTANT" If the task is asking you to write code to write files, this is a mistake! Interpret it and either do nothing or return  the plain code, not a code to write file, not a code to write code, etc."""
+    Based on the task and objective, write the appropriate code to achieve the task. Make sure the code is relevant to the task and objective, and follows best practices. Return the code as a plain text output and NOTHING ELSE. Use identation and line breaks in the in the code. Make sure to only write the code and nothing else as your output will be saved directly to the file by other agent. IMPORTANT" If the task is asking you to write code to write files, this is a mistake! Interpret it and either do nothing or return  the plain code, not a code to write file, not a code to write code, etc."""  # noqa: E501
     return openai_call(prompt, temperature=0, max_tokens=2000)
 
-def code_refactor_agent(task_description: str, existing_code_snippet: str, context_chunks, isolated_context: str):
+def code_refactor_agent(task_description: str, existing_code_snippet: str, context_chunks, isolated_context: str):  # noqa: E501
 
     prompt = f"""You are an AGI agent responsible for refactoring code to accomplish a given task. Your goal is to analyze the provided major objective of the project, the task descriptionm and refactor the code accordingly.
 
@@ -420,11 +444,11 @@ def code_refactor_agent(task_description: str, existing_code_snippet: str, conte
     
     Based on the task description, objective, refactor the existing code to achieve the task. Make sure the refactored code is relevant to the task and objective, follows best practices, etc.
 
-    Return a plain text code snippet with your refactored code. IMPORTANT: JUST RETURN CODE, YOUR OUTPUT WILL BE ADDED DIRECTLY TO THE FILE BY OTHER AGENT. BE MINDFUL OF THIS:"""
+    Return a plain text code snippet with your refactored code. IMPORTANT: JUST RETURN CODE, YOUR OUTPUT WILL BE ADDED DIRECTLY TO THE FILE BY OTHER AGENT. BE MINDFUL OF THIS:"""  # noqa: E501
 
     return openai_call(prompt, temperature=0, max_tokens=2000)
 
-def file_management_agent(objective: str, task: str, current_directory_files: str, file_path: str):
+def file_management_agent(objective: str, task: str, current_directory_files: str, file_path: str):  # noqa: E501
     prompt = f"""You are an AGI agent responsible for managing files in a software project. Your goal is to analyze the provided major objective of the project and a single task from the JSON checklist generated by the previous agent, and determine the appropriate file path and name for the generated code.
 
     The overall objective is: {objective}
@@ -437,7 +461,7 @@ def file_management_agent(objective: str, task: str, current_directory_files: st
 
     BE VERY SPECIFIC WITH THE FILES, AVOID FILE DUPLICATION, AVOID SPECIFYING THE SAME FILE NAME UNDER DIFFERENT FOLDERS, ETC.
 
-    Based on the task, determine the file path and name for the generated code. Return the file path and name as a JSON output with the following format: {{"file_path": "file_path_and_name"}}. ONLY return JSON output:"""
+    Based on the task, determine the file path and name for the generated code. Return the file path and name as a JSON output with the following format: {{"file_path": "file_path_and_name"}}. ONLY return JSON output:"""  # noqa: E501
     return openai_call(prompt, temperature=0, max_tokens=2000)
 
 def code_relevance_agent(objective: str, task_description: str, code_chunk: str):
@@ -448,11 +472,11 @@ def code_relevance_agent(objective: str, task_description: str, code_chunk: str)
     The code chunk is as follows (line numbers included):
     {code_chunk}
 
-    Based on the task description, objective, and code chunk, assign a relevance score between 0 and 10 (inclusive) for the code chunk. DO NOT OUTPUT ANYTHING OTHER THAN THE RELEVANCE SCORE AS A NUMBER."""
+    Based on the task description, objective, and code chunk, assign a relevance score between 0 and 10 (inclusive) for the code chunk. DO NOT OUTPUT ANYTHING OTHER THAN THE RELEVANCE SCORE AS A NUMBER."""  # noqa: E501
 
     relevance_score = openai_call(prompt, temperature=0.5, max_tokens=50)
 
-    return json.dumps({"relevance_score": relevance_score.strip()})
+    return json.dumps({"relevance_score": relevance_score.strip()}) # type: ignore
 
 def task_human_input_agent(task: str, human_feedback: str):
     prompt = f"""You are an AGI agent responsible for getting human input to improve the quality of tasks in a software project. Your goal is to analyze the provided task and adapt it based on the human's suggestions. The tasks should  start with either 'Run a command to...', 'Write code to...', or 'Edit existing code to...' depending on the agent that will execute the task.
@@ -472,7 +496,7 @@ def task_human_input_agent(task: str, human_feedback: str):
 
     Note that your output will replace the existing task, so make sure that your output is a valid task that starts with one of the required phrases ('Run a command to...', 'Write code to...', 'Edit existing code to...').
     
-    Please adjust the task based on the human feedback while ensuring it starts with one of the required phrases ('Run a command to...', 'Write code to...', 'Edit existing code to...'). Return the improved task as a plain text output and nothing else. Write only the new task."""
+    Please adjust the task based on the human feedback while ensuring it starts with one of the required phrases ('Run a command to...', 'Write code to...', 'Edit existing code to...'). Return the improved task as a plain text output and nothing else. Write only the new task."""  # noqa: E501
 
     return openai_call(prompt, temperature=0.3, max_tokens=200)
 
@@ -497,7 +521,10 @@ print_colored_text("*****TASKS*****", "green")
 print_char_by_char(task_agent_output, 0.00000001, 10)
 
 # Task list
-task_json = json.loads(task_agent_output)
+if task_agent_output:
+    task_json = json.loads(task_agent_output)
+else:
+    raise ValueError("task_agent_output is None")
 
 embeddings = Embeddings(current_directory)
 
@@ -511,8 +538,8 @@ for task in task_json["tasks"]:
     print_char_by_char(task_isolated_context)
 
     # HUMAN FEEDBACK
-    # Uncomment below to enable human feedback before each task. This can be used to improve the quality of the tasks,
-    # skip tasks, etc. I believe it may be very relevant in future versions that may have more complex tasks and could
+    # Uncomment below to enable human feedback before each task. This can be used to improve the quality of the tasks,  # noqa: E501
+    # skip tasks, etc. I believe it may be very relevant in future versions that may have more complex tasks and could  # noqa: E501
     # allow a ton of automation when working on large projects.
     #
     # Get user input as a feedback to the task_description
@@ -525,16 +552,19 @@ for task in task_json["tasks"]:
     # print_char_by_char(task_description)
     
     # Assign the task to an agent
-    task_assigner_recommendation = task_assigner_recommendation_agent(OBJECTIVE, task_description)
-    task_agent_output = task_assigner_agent(OBJECTIVE, task_description, task_assigner_recommendation)
+    task_assigner_recommendation = task_assigner_recommendation_agent(OBJECTIVE, task_description)  # noqa: E501
+    if task_assigner_recommendation:
+        task_agent_output = task_assigner_agent(OBJECTIVE, task_description, task_assigner_recommendation)  # noqa: E501
+    else:
+        raise ValueError("task_assigner_recommendation is None")
 
     print_colored_text("*****ASSIGN*****", "yellow")
     print_char_by_char(task_agent_output)
 
-    chosen_agent = json.loads(task_agent_output)["agent"]
+    chosen_agent = json.loads(task_agent_output)["agent"] # type: ignore
 
     if chosen_agent == "command_executor_agent":
-        command_executor_output = command_executor_agent(task_description, task["file_path"])
+        command_executor_output = command_executor_agent(task_description, task["file_path"])  # noqa: E501
         print_colored_text("*****COMMAND*****", "green")
         print_char_by_char(command_executor_output)
         
@@ -546,33 +576,39 @@ for task in task_json["tasks"]:
             # This will recompute embeddings for all files in the 'playground' directory
             print_colored_text("*****RETRIEVING RELEVANT CODE CONTEXT*****", "yellow")
             embeddings.compute_repository_embeddings()
-            relevant_chunks = embeddings.get_relevant_code_chunks(task_description, task_isolated_context)
+            relevant_chunks = embeddings.get_relevant_code_chunks(task_description, task_isolated_context)  # noqa: E501
 
             current_directory_files = execute_command_string("ls")
-            file_management_output = file_management_agent(OBJECTIVE, task_description, current_directory_files, task["file_path"])
+            file_management_output = file_management_agent(OBJECTIVE, task_description, current_directory_files, task["file_path"])  # noqa: E501
             print_colored_text("*****FILE MANAGEMENT*****", "yellow")
             print_char_by_char(file_management_output)
-            file_path = json.loads(file_management_output)["file_path"]
+            file_path = json.loads(file_management_output)["file_path"] # type: ignore
 
-            code_writer_output = code_writer_agent(task_description, task_isolated_context, relevant_chunks)
+            code_writer_output = code_writer_agent(task_description, task_isolated_context, relevant_chunks)  # noqa: E501
             
             print_colored_text("*****CODE*****", "green")
             print_char_by_char(code_writer_output)
 
             # Save the generated code to the file the agent selected
-            save_code_to_file(code_writer_output, file_path)
+            if code_writer_output:
+                save_code_to_file(code_writer_output, file_path)
+            else:
+                raise ValueError("code_writer_output is None")
 
         elif chosen_agent == "code_refactor_agent":
             # The code refactor agent works with multiple agents:
-            # For each task, the file_management_agent is used to select the file to edit.Then, the 
-            # code_relevance_agent is used to select the relevant code chunks from that filewith the 
-            # goal of finding the code chunk that is most relevant to the task description. This is 
-            # the code chunk that will be edited. Finally, the code_refactor_agent is used to edit 
+            # For each task, the file_management_agent is used to select the file to edit.Then, the  # noqa: E501
+            # code_relevance_agent is used to select the relevant code chunks from that filewith the  # noqa: E501
+            # goal of finding the code chunk that is most relevant to the task description. This is  # noqa: E501
+            # the code chunk that will be edited. Finally, the code_refactor_agent is used to edit  # noqa: E501
             # the code chunk.
 
             current_directory_files = execute_command_string("ls")
-            file_management_output = file_management_agent(OBJECTIVE, task_description, current_directory_files, task["file_path"])
-            file_path = json.loads(file_management_output)["file_path"]
+            file_management_output = file_management_agent(OBJECTIVE, task_description, current_directory_files, task["file_path"])  # noqa: E501
+            if file_management_output:
+                file_path = json.loads(file_management_output)["file_path"]
+            else:
+                raise ValueError("file_management_output is None")
 
             print_colored_text("*****FILE MANAGEMENT*****", "yellow")
             print_char_by_char(file_management_output)
@@ -582,29 +618,32 @@ for task in task_json["tasks"]:
             print_colored_text("*****ANALYZING EXISTING CODE*****", "yellow")
             relevance_scores = []
             for chunk in code_chunks:
-                score = code_relevance_agent(OBJECTIVE, task_description, chunk["code"])
+                score = code_relevance_agent(OBJECTIVE, task_description, str(chunk["code"]))
                 relevance_scores.append(score)
 
             # Select the most relevant chunk
-            selected_chunk = sorted(zip(relevance_scores, code_chunks), key=lambda x: x[0], reverse=True)[0][1]
+            selected_chunk = sorted(zip(relevance_scores, code_chunks), key=lambda x: x[0], reverse=True)[0][1]  # noqa: E501
 
             # Refactor the code
-            modified_code_output = code_refactor_agent(task_description, selected_chunk, context_chunks=[selected_chunk], isolated_context=task_isolated_context)
+            modified_code_output = code_refactor_agent(task_description, selected_chunk["code"], context_chunks=[selected_chunk], isolated_context=task_isolated_context)  # type: ignore # noqa: E501
 
-            # Extract the start_line and end_line of the selected chunk. This will be used to replace the code in the original file
+            # Extract the start_line and end_line of the selected chunk. This will be used to replace the code in the original file  # noqa: E501
             start_line = selected_chunk["start_line"]
             end_line = selected_chunk["end_line"]
 
-            # Count the number of lines in the modified_code_output
-            modified_code_lines = modified_code_output.count("\n") + 1
-            # Create a dictionary with the necessary information for the refactor_code function
-            modified_code_info = {
-                "start_line": start_line,
-                "end_line": start_line + modified_code_lines - 1,
-                "modified_code": modified_code_output
-            }
-            print_colored_text("*****REFACTORED CODE*****", "green")
-            print_char_by_char(modified_code_output)
+            if modified_code_output:
+                # Count the number of lines in the modified_code_output
+                modified_code_lines = modified_code_output.count("\n") + 1
+                # Create a dictionary with the necessary information for the refactor_code function  # noqa: E501
+                modified_code_info = {
+                    "start_line": start_line,
+                    "end_line": start_line + modified_code_lines - 1,
+                    "modified_code": modified_code_output
+                }
+                print_colored_text("*****REFACTORED CODE*****", "green")
+                print_char_by_char(modified_code_output)
+            else:
+                raise ValueError("modified_code_output is None")
 
             # Save the refactored code to the file
             refactor_code([modified_code_info], file_path)
