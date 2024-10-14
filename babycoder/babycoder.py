@@ -1,9 +1,9 @@
 import os
-import openai
+import openai # type: ignore
 import time
 import sys
 from typing import List, Dict, Union
-from dotenv import load_dotenv
+from dotenv import load_dotenv # type: ignore
 import json
 import subprocess
 import platform
@@ -28,7 +28,7 @@ assert OPENAI_API_MODEL, "OPENAI_API_MODEL environment variable is missing from 
 
 if "gpt-4" in OPENAI_API_MODEL.lower():
     print(
-        f"\033[91m\033[1m"
+        "\033[91m\033[1m"
         + "\n*****USING GPT-4. POTENTIALLY EXPENSIVE. MONITOR YOUR COSTS*****"
         + "\033[0m\033[0m"
     )
@@ -94,7 +94,7 @@ def openai_call(
             )
             openai_calls_retried = 0
             return response.choices[0].message.content.strip()
-        except Exception as e:
+        except Exception:
             # try again
             if openai_calls_retried < max_openai_calls_retries:
                 openai_calls_retried += 1
@@ -139,7 +139,7 @@ def save_code_to_file(code: str, file_path: str):
         mode = 'a' if os.path.exists(full_path) else 'w'
         with open(full_path, mode, encoding='utf-8') as f:
             f.write(code + '\n\n')
-    except:
+    except:  # noqa: E722
         pass
 
 def refactor_code(modified_code: List[Dict[str, Union[int, str]]], file_path: str):
@@ -478,7 +478,7 @@ def task_human_input_agent(task: str, human_feedback: str):
 
 ## END OF AGENTS ##
 
-print_colored_text(f"****Objective****", color='green')
+print_colored_text("****Objective****", color='green')
 print_char_by_char(OBJECTIVE, 0.00001, 10)
 
 # Create the tasks
