@@ -10,6 +10,8 @@ db = "^0.1.1"
 flask = "^3.0.3"
 werkzeug = "^3.0.4"
 setuptools = "^75.1.0"
+sqlalchemy = "^2.0.36"
+cryptography = "^43.0.3"
 
 [tool.pyright]
 # https://github.com/microsoft/pyright/blob/main/docs/configuration.md
