@@ -1,6 +1,7 @@
 from functionz.core.framework import func
 import json
 import litellm
+from babyagi.config import MODEL_CONFIG
 
 # Assuming `func` is the registry from your framework
 # and `execute_function_wrapper` is already registered in the database.
@@ -107,10 +108,9 @@ def chat_with_functions(chat_history, available_function_names) -> str:
             # Handle the case where the function is not found
             raise ValueError(f"Function '{func_name}' not found in the database.")
 
-
     # Call LiteLLM's completion API with the user message and available tools
     response = litellm.completion(
-        model="gpt-4-turbo",
+        model=MODEL_CONFIG["chat"],
         messages=chat_context,
         tools=tools,
         tool_choice="auto"
@@ -152,7 +152,7 @@ def chat_with_functions(chat_history, available_function_names) -> str:
 
         # Call LiteLLM again with the updated context including function responses
         second_response = litellm.completion(
-            model="gpt-4-turbo",
+            model=MODEL_CONFIG["chat"],
             messages=chat_context
         )
 

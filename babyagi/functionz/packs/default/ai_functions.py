@@ -1,6 +1,7 @@
 # packs/ai_generator.py
 
 from functionz.core.framework import func
+from babyagi.config import MODEL_CONFIG
 
 @func.register_function(
     metadata={"description": "GPT Call function using LiteLLm"},
@@ -10,7 +11,7 @@ from functionz.core.framework import func
 def gpt_call(prompt: str) -> str:
     from litellm import completion
     messages = [{"role": "user", "content": prompt}]
-    response = completion(model="gpt-4o", messages=messages)
+    response = completion(model=MODEL_CONFIG["completion"], messages=messages)
     return response['choices'][0]['message']['content']
 
 @func.register_function(
@@ -81,7 +82,7 @@ def generate_missing_descriptions() -> None:
     imports=["litellm"],
     key_dependencies=["openai_api_key"]
 )
-def embed_input(input_text: str, model: str = "text-embedding-ada-002", 
+def embed_input(input_text: str, model: str = None, 
                 encoding_format: str = "float", dimensions: int = None, 
                 timeout: int = 600) -> list:
     from litellm import embedding
@@ -89,6 +90,9 @@ def embed_input(input_text: str, model: str = "text-embedding-ada-002",
 
     # Set OpenAI API Key from environment variables
     os.environ['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY')
+
+    # Use provided model or default from config
+    model = model or MODEL_CONFIG["embedding"]
 
     # Prepare the embedding request with optional parameters
     embedding_params = {

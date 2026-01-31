@@ -4,7 +4,7 @@
 > The original BabyAGI from March 2023 introduced task planning as a method for developing autonomous agents. This project has been archived and moved to the [babyagi_archive](https://github.com/yoheinakajima/babyagi_archive) repo (September 2024 snapshot).
 
 > [!CAUTION]
-> This is a framework built by Yohei who has never held a job as a developer. The purpose of this repo is to share ideas and spark discussion and for experienced devs to play with. Not meant for production use. Use with cautioun.
+> This is a framework built by Yohei who has never held a job as a developer. The purpose of this repo is to share ideas and spark discussion and for experienced devs to play with. Not meant for production use. Use with caution.
 
 ---
 
@@ -25,6 +25,7 @@ The core is a new function framework (**functionz**) for storing, managing, and 
   - [Log](#log)
 - [Dashboard](#dashboard)
 - [Pre-loaded Functions](#pre-loaded-functions)
+- [Model Configuration](#model-configuration)
 - [Future/Draft Features](#futuredraft-features)
 - [API Reference](#api-reference)
 - [Contributing](#contributing)
@@ -198,6 +199,25 @@ BabyAGI includes two pre-loaded function packs:
 2. **AI Functions (`packs/ai_generator.py`):**
    - **AI Description & Embeddings:** Auto-generate descriptions and embeddings for functions.
    - **Function Selection:** Find or choose similar functions based on prompts.
+
+## Model Configuration
+
+BabyAGI uses LiteLLM for model interactions and allows you to configure different models for different tasks through environment variables. The following environment variables are available:
+
+- `BABYAGI_COMPLETION_MODEL`: Model for completion tasks (default: "gpt-4-turbo")
+- `BABYAGI_EMBEDDING_MODEL`: Model for embedding tasks (default: "text-embedding-ada-002")
+- `BABYAGI_MINI_MODEL`: Model for lightweight tasks (default: "gpt-4o-mini")
+- `BABYAGI_CHAT_MODEL`: Model for chat tasks (default: "gpt-3.5-turbo")
+
+Example usage:
+```bash
+export BABYAGI_COMPLETION_MODEL="gpt-4"
+export BABYAGI_CHAT_MODEL="gpt-3.5-turbo"
+export BABYAGI_EMBEDDING_MODEL="text-embedding-3-small"
+export BABYAGI_MINI_MODEL="gpt-3.5-turbo"
+```
+
+If these environment variables are not set, BabyAGI will use the default models specified above.
 
 ## Running a Self-Building Agent
 

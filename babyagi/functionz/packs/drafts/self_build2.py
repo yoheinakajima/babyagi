@@ -1,4 +1,5 @@
 from functionz.core.framework import func
+from babyagi.config import MODEL_CONFIG
 
 @func.register_function(
     metadata={
@@ -74,7 +75,7 @@ Number of Queries to Generate:
 
     try:
         generation_response = completion(
-            model="gpt-4o-mini",
+            model=MODEL_CONFIG["mini"],
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": generation_prompt}

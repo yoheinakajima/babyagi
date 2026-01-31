@@ -1,4 +1,5 @@
 import babyagi
+from babyagi.config import MODEL_CONFIG
 
 @babyagi.register_function(
     metadata={"description": "Executes AI-generated Python code in a secure E2B sandbox."},
@@ -32,7 +33,7 @@ def execute_code_in_sandbox(code: str):
 # Function 2: Chat with LLM (OpenAI) and parse response to execute in sandbox
 
 @babyagi.register_function(
-    metadata={"description": "Calls the OpenAI API (gpt-3.5-turbo) to generate code and execute it in an E2B sandbox."},
+    metadata={"description": "Calls the OpenAI API to generate code and execute it in an E2B sandbox."},
     imports=["litellm", "os"],
     key_dependencies=["openai_api_key"],
     dependencies=["execute_code_in_sandbox"]
@@ -54,7 +55,7 @@ def chat_with_llm_and_execute(user_message: str):
     messages = [{"role": "user", "content": user_message}]
 
     # Call the LLM using litellm completion method
-    response = completion(model="gpt-3.5-turbo", messages=messages)
+    response = completion(model=MODEL_CONFIG["chat"], messages=messages)
     llm_generated_code = response['choices'][0]['message']['content']
 
     # Execute the generated code in the E2B sandbox
