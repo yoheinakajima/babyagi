@@ -45,6 +45,8 @@ class FunctionRegistrar:
     def parse_function_parameters(self, code: str):
         """
         Parse the input and output parameters of a given function code.
+        Returns tuple of (input_params, output_params).
+        If parsing fails, logs the error and returns empty lists.
         """
         try:
             # Parse the source code into an AST
@@ -82,8 +84,14 @@ class FunctionRegistrar:
                     output_params.append({'name': 'output', 'type': 'Any'})
 
             return input_params, output_params
+        except StopIteration:
+            logger.error("No function definition found in the provided code")
+            return [], []
+        except SyntaxError as e:
+            logger.error(f"Syntax error in function code: {str(e)}")
+            return [], []
         except Exception as e:
-            # print(f"Error parsing function parameters: {str(e)}")
+            logger.error(f"Error parsing function parameters: {str(e)}")
             return [], []
 
     def parse_import(self, imp):
