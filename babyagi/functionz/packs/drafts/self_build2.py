@@ -89,6 +89,8 @@ Number of Queries to Generate:
 
     # Parse the response
     try:
+        if not generation_response.choices or generation_response.choices[0].message is None:
+            raise ValueError("LLM returned empty or filtered response")
         content = generation_response.choices[0].message.content
         print(f"[DEBUG] Raw Generation Content: {content}")
         generation_parsed = QueryGenerationResponse.parse_raw(content)

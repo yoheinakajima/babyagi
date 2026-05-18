@@ -114,6 +114,8 @@ def analyze_internal_functions(description: str, existing_functions: str, interm
 
     # Step 2.2: Access and parse the response
     try:
+        if not display_response.choices or display_response.choices[0].message is None:
+            raise ValueError("LLM returned empty or filtered response")
         content = display_response.choices[0].message.content
         print(f"[DEBUG] Raw Display Content: {content}")
         display_response_parsed = FunctionSuggestion.parse_raw(content)
@@ -250,6 +252,8 @@ def determine_required_external_apis(description: str, intermediate_steps: list)
 
     # Step 3.2: Access and parse the API response
     try:
+        if not api_response.choices or api_response.choices[0].message is None:
+            raise ValueError("LLM returned empty or filtered response")
         content = api_response.choices[0].message.content
         print(f"[DEBUG] Raw API Content: {content}")
         api_response_parsed = APIResponse.parse_raw(content)
@@ -390,6 +394,8 @@ def handle_api_documentation(api_name: str, description: str, intermediate_steps
 
     # Step 4.2: Access and parse the link selection response
     try:
+        if not link_selection_response.choices or link_selection_response.choices[0].message is None:
+            raise ValueError("LLM returned empty or filtered response")
         content = link_selection_response.choices[0].message.content
         print(f"[DEBUG] Raw Link Selection Content for {api_name}: {content}")
         link_selection_parsed = URLSelection.parse_raw(content)
@@ -473,7 +479,9 @@ Based on the new information, extract any additional relevant API methods, endpo
         }
         for result in extraction_results:
             try:
-                content = result.choices[0].message.content
+                if not result.choices or result.choices[0].message is None:
+            raise ValueError("LLM returned empty or filtered response")
+        content = result.choices[0].message.content
                 parsed_result = ExtractionInfo.parse_raw(content)
                 combined_extraction["relevant_info"] += parsed_result.relevant_info + "\n"
                 combined_extraction["additional_urls"].extend(parsed_result.additional_urls)
@@ -644,7 +652,9 @@ def generate_final_function_code(description: str, reusable_function_code: dict,
     }
     for result in final_results:
         try:
-            content = result.choices[0].message.content
+            if not result.choices or result.choices[0].message is None:
+            raise ValueError("LLM returned empty or filtered response")
+        content = result.choices[0].message.content
             parsed_result = GeneratedFunction.parse_raw(content)
             if not combined_final["name"]:
                 combined_final["name"] = parsed_result.name

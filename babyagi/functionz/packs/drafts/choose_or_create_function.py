@@ -89,6 +89,8 @@ Available Functions:
 
     # Parse the response
     try:
+        if not decision_response.choices or decision_response.choices[0].message is None:
+            raise ValueError("LLM returned empty or filtered response")
         content = decision_response.choices[0].message.content
         print(f"[DEBUG] Raw Decision Content: {content}")
         decision_parsed = FunctionDecision.parse_raw(content)
@@ -177,6 +179,8 @@ Available Functions:
 
     # Parse the response using the Pydantic model
     try:
+        if not param_response.choices or param_response.choices[0].message is None:
+            raise ValueError("LLM returned empty or filtered response")
         content = param_response.choices[0].message.content
         print(f"[DEBUG] Raw Parameter Content: {content}")
         function_params_model = FunctionParameters.parse_raw(content)
