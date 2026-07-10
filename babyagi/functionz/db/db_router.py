@@ -1,3 +1,4 @@
+import logging
 from typing import List, Optional, Dict, Any
 from contextlib import contextmanager
 from datetime import datetime
@@ -5,6 +6,8 @@ from datetime import datetime
 from .local_db import LocalDB
 from .base_db import BaseDB
 from .models import Import, Function, FunctionVersion, Log
+
+logger = logging.getLogger(__name__)
 
 class ImportResult:
     def __init__(self, name: str, source: str):
