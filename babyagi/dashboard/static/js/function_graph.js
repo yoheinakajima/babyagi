@@ -1,3 +1,7 @@
+function escapeHtml(str) {
+    return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 // function_graph.js
 let cy;
 
@@ -156,11 +160,11 @@ function showFunctionOverlay(functionName) {
         .then(response => response.json())
         .then(data => {
             content.innerHTML = `
-                <h3>${data.name}</h3>
+                <h3>${escapeHtml(data.name)}</h3>
                 <div id="tab-buttons">
-                    <button class="tab-button active" onclick="showTab('description', '${data.name}')">Description</button>
-                    <button class="tab-button" onclick="showTab('code', '${data.name}')">Code</button>
-                    <button class="tab-button" onclick="showTab('logs', '${data.name}')">Logs</button>
+                    <button class="tab-button active" onclick="showTab('description', '${escapeHtml(data.name)}')">Description</button>
+                    <button class="tab-button" onclick="showTab('code', '${escapeHtml(data.name)}')">Code</button>
+                    <button class="tab-button" onclick="showTab('logs', '${escapeHtml(data.name)}')">Logs</button>
                 </div>
                 <div id="tab-content">
                     <div id="description-tab">
@@ -221,7 +225,7 @@ function showLogs(functionName) {
             const logsTab = document.getElementById('logs-tab');
             logsTab.innerHTML = `
                 <h4>Logs:</h4>
-                <pre>${JSON.stringify(data, null, 2)}</pre>
+                <pre>${escapeHtml(JSON.stringify(data, null, 2))}</pre>
             `;
         });
 }

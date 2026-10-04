@@ -1,3 +1,7 @@
+function escapeHtml(str) {
+    return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 let currentSort = { key: 'timestamp', direction: 'desc' }; // Set default sort to 'timestamp' descending
 let allLogs = []; // Holds all fetched logs
 let filteredLogs = []; // Holds logs after filtering
@@ -115,8 +119,8 @@ function renderLogRow(tableBody, log, depth, parentRowId) {
 
     row.innerHTML = `
         <td><a href="${dashboardRoute}/log/${log.id}" class="function-link">${log.id}</a></td>
-        <td><a href="${dashboardRoute}/function/${encodeURIComponent(log.function_name)}" class="function-link">${log.function_name}</a></td>
-        <td style="padding-left:${depth * 20}px">${toggleIcon}${log.message}</td>
+        <td><a href="${dashboardRoute}/function/${encodeURIComponent(log.function_name)}" class="function-link">${escapeHtml(log.function_name)}</a></td>
+        <td style="padding-left:${depth * 20}px">${toggleIcon}${escapeHtml(log.message)}</td>
         <td>${new Date(log.timestamp).toLocaleString()}</td>
         <td>${capitalizeFirstLetter(log.log_type)}</td>
         <td>${log.time_spent ? log.time_spent.toFixed(3) : 'N/A'}</td>
@@ -186,8 +190,8 @@ function renderLogCard(container, log, depth) {
 
     card.innerHTML = `
         <h5>ID: <a href="${dashboardRoute}/log/${log.id}" class="function-link">${log.id}</a></h5>
-        <div class="log-meta">Function: <a href="${dashboardRoute}/function/${encodeURIComponent(log.function_name)}">${log.function_name}</a> | ${new Date(log.timestamp).toLocaleString()}</div>
-        <div class="log-details"><strong>Message:</strong> ${log.message}</div>
+        <div class="log-meta">Function: <a href="${dashboardRoute}/function/${encodeURIComponent(log.function_name)}">${escapeHtml(log.function_name)}</a> | ${new Date(log.timestamp).toLocaleString()}</div>
+        <div class="log-details"><strong>Message:</strong> ${escapeHtml(log.message)}</div>
         <div class="log-details"><strong>Log Type:</strong> ${capitalizeFirstLetter(log.log_type)}</div>
         <div class="log-details"><strong>Time Spent:</strong> ${log.time_spent ? log.time_spent.toFixed(3) : 'N/A'} seconds</div>
         <div class="log-details"><strong>Parent Log ID:</strong> ${log.parent_log_id !== null ? log.parent_log_id : 'N/A'}</div>

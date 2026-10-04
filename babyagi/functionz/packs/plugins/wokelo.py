@@ -1,6 +1,6 @@
 @func.register_function(
   metadata={"description": "Get an authentication token using the Wokelo API credentials."},
-  key_dependencies=["wokelo_username", "wokelo_password"],
+  key_dependencies=["wokelo_client_id", "wokelo_client_secret", "wokelo_username", "wokelo_password"],
   imports=[{"name": "requests", "lib": "requests"}]
 )
 def get_auth_token():
@@ -11,8 +11,8 @@ def get_auth_token():
 
   headers = {"Content-Type": "application/x-www-form-urlencoded"}
   data = {
-      "client_id": "B5I07FeItrqH5V8ytQKNwHPDHeMQnGBheg7A6FAg",
-      "client_secret": "JkVEP6FZhTkolz9vwkFSFAMVKLO0r9CnYU2RlGcRSzxZGZSkdSbSCed30VHg55IWU94F3sh0fTGUy8dTGslQZmcpCGvPhEUs9w3uobWa4ftXvsahriFCReRIxEUdd2f8",
+      "client_id": globals()['wokelo_client_id'],
+      "client_secret": globals()['wokelo_client_secret'],
       "grant_type": "password",
       "username": globals()['wokelo_username'],
       "password": globals()['wokelo_password'],

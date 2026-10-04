@@ -1,3 +1,7 @@
+function escapeHtml(str) {
+    return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 /* static/js/dashboard.js */
 
 // Assume that dashboardRoute, apiFunctionsUrl, and apiLogsUrl are defined in the HTML template
@@ -111,7 +115,7 @@ async function populateDashboard(functions) {
         const createdDate = new Date(func.created_date).toLocaleDateString();
 
         row.innerHTML = `
-            <td><a href="${dashboardRoute}/function/${encodeURIComponent(func.name)}" class="function-name">${func.name}</a></td>
+            <td><a href="${dashboardRoute}/function/${encodeURIComponent(func.name)}" class="function-name">${escapeHtml(func.name)}</a></td>
             <td class="small-text">v${func.version}</td>
             <td>${description}</td>
             <td>${formatParams(func.input_parameters)}</td>
@@ -129,7 +133,7 @@ async function populateDashboard(functions) {
         const card = document.createElement('div');
         card.className = 'function-card';
         card.innerHTML = `
-            <a href="${dashboardRoute}function/${encodeURIComponent(func.name)}" class="function-name">${func.name}</a>
+            <a href="${dashboardRoute}function/${encodeURIComponent(func.name)}" class="function-name">${escapeHtml(func.name)}</a>
             <div class="function-meta">v${func.version} | Created: ${createdDate}</div>
             <div class="function-description">${description}</div>
             <div class="params-title">Input Parameters:</div>
@@ -160,7 +164,7 @@ function formatParams(params) {
         return '<span class="small-text"></span>';
     }
     return '<ul class="params-list">' + 
-        params.map(param => `<li>${param.name}: <span class="small-text">${param.type}</span></li>`).join('') + 
+        params.map(param => `<li>${escapeHtml(param.name)}: <span class="small-text">${escapeHtml(param.type)}</span></li>`).join('') + 
         '</ul>';
 }
 
