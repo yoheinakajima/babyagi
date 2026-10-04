@@ -1,3 +1,7 @@
+function escapeHtml(str) {
+    return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 // At the top of function_details.js
 
 
@@ -47,7 +51,7 @@ function loadFunctionDetails() {
         })
         .catch(error => {
             console.error('Error:', error);
-            document.getElementById('functionDetails').innerHTML = `<p>Error loading function details: ${error.message}</p>`;
+            document.getElementById('functionDetails').innerHTML = `<p>Error loading function details: ${escapeHtml(error.message)}</p>`;
         });
 }
 
@@ -63,7 +67,7 @@ function loadFunctionLogs() {
             let logsHtml = logs.map(log => `
                 <div class="log-entry">
                     <strong>Timestamp:</strong> ${new Date(log.timestamp).toLocaleString()}<br>
-                    <strong>Message:</strong> ${log.message}<br>
+                    <strong>Message:</strong> ${escapeHtml(log.message)}<br>
                     <strong>Params:</strong> ${JSON.stringify(log.params)}<br>
                     <strong>Output:</strong> ${JSON.stringify(log.output)}<br>
                     <strong>Time spent:</strong> ${log.time_spent} seconds
@@ -73,7 +77,7 @@ function loadFunctionLogs() {
         })
         .catch(error => {
             console.error('Error:', error);
-            document.getElementById('functionLogs').innerHTML = `<p>Error loading logs: ${error.message}</p>`;
+            document.getElementById('functionLogs').innerHTML = `<p>Error loading logs: ${escapeHtml(error.message)}</p>`;
         });
 }
 
@@ -159,13 +163,13 @@ function displayFunctionDetails() {
         <div class="detail-item">
             <span class="detail-label">Input Parameters:</span>
             <ul class="detail-list">
-                ${functionData.input_parameters.map(param => `<li>${param.name} (${param.type})</li>`).join('')}
+                ${functionData.input_parameters.map(param => `<li>${escapeHtml(param.name)} (${escapeHtml(param.type)})</li>`).join('')}
             </ul>
         </div>
         <div class="detail-item">
             <span class="detail-label">Output Parameters:</span>
             <ul class="detail-list">
-                ${functionData.output_parameters.map(param => `<li>${param.name} (${param.type})</li>`).join('')}
+                ${functionData.output_parameters.map(param => `<li>${escapeHtml(param.name)} (${escapeHtml(param.type)})</li>`).join('')}
             </ul>
         </div>
     `;
@@ -195,15 +199,15 @@ function createExecutionForm() {
             if (param.type === 'json') {
                 formHtml += `
                     <div class="param-input">
-                        <label for="${param.name}">${param.name} (${param.type}):</label>
-                        <textarea id="${param.name}" name="${param.name}" rows="5" cols="50"></textarea>
+                        <label for="${escapeHtml(param.name)}">${escapeHtml(param.name)} (${escapeHtml(param.type)}):</label>
+                        <textarea id="${escapeHtml(param.name)}" name="${escapeHtml(param.name)}" rows="5" cols="50"></textarea>
                     </div>
                 `;
             } else {
                 formHtml += `
                     <div class="param-input">
-                        <label for="${param.name}">${param.name} (${param.type}):</label>
-                        <input type="text" id="${param.name}" name="${param.name}">
+                        <label for="${escapeHtml(param.name)}">${escapeHtml(param.name)} (${escapeHtml(param.type)}):</label>
+                        <input type="text" id="${escapeHtml(param.name)}" name="${escapeHtml(param.name)}">
                     </div>
                 `;
             }
@@ -274,20 +278,20 @@ function executeFunction() {
                 switch (param.type) {
                     case 'int':
                         value = parseInt(value, 10);
-                        if (isNaN(value)) throw new Error(`Invalid integer for ${param.name}`);
+                        if (isNaN(value)) throw new Error(`Invalid integer for ${escapeHtml(param.name)}`);
                         break;
                     case 'float':
                         value = parseFloat(value);
-                        if (isNaN(value)) throw new Error(`Invalid float for ${param.name}`);
+                        if (isNaN(value)) throw new Error(`Invalid float for ${escapeHtml(param.name)}`);
                         break;
                     case 'bool':
                         value = value.toLowerCase();
-                        if (value !== 'true' && value !== 'false') throw new Error(`Invalid boolean for ${param.name}. Use 'true' or 'false'.`);
+                        if (value !== 'true' && value !== 'false') throw new Error(`Invalid boolean for ${escapeHtml(param.name)}. Use 'true' or 'false'.`);
                         value = value === 'true';
                         break;
                     case 'date':
                         value = new Date(value);
-                        if (isNaN(value.getTime())) throw new Error(`Invalid date for ${param.name}`);
+                        if (isNaN(value.getTime())) throw new Error(`Invalid date for ${escapeHtml(param.name)}`);
                         break;
                     case 'list':
                         value = value.split(',').map(item => item.trim());
@@ -298,7 +302,7 @@ function executeFunction() {
                 }
                 params[param.name] = value;
             } catch (error) {
-                alert(`Error with parameter ${param.name}: ${error.message}`);
+                alert(`Error with parameter ${escapeHtml(param.name)}: ${escapeHtml(error.message)}`);
                 return;
             }
         }
@@ -320,11 +324,11 @@ function executeFunction() {
         return response.json();
     })
     .then(data => {
-        document.getElementById('executionResult').innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+        document.getElementById('executionResult').innerHTML = `<pre>${escapeHtml(JSON.stringify(data, null, 2))}</pre>`;
     })
     .catch((error) => {
         console.error('Error:', error);
-        document.getElementById('executionResult').innerHTML = `<pre class="error">Error executing function: ${error.message}</pre>`;
+        document.getElementById('executionResult').innerHTML = `<pre class="error">Error executing function: ${escapeHtml(error.message)}</pre>`;
     });
 }
 
@@ -351,7 +355,7 @@ function loadFunctionVersions() {
             let versionHtml = versions.map(version => `
                 <div class="version-item ${version.is_active ? 'active' : ''}">
                     <strong>Version ${version.version}</strong> - Created: ${new Date(version.created_date).toLocaleString()}
-                    <pre>${version.code}</pre>
+                    <pre>${escapeHtml(version.code)}</pre>
                     <button class="button" onclick="activateVersion(${version.version})">Activate Version</button>
                 </div>
             `).join('');
