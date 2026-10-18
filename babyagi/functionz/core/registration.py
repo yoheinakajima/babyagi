@@ -55,11 +55,15 @@ class FunctionRegistrar:
 
             # Parse input parameters
             input_params = []
-            for arg in function_def.args.args:
+            required_count = len(function_def.args.args) - len(function_def.args.defaults)
+            for index, arg in enumerate(function_def.args.args):
                 param_type = 'Any'
                 if arg.annotation:
                     param_type = ast.unparse(arg.annotation)
-                input_params.append({'name': arg.arg, 'type': param_type})
+                input_params.append({
+                    'name': arg.arg, 'type': param_type,
+                    'required': index < required_count,
+                })
 
             # Parse return statement to identify output parameters
             output_params = []

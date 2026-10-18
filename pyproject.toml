@@ -10,6 +10,9 @@ db = "^0.1.1"
 flask = "^3.0.3"
 werkzeug = "^3.0.4"
 setuptools = "^75.1.0"
+mcp = ">=1.30,<2"
+httpx = ">=0.27,<1"
+anyio = ">=4.5,<5"
 
 [tool.pyright]
 # https://github.com/microsoft/pyright/blob/main/docs/configuration.md

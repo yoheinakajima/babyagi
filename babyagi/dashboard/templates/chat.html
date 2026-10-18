@@ -245,6 +245,12 @@
                 // Optionally, you can initialize with system message if needed
                 // { role: 'system', message: 'You are a helpful assistant.' }
             ];
+            // This page owns one conversation, including follow-ups and retries.
+            // A new page/chat gets new context, independent of the server process.
+            const searchContext = { session_id: Array.from(
+                crypto.getRandomValues(new Uint8Array(16)),
+                value => value.toString(16).padStart(2, '0')
+            ).join('') };
 
             // Function to fetch available functions using /api/functions endpoint
             function fetchFunctions() {
@@ -443,6 +449,7 @@
                 // Prepare parameters
                 const params = {
                     chat_history: chatHistory,
+                    search_context: searchContext,
                     available_function_names: availableFunctions.join(', ')
                 };
 

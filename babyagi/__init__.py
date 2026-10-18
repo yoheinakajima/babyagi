@@ -131,6 +131,7 @@ try:
     _func_instance.load_function_pack('default/default_functions')
     _func_instance.load_function_pack('default/ai_functions')
     _func_instance.load_function_pack('default/os')
+    _func_instance.load_function_pack('default/web_search')
     _func_instance.load_function_pack('default/function_calling_chat')
 except Exception as e:
     print(f"Error loading default function packs: {e}")
